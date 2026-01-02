@@ -3,10 +3,10 @@ Data models for system information collection.
 """
 
 from .environment import EnvironmentState
-from .permissions import PermissionsInfo, ResourceInfo
 from .hardware import HardwareInfo
-from .software import SoftwareInfo
+from .permissions import PermissionsInfo, ResourceInfo
 from .report import SystemReport
+from .software import SoftwareInfo
 
 __all__ = [
     "EnvironmentState",
