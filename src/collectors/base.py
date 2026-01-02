@@ -144,7 +144,7 @@ class BaseCollector(ABC, Generic[T]):
 
     def _read_file_sync(self, path: str) -> str:
         """Synchronous file read for executor."""
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             return f.read()
 
     async def safe_call(
