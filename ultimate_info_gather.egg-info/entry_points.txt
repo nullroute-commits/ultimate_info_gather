@@ -1,0 +1,2 @@
+[console_scripts]
+info-gather = src.orchestrator:main
