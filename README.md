@@ -1,0 +1,210 @@
+# Ultimate Info Gather
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+An async Python 3.11+ OOP framework for comprehensive system information collection, permission analysis, and hardware/software inventory.
+
+## Features
+
+- **🔍 Environment Detection**: Captures Python runtime, process info, and execution context
+- **🔐 Permission Analysis**: Determines permission levels, capabilities, and resource access
+- **🖥️ Hardware Inventory**: Collects CPU, memory, storage, network, and GPU information  
+- **📦 Software Inventory**: Catalogs OS, packages, services, containers, and processes
+- **⚡ Fully Async**: Built on asyncio for efficient parallel data collection
+- **📊 Multiple Output Formats**: JSON, Markdown, and text reports
+- **🏗️ OOP Architecture**: Clean, extensible collector-based design
+
+## Requirements
+
+- Python 3.11 or higher
+- Linux operating system (primary target)
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/example/ultimate-info-gather.git
+cd ultimate-info-gather
+
+# Create virtual environment
+python3.11 -m venv venv
+source venv/bin/activate
+
+# Install in development mode
+pip install -e ".[dev,docs]"
+```
+
+## Quick Start
+
+### Command Line
+
+```bash
+# Run full collection
+python main.py
+
+# Specify output directory
+python main.py -o ./reports
+
+# Select output formats
+python main.py -f json markdown
+
+# Verbose output
+python main.py -v
+
+# Quiet mode (no progress)
+python main.py -q
+```
+
+### Programmatic Usage
+
+```python
+import asyncio
+from src.orchestrator import InfoGatherOrchestrator
+
+async def main():
+    # Create orchestrator
+    orchestrator = InfoGatherOrchestrator(output_dir='./output')
+    
+    # Collect all information
+    report = await orchestrator.collect_all()
+    
+    # Access stored data (Objectives 1-3)
+    env = orchestrator.environment_state      # Objective 1
+    perms = orchestrator.permissions_info     # Objective 2
+    hw = orchestrator.hardware_info           # Objective 3
+    sw = orchestrator.software_info           # Objective 3
+    
+    # Generate outputs
+    outputs = await orchestrator.generate_outputs(report)
+    
+    # Print summary
+    print(report.get_full_summary())
+
+asyncio.run(main())
+```
+
+### Using Individual Collectors
+
+```python
+import asyncio
+from src.collectors import EnvironmentCollector, PermissionsCollector
+
+async def main():
+    # Collect environment info
+    env_collector = EnvironmentCollector()
+    env_result = await env_collector.safe_collect()
+    
+    if env_result.success:
+        env_state = env_result.data
+        print(env_state.get_summary())
+        
+        # Use environment state for permissions collection
+        perm_collector = PermissionsCollector(environment_state=env_state)
+        perm_result = await perm_collector.safe_collect()
+        
+        if perm_result.success:
+            print(perm_result.data.get_summary())
+
+asyncio.run(main())
+```
+
+## Architecture
+
+```
+ultimate_info_gather/
+├── src/
+│   ├── __init__.py
+│   ├── orchestrator.py          # Main coordinator
+│   ├── models/                   # Data models
+│   │   ├── environment.py       # Environment state model
+│   │   ├── permissions.py       # Permissions model
+│   │   ├── hardware.py          # Hardware model
+│   │   ├── software.py          # Software model
+│   │   └── report.py            # Report aggregation
+│   └── collectors/               # Async collectors
+│       ├── base.py              # Base collector class
+│       ├── environment_collector.py
+│       ├── permissions_collector.py
+│       ├── hardware_collector.py
+│       └── software_collector.py
+├── docs/                         # MkDocs documentation
+├── tests/                        # Test suite
+├── main.py                       # CLI entry point
+└── pyproject.toml               # Project configuration
+```
+
+## Collection Phases
+
+The orchestrator executes collection in a specific sequence to satisfy data dependencies:
+
+1. **Phase 1 - Environment** (Objective 1)
+   - Python environment details
+   - Process information
+   - Execution mode detection
+   - Platform identification
+
+2. **Phase 2 - Permissions** (Objective 2)
+   - User/group analysis
+   - Linux capabilities
+   - File system access levels
+   - Security context (SELinux/AppArmor)
+   - Resource limits
+
+3. **Phase 3 - Hardware & Software** (Objective 3)
+   - Run in parallel for efficiency
+   - Hardware: CPU, memory, storage, network, GPU, USB
+   - Software: OS, packages, services, containers, processes
+
+## Data Storage
+
+All collected data is stored for later use as specified:
+
+```python
+orchestrator = InfoGatherOrchestrator()
+report = await orchestrator.collect_all()
+
+# Access stored data
+stored = orchestrator.get_stored_data()
+# {
+#     'environment': EnvironmentState,
+#     'permissions': PermissionsInfo,
+#     'hardware': HardwareInfo,
+#     'software': SoftwareInfo,
+# }
+```
+
+## Documentation
+
+Generate and serve documentation:
+
+```bash
+# Install docs dependencies
+pip install -e ".[docs]"
+
+# Build documentation
+mkdocs build
+
+# Serve locally
+mkdocs serve
+```
+
+## Testing
+
+```bash
+# Run tests
+pytest
+
+# With coverage
+pytest --cov=src --cov-report=html
+
+# Type checking
+mypy src/
+
+# Linting
+ruff check src/
+```
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.

@@ -1,0 +1,100 @@
+site_name: Ultimate Info Gather
+site_description: Async Python 3.11+ System Information Collection Framework
+site_author: System Administrator
+repo_url: https://github.com/example/ultimate-info-gather
+repo_name: ultimate-info-gather
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - Overview: guide/overview.md
+    - Environment Collection: guide/environment.md
+    - Permissions Analysis: guide/permissions.md
+    - Hardware Scanning: guide/hardware.md
+    - Software Inventory: guide/software.md
+    - Report Generation: guide/reports.md
+  - API Reference:
+    - Orchestrator: api/orchestrator.md
+    - Models: api/models.md
+    - Collectors: api/collectors.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Architecture: development/architecture.md
+    - Testing: development/testing.md
+  - Agent Specification: agent.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            heading_level: 2
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/example/ultimate-info-gather
+  version:
+    provider: mike
+
+copyright: Copyright &copy; 2024 Ultimate Info Gather

@@ -1,0 +1,2253 @@
+{
+  "report_metadata": {
+    "report_id": "a67479b2-6397-40da-86b9-3eb0cf3149e0",
+    "generated_at": "2026-01-02T14:14:47.632560",
+    "generator_version": "1.0.0",
+    "total_collection_time_ms": 587.9463900346309,
+    "collection_errors": [],
+    "warnings": [
+      "Failed to read /sys/class/dmi/id/product_uuid: [Errno 2] No such file or directory: '/sys/class/dmi/id/product_uuid'",
+      "Failed to read /sys/class/net/lo/speed: [Errno 22] Invalid argument",
+      "Failed to read /proc/56476/comm: [Errno 2] No such file or directory: '/proc/56476/comm'",
+      "Failed to read /proc/56476/cmdline: [Errno 2] No such file or directory: '/proc/56476/cmdline'",
+      "Failed to read /proc/56476/status: [Errno 2] No such file or directory: '/proc/56476/status'",
+      "Failed to read /proc/56477/comm: [Errno 2] No such file or directory: '/proc/56477/comm'",
+      "Failed to read /proc/56477/cmdline: [Errno 2] No such file or directory: '/proc/56477/cmdline'",
+      "Failed to read /proc/56477/status: [Errno 2] No such file or directory: '/proc/56477/status'",
+      "Failed to read /proc/56484/comm: [Errno 2] No such file or directory: '/proc/56484/comm'",
+      "Failed to read /proc/56484/cmdline: [Errno 2] No such file or directory: '/proc/56484/cmdline'",
+      "Failed to read /proc/56484/status: [Errno 2] No such file or directory: '/proc/56484/status'",
+      "Failed to read /proc/56485/comm: [Errno 2] No such file or directory: '/proc/56485/comm'",
+      "Failed to read /proc/56485/cmdline: [Errno 2] No such file or directory: '/proc/56485/cmdline'",
+      "Failed to read /proc/56485/status: [Errno 2] No such file or directory: '/proc/56485/status'",
+      "Failed to read /proc/56486/comm: [Errno 2] No such file or directory: '/proc/56486/comm'",
+      "Failed to read /proc/56486/cmdline: [Errno 2] No such file or directory: '/proc/56486/cmdline'",
+      "Failed to read /proc/56486/status: [Errno 2] No such file or directory: '/proc/56486/status'",
+      "Failed to read /proc/56487/comm: [Errno 2] No such file or directory: '/proc/56487/comm'",
+      "Failed to read /proc/56487/cmdline: [Errno 2] No such file or directory: '/proc/56487/cmdline'",
+      "Failed to read /proc/56487/status: [Errno 2] No such file or directory: '/proc/56487/status'",
+      "Failed to read /proc/56488/comm: [Errno 2] No such file or directory: '/proc/56488/comm'",
+      "Failed to read /proc/56488/cmdline: [Errno 2] No such file or directory: '/proc/56488/cmdline'",
+      "Failed to read /proc/56488/status: [Errno 2] No such file or directory: '/proc/56488/status'",
+      "Failed to read /proc/56490/comm: [Errno 2] No such file or directory: '/proc/56490/comm'",
+      "Failed to read /proc/56490/cmdline: [Errno 2] No such file or directory: '/proc/56490/cmdline'",
+      "Failed to read /proc/56490/status: [Errno 2] No such file or directory: '/proc/56490/status'"
+    ]
+  },
+  "environment": {
+    "timestamp": "2026-01-02T14:14:47.044676",
+    "python_env": {
+      "version": "3.12.3 (main, Nov  6 2025, 13:44:16) [GCC 13.3.0]",
+      "version_info": [
+        3,
+        12,
+        3,
+        "final",
+        0
+      ],
+      "implementation": "cpython",
+      "executable": "/usr/bin/python3",
+      "prefix": "/usr",
+      "base_prefix": "/usr",
+      "is_virtual_env": false,
+      "platform": "linux",
+      "path": [
+        "/home/amshea/ultimate_info_gather",
+        "/usr/lib/python312.zip",
+        "/usr/lib/python3.12",
+        "/usr/lib/python3.12/lib-dynload",
+        "/usr/local/lib/python3.12/dist-packages",
+        "/usr/lib/python3/dist-packages"
+      ]
+    },
+    "process_info": {
+      "pid": 56470,
+      "ppid": 54071,
+      "uid": 1000,
+      "gid": 1000,
+      "euid": 1000,
+      "egid": 1000,
+      "cwd": "/home/amshea/ultimate_info_gather",
+      "argv": [
+        "main.py",
+        "-o",
+        "./output",
+        "-v"
+      ]
+    },
+    "execution_mode": "SCRIPT",
+    "platform_type": "LINUX",
+    "hostname": "DESKTOP-BSUBRIF",
+    "is_root": false,
+    "is_container": false,
+    "is_wsl": true,
+    "terminal_type": "xterm-256color",
+    "shell": "/bin/bash",
+    "home_directory": "/home/amshea",
+    "temp_directory": "/tmp",
+    "collection_duration_ms": 3.503238083794713,
+    "errors": []
+  },
+  "permissions": {
+    "timestamp": "2026-01-02T14:14:47.048222",
+    "permission_level": "SUDO",
+    "user_id": 1000,
+    "user_name": "amshea",
+    "effective_user_id": 1000,
+    "groups": [
+      {
+        "gid": 4,
+        "name": "adm",
+        "privileged": true
+      },
+      {
+        "gid": 24,
+        "name": "cdrom",
+        "privileged": false
+      },
+      {
+        "gid": 27,
+        "name": "sudo",
+        "privileged": true
+      },
+      {
+        "gid": 30,
+        "name": "dip",
+        "privileged": false
+      },
+      {
+        "gid": 46,
+        "name": "plugdev",
+        "privileged": false
+      },
+      {
+        "gid": 100,
+        "name": "users",
+        "privileged": false
+      },
+      {
+        "gid": 1000,
+        "name": "amshea",
+        "privileged": false
+      },
+      {
+        "gid": 1001,
+        "name": "docker",
+        "privileged": true
+      }
+    ],
+    "privileged_groups": [
+      "adm",
+      "sudo",
+      "docker"
+    ],
+    "capabilities": [
+      {
+        "name": "cap_chown",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_dac_override",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_dac_read_search",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_fowner",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_fsetid",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_kill",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_setgid",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_setuid",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_setpcap",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_linux_immutable",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_net_bind_service",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_net_broadcast",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_net_admin",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_net_raw",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_ipc_lock",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_ipc_owner",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_module",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_rawio",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_chroot",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_ptrace",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_pacct",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_admin",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_boot",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_nice",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_resource",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_time",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_sys_tty_config",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_mknod",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_lease",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_audit_write",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_audit_control",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      },
+      {
+        "name": "cap_setfcap",
+        "effective": false,
+        "permitted": false,
+        "inheritable": false
+      }
+    ],
+    "has_cap_sys_admin": false,
+    "has_cap_net_admin": false,
+    "has_cap_dac_override": false,
+    "fs_permissions": {
+      "/": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/etc": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/etc/passwd": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": false,
+        "access_level": "READ"
+      },
+      "/etc/shadow": {
+        "exists": true,
+        "readable": false,
+        "writable": false,
+        "executable": false,
+        "access_level": "NONE"
+      },
+      "/etc/sudoers": {
+        "exists": true,
+        "readable": false,
+        "writable": false,
+        "executable": false,
+        "access_level": "NONE"
+      },
+      "/var/log": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/var/run": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/tmp": {
+        "exists": true,
+        "readable": true,
+        "writable": true,
+        "executable": true,
+        "access_level": "FULL"
+      },
+      "/root": {
+        "exists": true,
+        "readable": false,
+        "writable": false,
+        "executable": false,
+        "access_level": "NONE"
+      },
+      "/home": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/proc": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/sys": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/dev": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/boot": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/usr/bin": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      },
+      "/usr/sbin": {
+        "exists": true,
+        "readable": true,
+        "writable": false,
+        "executable": true,
+        "access_level": "READ_EXECUTE"
+      }
+    },
+    "selinux_enabled": false,
+    "selinux_context": null,
+    "apparmor_enabled": false,
+    "apparmor_profile": null,
+    "can_sudo": true,
+    "sudo_nopasswd": false,
+    "resources": {
+      "cpu_count": 12,
+      "cpu_count_logical": 12,
+      "memory_total_bytes": 8276594688,
+      "memory_available_bytes": 5262557184,
+      "disk_partitions": [
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wslg/distro",
+          "fstype": "ext4",
+          "options": "ro,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/99d81445d46bbc17709ceeb9413805268b99d153ad860fe4b095ef5811c5c540",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/8316420f836eb91d5f290196ac56739e8ddd33f928bafb36813efb834728483d",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/261aa33cd6e5803dee6bd3f0437a3066fce8232571f20768c87575ec90133588",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/9fceff81953766e893f0c69116358ca986f331d6acf84bbdae1a0d7ecabd35f4",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/71cc2dc728bbc0bafcf82c7de452b15a7eb4642864eefe61e83b873185590c97",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/83a959169c1c9585c146a52488d4ba969774e1625c3b5029f87fbe483c2f2b1d",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/8516528570d8e7fc4558180a1dfa4918dd67aa870982d030be67ea3c310866e9",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/8445838dc363ae36785508e6b433c8a3c5cdcb67a6103325e670b9a9e5c56867",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sdg",
+          "mountpoint": "/mnt/wsl/docker-desktop/docker-desktop-user-distro",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/loop0",
+          "mountpoint": "/mnt/wsl/docker-desktop/cli-tools",
+          "fstype": "iso9660",
+          "options": "ro,relatime,nojoliet,check=s,map=n,blocksize=2048,iocharset=iso8859-1"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/1b255ea9ff7d127064e55fa595df995e7a073c75f412606036d56d00fbbf2a9e",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/d45120184943e015ca457d7f68405bdf1a3eaec05c96225040306dbb91155df8",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/24f21c5c537bac97a184cf1010ce4de39a3a4bdd274f7708bd06e19af52467e4",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/ba99a134fa4b9ba745503dd7d87ec1f8256289748d54f18717714f4436c904bc",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/17aa0ef790f3154adac48db53b57b36255cd4d62f0a7d410ded1ed36cf108463",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/e4ce9b9b8d8c99080da237e9c3c542a593a0832957fb16a3d2c2e593950046ed",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/022bee2054af6470dac72c3d45d34584ff9339371322a9114858f124488799bf",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        },
+        {
+          "device": "/dev/sde",
+          "mountpoint": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/9e06c8d0d6c193a2b864aa6a954bf98131ad9f950f54d7b86577ca71f1f21f7e",
+          "fstype": "ext4",
+          "options": "rw,relatime,discard,errors=remount-ro,data=ordered"
+        }
+      ],
+      "network_interfaces": [
+        "eth0",
+        "lo"
+      ],
+      "resource_limits": {
+        "max_open_files": [
+          1048576,
+          1048576
+        ],
+        "max_processes": [
+          31545,
+          31545
+        ],
+        "max_memory": [
+          -1,
+          -1
+        ],
+        "max_stack_size": [
+          8388608,
+          -1
+        ],
+        "max_cpu_time": [
+          -1,
+          -1
+        ],
+        "max_file_size": [
+          -1,
+          -1
+        ],
+        "max_core_size": [
+          0,
+          -1
+        ]
+      }
+    },
+    "collection_duration_ms": 113.47774416208267,
+    "errors": []
+  },
+  "hardware": {
+    "timestamp": "2026-01-02T14:14:47.161815",
+    "system_board": null,
+    "machine_id": "653633c026ca45eea394e8d472a76626",
+    "product_uuid": null,
+    "cpu": {
+      "model_name": "AMD Ryzen 5 3600 6-Core Processor",
+      "vendor": "AuthenticAMD",
+      "architecture": "x86_64",
+      "physical_cores": 1,
+      "logical_cores": 12,
+      "max_frequency_mhz": null,
+      "current_frequency_mhz": null,
+      "cache_size_kb": {
+        "L2": 512,
+        "L1": 32,
+        "L3": 16384
+      },
+      "flags": [
+        "fpu",
+        "vme",
+        "de",
+        "pse",
+        "tsc",
+        "msr",
+        "pae",
+        "mce",
+        "cx8",
+        "apic",
+        "sep",
+        "mtrr",
+        "pge",
+        "mca",
+        "cmov",
+        "pat",
+        "pse36",
+        "clflush",
+        "mmx",
+        "fxsr",
+        "sse",
+        "sse2",
+        "ht",
+        "syscall",
+        "nx",
+        "mmxext",
+        "fxsr_opt",
+        "pdpe1gb",
+        "rdtscp",
+        "lm",
+        "constant_tsc",
+        "rep_good",
+        "nopl",
+        "tsc_reliable",
+        "nonstop_tsc",
+        "cpuid",
+        "extd_apicid",
+        "pni",
+        "pclmulqdq",
+        "ssse3",
+        "fma",
+        "cx16",
+        "sse4_1",
+        "sse4_2",
+        "movbe",
+        "popcnt",
+        "aes",
+        "xsave",
+        "avx",
+        "f16c",
+        "rdrand",
+        "hypervisor",
+        "lahf_lm",
+        "cmp_legacy",
+        "svm",
+        "cr8_legacy",
+        "abm",
+        "sse4a",
+        "misalignsse",
+        "3dnowprefetch",
+        "osvw",
+        "topoext",
+        "perfctr_core",
+        "ssbd",
+        "ibpb",
+        "stibp",
+        "vmmcall",
+        "fsgsbase",
+        "bmi1",
+        "avx2",
+        "smep",
+        "bmi2",
+        "rdseed",
+        "adx",
+        "smap",
+        "clflushopt",
+        "clwb",
+        "sha_ni",
+        "xsaveopt",
+        "xsavec",
+        "xgetbv1",
+        "clzero",
+        "xsaveerptr",
+        "arat",
+        "npt",
+        "nrip_save",
+        "tsc_scale",
+        "vmcb_clean",
+        "flushbyasid",
+        "decodeassists",
+        "pausefilter",
+        "pfthreshold",
+        "v_vmsave_vmload",
+        "umip",
+        "rdpid"
+      ],
+      "virtualization_supported": true,
+      "is_hypervisor": true
+    },
+    "memory": {
+      "total_bytes": 8276594688,
+      "available_bytes": 5261524992,
+      "used_bytes": 3015069696,
+      "percent_used": 36.428867301807884,
+      "swap_total_bytes": 2147483648,
+      "swap_used_bytes": 269668352,
+      "swap_free_bytes": 1877815296,
+      "memory_type": null,
+      "speed_mhz": null,
+      "slots_used": null,
+      "slots_total": null
+    },
+    "storage_devices": [
+      {
+        "device_path": "/dev/sdf",
+        "name": "sdf",
+        "model": "Virtual Disk",
+        "serial": null,
+        "size_bytes": 1099511627776,
+        "type": "HDD",
+        "is_removable": false,
+        "partitions": [],
+        "mount_points": [],
+        "filesystem": null,
+        "access_level": "NONE",
+        "is_system_disk": false,
+        "smart_status": null
+      },
+      {
+        "device_path": "/dev/sdb",
+        "name": "sdb",
+        "model": "Virtual Disk",
+        "serial": null,
+        "size_bytes": 2147487744,
+        "type": "HDD",
+        "is_removable": false,
+        "partitions": [],
+        "mount_points": [],
+        "filesystem": null,
+        "access_level": "NONE",
+        "is_system_disk": false,
+        "smart_status": null
+      },
+      {
+        "device_path": "/dev/sdg",
+        "name": "sdg",
+        "model": "Virtual Disk",
+        "serial": null,
+        "size_bytes": 150755328,
+        "type": "HDD",
+        "is_removable": false,
+        "partitions": [],
+        "mount_points": [
+          "/mnt/wsl/docker-desktop/docker-desktop-user-distro"
+        ],
+        "filesystem": null,
+        "access_level": "NONE",
+        "is_system_disk": false,
+        "smart_status": null
+      },
+      {
+        "device_path": "/dev/sde",
+        "name": "sde",
+        "model": "Virtual Disk",
+        "serial": null,
+        "size_bytes": 1099511627776,
+        "type": "HDD",
+        "is_removable": false,
+        "partitions": [],
+        "mount_points": [
+          "/",
+          "/mnt/wslg/distro",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/99d81445d46bbc17709ceeb9413805268b99d153ad860fe4b095ef5811c5c540",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/8316420f836eb91d5f290196ac56739e8ddd33f928bafb36813efb834728483d",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/261aa33cd6e5803dee6bd3f0437a3066fce8232571f20768c87575ec90133588",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/9fceff81953766e893f0c69116358ca986f331d6acf84bbdae1a0d7ecabd35f4",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/71cc2dc728bbc0bafcf82c7de452b15a7eb4642864eefe61e83b873185590c97",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/83a959169c1c9585c146a52488d4ba969774e1625c3b5029f87fbe483c2f2b1d",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/8516528570d8e7fc4558180a1dfa4918dd67aa870982d030be67ea3c310866e9",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/8445838dc363ae36785508e6b433c8a3c5cdcb67a6103325e670b9a9e5c56867",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/1b255ea9ff7d127064e55fa595df995e7a073c75f412606036d56d00fbbf2a9e",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/d45120184943e015ca457d7f68405bdf1a3eaec05c96225040306dbb91155df8",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/24f21c5c537bac97a184cf1010ce4de39a3a4bdd274f7708bd06e19af52467e4",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/ba99a134fa4b9ba745503dd7d87ec1f8256289748d54f18717714f4436c904bc",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/17aa0ef790f3154adac48db53b57b36255cd4d62f0a7d410ded1ed36cf108463",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/e4ce9b9b8d8c99080da237e9c3c542a593a0832957fb16a3d2c2e593950046ed",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/022bee2054af6470dac72c3d45d34584ff9339371322a9114858f124488799bf",
+          "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu-24.04/9e06c8d0d6c193a2b864aa6a954bf98131ad9f950f54d7b86577ca71f1f21f7e"
+        ],
+        "filesystem": null,
+        "access_level": "NONE",
+        "is_system_disk": true,
+        "smart_status": null
+      },
+      {
+        "device_path": "/dev/sda",
+        "name": "sda",
+        "model": "Virtual Disk",
+        "serial": null,
+        "size_bytes": 407298048,
+        "type": "HDD",
+        "is_removable": false,
+        "partitions": [],
+        "mount_points": [],
+        "filesystem": null,
+        "access_level": "NONE",
+        "is_system_disk": false,
+        "smart_status": null
+      }
+    ],
+    "network_interfaces": [
+      {
+        "name": "eth0",
+        "mac_address": "00:15:5d:b6:03:00",
+        "ipv4_addresses": [
+          "172.30.186.102"
+        ],
+        "ipv6_addresses": [
+          "fe80::215:5dff:feb6:300"
+        ],
+        "is_up": true,
+        "is_loopback": false,
+        "is_virtual": false,
+        "speed_mbps": 10000,
+        "mtu": 1500,
+        "driver": null,
+        "access_level": "SHARED"
+      },
+      {
+        "name": "lo",
+        "mac_address": null,
+        "ipv4_addresses": [
+          "127.0.0.1",
+          "10.255.255.254"
+        ],
+        "ipv6_addresses": [
+          "::1"
+        ],
+        "is_up": false,
+        "is_loopback": true,
+        "is_virtual": true,
+        "speed_mbps": null,
+        "mtu": 65536,
+        "driver": null,
+        "access_level": "SHARED"
+      }
+    ],
+    "gpus": [],
+    "usb_devices": [
+      {
+        "bus": 1,
+        "device": 1,
+        "vendor_id": "1d6b",
+        "product_id": "0002",
+        "vendor_name": null,
+        "product_name": "Linux Foundation 2.0 root hub",
+        "device_class": "Unknown",
+        "serial": null,
+        "access_level": "SHARED"
+      },
+      {
+        "bus": 2,
+        "device": 1,
+        "vendor_id": "1d6b",
+        "product_id": "0003",
+        "vendor_name": null,
+        "product_name": "Linux Foundation 3.0 root hub",
+        "device_class": "Unknown",
+        "serial": null,
+        "access_level": "SHARED"
+      }
+    ],
+    "device_access_summary": {
+      "storage:sdf": "NONE",
+      "storage:sdb": "NONE",
+      "storage:sdg": "NONE",
+      "storage:sde": "NONE",
+      "storage:sda": "NONE",
+      "network:eth0": "SHARED",
+      "network:lo": "SHARED",
+      "usb:1:1": "SHARED",
+      "usb:2:1": "SHARED"
+    },
+    "is_virtual_machine": true,
+    "hypervisor": "wsl",
+    "vm_type": "wsl",
+    "collection_duration_ms": 226.74331604503095,
+    "errors": []
+  },
+  "software": {
+    "timestamp": "2026-01-02T14:14:47.161872",
+    "os_info": {
+      "name": "Ubuntu",
+      "version": "24.04.3 LTS (Noble Numbat)",
+      "release": "5.15.167.4-microsoft-standard-WSL2",
+      "codename": "noble",
+      "kernel_version": "5.15.167.4-microsoft-standard-WSL2",
+      "architecture": "x86_64",
+      "boot_time": "2025-12-15T23:09:09.537336",
+      "uptime_seconds": 1523137.79
+    },
+    "kernel_modules": [],
+    "installed_packages_count": 654,
+    "installed_packages_sample": [
+      {
+        "name": "acl",
+        "version": "2.3.2-1build1.1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 196608,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "adduser",
+        "version": "3.137ubuntu1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 462848,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "adwaita-icon-theme",
+        "version": "46.0-1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 12340224,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "alsa-topology-conf",
+        "version": "1.2.5.1-2",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 430080,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "alsa-ucm-conf",
+        "version": "1.2.10-1ubuntu5.7",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 912384,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "apparmor",
+        "version": "4.0.1really4.0.1-0ubuntu0.24.04.4",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 3203072,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "apport",
+        "version": "2.28.1-0ubuntu3.8",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 671744,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "apport-core-dump-handler",
+        "version": "2.28.1-0ubuntu3.8",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 37888,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "apport-symptoms",
+        "version": "0.25",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 61440,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "appstream",
+        "version": "1.0.2-1build6",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 339968,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "apt",
+        "version": "2.8.3",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 4206592,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "apt-utils",
+        "version": "2.8.3",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 675840,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "at-spi2-common",
+        "version": "2.52.0-1build1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 53248,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "at-spi2-core",
+        "version": "2.52.0-1build1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 181248,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "base-files",
+        "version": "13ubuntu10.3",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 436224,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "base-passwd",
+        "version": "3.6.3build1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 260096,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bash",
+        "version": "5.2.21-2ubuntu4",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 1945600,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bash-completion",
+        "version": "1:2.11-8",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 1488896,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bc",
+        "version": "1.07.1-3ubuntu4",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 218112,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bind9-dnsutils",
+        "version": "1:9.18.39-0ubuntu0.24.04.2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 521216,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bind9-host",
+        "version": "1:9.18.39-0ubuntu0.24.04.2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 159744,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bind9-libs",
+        "version": "1:9.18.39-0ubuntu0.24.04.2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 3524608,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "binutils",
+        "version": "2.42-4ubuntu2.8",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 164864,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "binutils-common",
+        "version": "2.42-4ubuntu2.8",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 577536,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "binutils-x86-64-linux-gnu",
+        "version": "2.42-4ubuntu2.8",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 11826176,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bsdextrautils",
+        "version": "2.39.3-9ubuntu6.3",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 293888,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "bsdutils",
+        "version": "1:2.39.3-9ubuntu6.3",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 294912,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "byobu",
+        "version": "6.11-0ubuntu1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 573440,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "ca-certificates",
+        "version": "20240203",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 395264,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "cloud-guest-utils",
+        "version": "0.33-1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 68608,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "cloud-init",
+        "version": "25.1.4-0ubuntu0~24.04.1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 3169280,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "command-not-found",
+        "version": "23.04.0",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 29696,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "console-setup",
+        "version": "1.226ubuntu1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 441344,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "console-setup-linux",
+        "version": "1.226ubuntu1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 2254848,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "coreutils",
+        "version": "9.4-3ubuntu6",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 7110656,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "cpio",
+        "version": "2.15+dfsg-1ubuntu2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 335872,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "cpu-checker",
+        "version": "0.7-1.3build2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 20480,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "cron",
+        "version": "3.0pl1-184ubuntu2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 235520,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "cron-daemon-common",
+        "version": "3.0pl1-184ubuntu2",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 51200,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "curl",
+        "version": "8.5.0-2ubuntu10.6",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 533504,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dash",
+        "version": "0.5.12-6ubuntu5",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 191488,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 171008,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus-bin",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 220160,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus-daemon",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 377856,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus-session-bus-common",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 111616,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus-system-bus-common",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "all",
+        "description": null,
+        "installed_size_bytes": 122880,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus-user-session",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 115712,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dbus-x11",
+        "version": "1.14.10-4ubuntu4.1",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 147456,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dconf-gsettings-backend",
+        "version": "0.40.0-4build2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 74752,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      },
+      {
+        "name": "dconf-service",
+        "version": "0.40.0-4build2",
+        "architecture": "amd64",
+        "description": null,
+        "installed_size_bytes": 98304,
+        "package_manager": "dpkg",
+        "install_date": null,
+        "is_automatic": false
+      }
+    ],
+    "package_managers_available": [
+      "apt",
+      "apt-get",
+      "dpkg",
+      "snap"
+    ],
+    "python_packages": [],
+    "python_version": "3.12.3 (main, Nov  6 2025, 13:44:16) [GCC 13.3.0]",
+    "pip_version": null,
+    "virtual_env_active": false,
+    "virtual_env_path": null,
+    "system_services_count": 132,
+    "system_services_sample": [
+      {
+        "name": "apparmor",
+        "display_name": null,
+        "description": "Load AppArmor profiles",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "apport-autoreport",
+        "display_name": null,
+        "description": "Process error reports when automatic reporting is enabled",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "apport",
+        "display_name": null,
+        "description": "automatic crash report generation",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "apt-daily-upgrade",
+        "display_name": null,
+        "description": "Daily apt upgrade and clean activities",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "apt-daily",
+        "display_name": null,
+        "description": "Daily apt download activities",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "auditd",
+        "display_name": null,
+        "description": "auditd.service",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "connman",
+        "display_name": null,
+        "description": "connman.service",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "console-getty",
+        "display_name": null,
+        "description": "Console Getty",
+        "state": "RUNNING",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "console-screen",
+        "display_name": null,
+        "description": "console-screen.service",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "console-setup",
+        "display_name": null,
+        "description": "Set console font and keymap",
+        "state": "UNKNOWN",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "cron",
+        "display_name": null,
+        "description": "Regular background program processing daemon",
+        "state": "RUNNING",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "dbus",
+        "display_name": null,
+        "description": "D-Bus System Message Bus",
+        "state": "RUNNING",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "display-manager",
+        "display_name": null,
+        "description": "display-manager.service",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "dmesg",
+        "display_name": null,
+        "description": "Save initial kernel messages after boot",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "dpkg-db-backup",
+        "display_name": null,
+        "description": "Daily dpkg database backup service",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "e2scrub_all",
+        "display_name": null,
+        "description": "Online ext4 Metadata Check for All Filesystems",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "e2scrub_reap",
+        "display_name": null,
+        "description": "Remove Stale Online ext4 Metadata Check Snapshots",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "emergency",
+        "display_name": null,
+        "description": "Emergency Shell",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "fstrim",
+        "display_name": null,
+        "description": "Discard unused blocks on filesystems from /etc/fstab",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "getty-static",
+        "display_name": null,
+        "description": "getty on tty2-tty6 if dbus and logind are not available",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "getty@tty1",
+        "display_name": null,
+        "description": "Getty on tty1",
+        "state": "RUNNING",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "grub-common",
+        "display_name": null,
+        "description": "Record successful boot for GRUB",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "grub-initrd-fallback",
+        "display_name": null,
+        "description": "GRUB failed boot detection",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "initrd-cleanup",
+        "display_name": null,
+        "description": "Cleaning Up and Shutting Down Daemons",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "initrd-parse-etc",
+        "display_name": null,
+        "description": "Mountpoints Configured in the Real Root",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "initrd-switch-root",
+        "display_name": null,
+        "description": "Switch Root",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "initrd-udevadm-cleanup-db",
+        "display_name": null,
+        "description": "Cleanup udev Database",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "kbd",
+        "display_name": null,
+        "description": "kbd.service",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "keyboard-setup",
+        "display_name": null,
+        "description": "Set the console keyboard layout",
+        "state": "UNKNOWN",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      },
+      {
+        "name": "kmod-static-nodes",
+        "display_name": null,
+        "description": "Create List of Static Device Nodes",
+        "state": "STOPPED",
+        "is_enabled": false,
+        "pid": null,
+        "user": null,
+        "start_time": null,
+        "memory_bytes": null,
+        "cpu_percent": null,
+        "service_type": "systemd",
+        "can_control": false
+      }
+    ],
+    "init_system": "systemd",
+    "containers": [
+      {
+        "id": "fcd80f02b943",
+        "name": "wsl-kernel-build",
+        "image": "wsl-usb-kernel-builder:latest",
+        "status": "Exited (0) 23 hours ago",
+        "created": null,
+        "ports": [],
+        "networks": [],
+        "volumes": [],
+        "runtime": "docker",
+        "can_control": true
+      }
+    ],
+    "container_runtimes": [
+      "docker"
+    ],
+    "process_count": 61,
+    "running_processes_sample": [
+      {
+        "pid": 1,
+        "name": "systemd",
+        "cmdline": [
+          "/sbin/init"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 2,
+        "name": "init-systemd(Ub",
+        "cmdline": [
+          "/init"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 6,
+        "name": "init",
+        "cmdline": [
+          "plan9",
+          "--control-socket",
+          "7",
+          "--log-level",
+          "4",
+          "--server-fd",
+          "8",
+          "--pipe-fd",
+          "10",
+          "--log-truncate"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 41,
+        "name": "systemd-journal",
+        "cmdline": [
+          "/usr/lib/systemd/systemd-journald"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 85,
+        "name": "systemd-udevd",
+        "cmdline": [
+          "/usr/lib/systemd/systemd-udevd"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 131,
+        "name": "systemd-resolve",
+        "cmdline": [
+          "/usr/lib/systemd/systemd-resolved"
+        ],
+        "user": "systemd-resolve",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 133,
+        "name": "systemd-timesyn",
+        "cmdline": [
+          "/usr/lib/systemd/systemd-timesyncd"
+        ],
+        "user": "systemd-timesync",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 151,
+        "name": "cron",
+        "cmdline": [
+          "/usr/sbin/cron",
+          "-f",
+          "-P"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 152,
+        "name": "dbus-daemon",
+        "cmdline": [
+          "@dbus-daemon",
+          "--system",
+          "--address=systemd:",
+          "--nofork",
+          "--nopidfile",
+          "--systemd-activation",
+          "--syslog-only"
+        ],
+        "user": "messagebus",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 159,
+        "name": "systemd-logind",
+        "cmdline": [
+          "/usr/lib/systemd/systemd-logind"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 162,
+        "name": "wsl-pro-service",
+        "cmdline": [
+          "/usr/libexec/wsl-pro-service",
+          "-vv"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 167,
+        "name": "agetty",
+        "cmdline": [
+          "/sbin/agetty",
+          "-o",
+          "-p",
+          "--",
+          "\\u",
+          "--noclear",
+          "--keep-baud",
+          "-",
+          "115200,38400,9600",
+          "vt220"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 170,
+        "name": "agetty",
+        "cmdline": [
+          "/sbin/agetty",
+          "-o",
+          "-p",
+          "--",
+          "\\u",
+          "--noclear",
+          "-",
+          "linux"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 176,
+        "name": "rsyslogd",
+        "cmdline": [
+          "/usr/sbin/rsyslogd",
+          "-n",
+          "-iNONE"
+        ],
+        "user": "syslog",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 196,
+        "name": "unattended-upgr",
+        "cmdline": [
+          "/usr/bin/python3",
+          "/usr/share/unattended-upgrades/unattended-upgrade-shutdown",
+          "--wait-for-signal"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 293,
+        "name": "login",
+        "cmdline": [
+          "/bin/login",
+          "-f"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 323,
+        "name": "login",
+        "cmdline": [
+          "/bin/login",
+          "-f"
+        ],
+        "user": "root",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 365,
+        "name": "systemd",
+        "cmdline": [
+          "/usr/lib/systemd/systemd",
+          "--user"
+        ],
+        "user": "amshea",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 369,
+        "name": "(sd-pam)",
+        "cmdline": [
+          "(sd-pam)"
+        ],
+        "user": "amshea",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      },
+      {
+        "pid": 402,
+        "name": "bash",
+        "cmdline": [
+          "-bash"
+        ],
+        "user": "amshea",
+        "status": "S",
+        "cpu_percent": 0.0,
+        "memory_percent": 0.0,
+        "memory_bytes": 0,
+        "num_threads": 1,
+        "create_time": null,
+        "cwd": null
+      }
+    ],
+    "can_install_packages": false,
+    "can_manage_services": false,
+    "can_load_modules": false,
+    "can_manage_containers": true,
+    "collection_duration_ms": 470.60362389311194,
+    "errors": []
+  }
+}
