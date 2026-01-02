@@ -9,19 +9,19 @@ environment, permissions, hardware, and software information.
 __version__ = "1.0.0"
 __author__ = "System Administrator"
 
-from .models import (
-    EnvironmentState,
-    PermissionsInfo,
-    ResourceInfo,
-    HardwareInfo,
-    SoftwareInfo,
-    SystemReport,
-)
 from .collectors import (
     EnvironmentCollector,
-    PermissionsCollector,
     HardwareCollector,
+    PermissionsCollector,
     SoftwareCollector,
+)
+from .models import (
+    EnvironmentState,
+    HardwareInfo,
+    PermissionsInfo,
+    ResourceInfo,
+    SoftwareInfo,
+    SystemReport,
 )
 from .orchestrator import InfoGatherOrchestrator
 

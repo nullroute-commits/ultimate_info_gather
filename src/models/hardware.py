@@ -51,7 +51,7 @@ class CPUInfo:
     flags: list[str]
     virtualization_supported: bool
     is_hypervisor: bool
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -83,7 +83,7 @@ class MemoryInfo:
     speed_mhz: int | None
     slots_used: int | None
     slots_total: int | None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -117,7 +117,7 @@ class StorageDevice:
     access_level: DeviceAccessLevel
     is_system_disk: bool
     smart_status: str | None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -151,7 +151,7 @@ class NetworkInterface:
     mtu: int
     driver: str | None
     access_level: DeviceAccessLevel
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -182,7 +182,7 @@ class GPUInfo:
     is_integrated: bool
     compute_capability: str | None  # For CUDA
     access_level: DeviceAccessLevel
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -199,7 +199,7 @@ class GPUInfo:
         }
 
 
-@dataclass 
+@dataclass
 class USBDevice:
     """USB device information."""
     bus: int
@@ -211,7 +211,7 @@ class USBDevice:
     device_class: str
     serial: str | None
     access_level: DeviceAccessLevel
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -237,7 +237,7 @@ class SystemBoardInfo:
     bios_vendor: str | None
     bios_version: str | None
     bios_date: str | None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -259,40 +259,40 @@ class HardwareInfo:
     Comprehensive hardware inventory with access level information.
     """
     timestamp: datetime
-    
+
     # System identification
     system_board: SystemBoardInfo | None
     machine_id: str | None
     product_uuid: str | None
-    
+
     # Core hardware
     cpu: CPUInfo | None
     memory: MemoryInfo | None
-    
+
     # Storage
     storage_devices: list[StorageDevice]
-    
+
     # Network
     network_interfaces: list[NetworkInterface]
-    
+
     # Graphics
     gpus: list[GPUInfo]
-    
+
     # Peripherals
     usb_devices: list[USBDevice]
-    
+
     # Device access summary
     device_access_summary: dict[str, DeviceAccessLevel]
-    
+
     # Virtualization
     is_virtual_machine: bool
     hypervisor: str | None
     vm_type: str | None
-    
+
     # Metadata
     collection_duration_ms: float = 0.0
     errors: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -313,7 +313,7 @@ class HardwareInfo:
             "collection_duration_ms": self.collection_duration_ms,
             "errors": self.errors,
         }
-    
+
     def get_summary(self) -> str:
         """Get a human-readable summary."""
         lines = [
@@ -323,7 +323,7 @@ class HardwareInfo:
             f"Timestamp: {self.timestamp.isoformat()}",
             "",
         ]
-        
+
         if self.cpu:
             lines.extend([
                 "CPU:",
@@ -333,7 +333,7 @@ class HardwareInfo:
                 f"  Virtualization: {self.cpu.virtualization_supported}",
                 "",
             ])
-        
+
         if self.memory:
             total_gb = self.memory.total_bytes / (1024**3)
             avail_gb = self.memory.available_bytes / (1024**3)
@@ -344,7 +344,7 @@ class HardwareInfo:
                 f"  Used: {self.memory.percent_used:.1f}%",
                 "",
             ])
-        
+
         lines.extend([
             f"Storage Devices: {len(self.storage_devices)}",
             f"Network Interfaces: {len(self.network_interfaces)}",
@@ -353,9 +353,9 @@ class HardwareInfo:
             "",
             f"Virtual Machine: {self.is_virtual_machine}",
         ])
-        
+
         if self.is_virtual_machine and self.hypervisor:
             lines.append(f"Hypervisor: {self.hypervisor}")
-        
+
         lines.append("=" * 60)
         return "\n".join(lines)

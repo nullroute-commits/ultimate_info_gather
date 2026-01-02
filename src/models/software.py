@@ -44,7 +44,7 @@ class InstalledPackage:
     package_manager: str  # apt, yum, pacman, etc.
     install_date: datetime | None
     is_automatic: bool  # Installed as dependency
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -69,7 +69,7 @@ class PythonPackage:
     required_by: list[str]
     is_editable: bool
     metadata_version: str | None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -98,7 +98,7 @@ class SystemService:
     cpu_percent: float | None
     service_type: str | None  # systemd, init, etc.
     can_control: bool  # Can the process start/stop this service
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -124,7 +124,7 @@ class KernelModule:
     size_bytes: int
     used_by: list[str]
     state: str  # Live, Loading, Unloading
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -148,7 +148,7 @@ class ContainerInfo:
     volumes: list[str]
     runtime: str  # docker, podman, containerd
     can_control: bool
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -179,7 +179,7 @@ class RunningProcess:
     num_threads: int
     create_time: datetime | None
     cwd: str | None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -208,7 +208,7 @@ class OSInfo:
     architecture: str
     boot_time: datetime | None
     uptime_seconds: float
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -231,50 +231,50 @@ class SoftwareInfo:
     Comprehensive software inventory with access level information.
     """
     timestamp: datetime
-    
+
     # Operating system
     os_info: OSInfo | None
-    
+
     # Kernel modules
     kernel_modules: list[KernelModule]
-    
+
     # System packages
     installed_packages: list[InstalledPackage]
     package_managers_available: list[str]
-    
+
     # Python environment
     python_packages: list[PythonPackage]
     python_version: str
     pip_version: str | None
     virtual_env_active: bool
     virtual_env_path: str | None
-    
+
     # Services
     system_services: list[SystemService]
     init_system: str | None  # systemd, init, upstart, etc.
-    
+
     # Containers
     containers: list[ContainerInfo]
     container_runtimes: list[str]
-    
+
     # Running processes
     running_processes: list[RunningProcess]
     process_count: int
-    
+
     # Environment
     environment_variables: dict[str, str]
     path_directories: list[str]
-    
+
     # Access summary
     can_install_packages: bool
     can_manage_services: bool
     can_load_modules: bool
     can_manage_containers: bool
-    
+
     # Metadata
     collection_duration_ms: float = 0.0
     errors: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -303,7 +303,7 @@ class SoftwareInfo:
             "collection_duration_ms": self.collection_duration_ms,
             "errors": self.errors,
         }
-    
+
     def get_summary(self) -> str:
         """Get a human-readable summary."""
         lines = [
@@ -313,7 +313,7 @@ class SoftwareInfo:
             f"Timestamp: {self.timestamp.isoformat()}",
             "",
         ]
-        
+
         if self.os_info:
             lines.extend([
                 "Operating System:",
@@ -324,7 +324,7 @@ class SoftwareInfo:
                 f"  Uptime: {self.os_info.uptime_seconds / 3600:.1f} hours",
                 "",
             ])
-        
+
         lines.extend([
             "Package Management:",
             f"  Package Managers: {', '.join(self.package_managers_available) or 'None detected'}",
@@ -355,5 +355,5 @@ class SoftwareInfo:
             f"  Can Load Modules: {self.can_load_modules}",
             "=" * 60,
         ])
-        
+
         return "\n".join(lines)

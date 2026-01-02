@@ -2,9 +2,10 @@
 Test fixtures and configuration for pytest.
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock
+
+import pytest
 
 
 @pytest.fixture
@@ -54,7 +55,7 @@ def mock_environment_state():
         ProcessInfo,
         PythonEnvironment,
     )
-    
+
     return EnvironmentState(
         timestamp=datetime.now(),
         python_env=PythonEnvironment(

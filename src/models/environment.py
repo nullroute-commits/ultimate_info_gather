@@ -11,7 +11,6 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from pathlib import Path
 from typing import Any
 
 
@@ -47,7 +46,7 @@ class PythonEnvironment:
     is_virtual_env: bool
     platform: str
     path: list[str]
-    
+
     @classmethod
     def capture(cls) -> PythonEnvironment:
         """Capture current Python environment."""
@@ -75,7 +74,7 @@ class ProcessInfo:
     egid: int | None
     cwd: str
     argv: list[str]
-    
+
     @classmethod
     def capture(cls) -> ProcessInfo:
         """Capture current process info."""
@@ -85,7 +84,7 @@ class ProcessInfo:
             gid = os.getgid()
             euid = os.geteuid()
             egid = os.getegid()
-        
+
         return cls(
             pid=os.getpid(),
             ppid=os.getppid(),
@@ -120,11 +119,11 @@ class EnvironmentState:
     shell: str | None
     home_directory: str
     temp_directory: str
-    
+
     # Metadata
     collection_duration_ms: float = 0.0
     errors: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -163,7 +162,7 @@ class EnvironmentState:
             "collection_duration_ms": self.collection_duration_ms,
             "errors": self.errors,
         }
-    
+
     def get_summary(self) -> str:
         """Get a human-readable summary."""
         lines = [

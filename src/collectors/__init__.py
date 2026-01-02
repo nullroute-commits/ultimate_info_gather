@@ -3,8 +3,8 @@ Async collectors for gathering system information.
 """
 
 from .environment_collector import EnvironmentCollector
-from .permissions_collector import PermissionsCollector
 from .hardware_collector import HardwareCollector
+from .permissions_collector import PermissionsCollector
 from .software_collector import SoftwareCollector
 
 __all__ = [

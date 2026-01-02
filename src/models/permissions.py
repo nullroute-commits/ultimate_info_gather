@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
-from pathlib import Path
 from typing import Any
 
 
@@ -42,14 +41,14 @@ class GroupInfo:
     gid: int
     name: str
     is_privileged: bool = False
-    
+
     # Well-known privileged groups
     PRIVILEGED_GROUPS = frozenset({
         'root', 'wheel', 'sudo', 'admin', 'adm',
         'docker', 'lxd', 'libvirt', 'kvm',
         'disk', 'sys', 'shadow',
     })
-    
+
     @classmethod
     def from_gid(cls, gid: int, name: str) -> GroupInfo:
         """Create GroupInfo from gid and name."""
@@ -72,15 +71,15 @@ class FileSystemPermission:
     owner_uid: int | None = None
     owner_gid: int | None = None
     mode: int | None = None
-    
+
     @property
     def access_level(self) -> AccessLevel:
         """Determine access level."""
         if not self.exists:
             return AccessLevel.NONE
-        
+
         r, w, x = self.readable, self.writable, self.executable
-        
+
         if r and w and x:
             return AccessLevel.FULL
         if r and w:
@@ -117,7 +116,7 @@ class ResourceLimits:
     max_cpu_time: tuple[int, int] | None = None
     max_file_size: tuple[int, int] | None = None
     max_core_size: tuple[int, int] | None = None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -141,7 +140,7 @@ class ResourceInfo:
     disk_partitions: list[dict[str, Any]]
     network_interfaces: list[str]
     resource_limits: ResourceLimits
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -170,33 +169,33 @@ class PermissionsInfo:
     effective_user_id: int | None
     groups: list[GroupInfo]
     privileged_groups: list[str]
-    
+
     # Capabilities (Linux-specific)
     capabilities: list[CapabilityInfo]
     has_cap_sys_admin: bool
     has_cap_net_admin: bool
     has_cap_dac_override: bool
-    
+
     # File system access
     fs_permissions: dict[str, FileSystemPermission]
-    
+
     # Security context
     selinux_enabled: bool
     selinux_context: str | None
     apparmor_enabled: bool
     apparmor_profile: str | None
-    
+
     # Sudo capabilities
     can_sudo: bool
     sudo_nopasswd: bool
-    
+
     # Available resources
     resources: ResourceInfo | None
-    
+
     # Metadata
     collection_duration_ms: float = 0.0
     errors: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -234,7 +233,7 @@ class PermissionsInfo:
             "collection_duration_ms": self.collection_duration_ms,
             "errors": self.errors,
         }
-    
+
     def get_summary(self) -> str:
         """Get a human-readable summary."""
         lines = [
@@ -248,14 +247,14 @@ class PermissionsInfo:
             "",
             f"Groups ({len(self.groups)}):",
         ]
-        
+
         for group in self.groups[:10]:  # Limit display
             priv_marker = " [PRIVILEGED]" if group.is_privileged else ""
             lines.append(f"  - {group.name} (GID: {group.gid}){priv_marker}")
-        
+
         if len(self.groups) > 10:
             lines.append(f"  ... and {len(self.groups) - 10} more")
-        
+
         lines.extend([
             "",
             "Capabilities:",
@@ -271,9 +270,9 @@ class PermissionsInfo:
             "",
             "Key Path Access:",
         ])
-        
+
         for path, perm in list(self.fs_permissions.items())[:5]:
             lines.append(f"  {path}: {perm.access_level.name}")
-        
+
         lines.append("=" * 60)
         return "\n".join(lines)

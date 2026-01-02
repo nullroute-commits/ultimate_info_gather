@@ -12,7 +12,6 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from ..models.environment import EnvironmentState
 from ..models.permissions import PermissionsInfo
@@ -36,7 +35,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
     
     Objective 3: Collect all software deployed and determine access levels.
     """
-    
+
     def __init__(
         self,
         environment_state: EnvironmentState | None = None,
@@ -52,11 +51,11 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
         super().__init__()
         self.env_state = environment_state
         self.perm_info = permissions_info
-    
+
     async def collect(self) -> SoftwareInfo:
         """Collect software information."""
         timestamp = datetime.now()
-        
+
         # Collect all software info in parallel where possible
         (
             os_info,
@@ -81,21 +80,21 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
             self._get_container_runtimes(),
             self._get_running_processes(),
         )
-        
+
         # Get Python info
         python_version = sys.version
         pip_version = await self._get_pip_version()
-        
+
         # Virtual env info
         virtual_env_active = sys.prefix != sys.base_prefix
         virtual_env_path = sys.prefix if virtual_env_active else None
-        
+
         # Determine access capabilities
         can_install = await self._check_can_install_packages()
         can_services = await self._check_can_manage_services()
         can_modules = await self._check_can_load_modules()
         can_containers = await self._check_can_manage_containers()
-        
+
         return SoftwareInfo(
             timestamp=timestamp,
             os_info=os_info,
@@ -121,14 +120,14 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
             can_manage_containers=can_containers,
             errors=self._errors.copy(),
         )
-    
+
     async def _get_os_info(self) -> OSInfo | None:
         """Get operating system information."""
         try:
             # Read os-release
             os_release = await self.read_file_async('/etc/os-release')
             name = version = codename = ''
-            
+
             if os_release:
                 for line in os_release.split('\n'):
                     if '=' in line:
@@ -140,10 +139,10 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                             version = value
                         elif key == 'VERSION_CODENAME':
                             codename = value
-            
+
             # Get kernel info
             uname = platform.uname()
-            
+
             # Get boot time and uptime
             uptime = 0.0
             boot_time = None
@@ -152,7 +151,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                 uptime = float(uptime_content.split()[0])
                 boot_time = datetime.now().timestamp() - uptime
                 boot_time = datetime.fromtimestamp(boot_time)
-            
+
             return OSInfo(
                 name=name or uname.system,
                 version=version or uname.version,
@@ -166,11 +165,11 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
         except Exception as e:
             self.add_warning(f"Failed to get OS info: {e}")
             return None
-    
+
     async def _get_kernel_modules(self) -> list[KernelModule]:
         """Get loaded kernel modules."""
         modules = []
-        
+
         try:
             modules_content = await self.read_file_async('/proc/modules')
             if modules_content:
@@ -181,7 +180,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         size = int(parts[1])
                         used_by = parts[3].strip(',').split(',') if parts[3] != '-' else []
                         state = parts[4] if len(parts) > 4 else 'Live'
-                        
+
                         modules.append(KernelModule(
                             name=name,
                             size_bytes=size,
@@ -190,19 +189,42 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         ))
         except Exception as e:
             self.add_warning(f"Failed to get kernel modules: {e}")
-        
+
         return modules
-    
+
     async def _get_installed_packages(self) -> list[InstalledPackage]:
         """Get installed system packages."""
         packages = []
-        
+
+        # Try opkg (OpenWrt/embedded)
+        ret, stdout, _ = await self.run_command(
+            ['opkg', 'list-installed'],
+            timeout=30,
+        )
+
+        if ret == 0 and stdout:
+            for line in stdout.strip().split('\n'):
+                # Format: package-name - version
+                parts = line.split(' - ')
+                if len(parts) >= 2:
+                    packages.append(InstalledPackage(
+                        name=parts[0],
+                        version=parts[1],
+                        architecture=None,
+                        description=None,
+                        installed_size_bytes=None,
+                        package_manager='opkg',
+                        install_date=None,
+                        is_automatic=False,
+                    ))
+            return packages
+
         # Try dpkg (Debian/Ubuntu)
         ret, stdout, _ = await self.run_command(
             ['dpkg-query', '-W', '-f=${Package}\t${Version}\t${Architecture}\t${Installed-Size}\t${Status}\n'],
             timeout=30,
         )
-        
+
         if ret == 0 and stdout:
             for line in stdout.strip().split('\n'):
                 parts = line.split('\t')
@@ -218,13 +240,13 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         is_automatic=False,
                     ))
             return packages
-        
+
         # Try rpm (RHEL/CentOS/Fedora)
         ret, stdout, _ = await self.run_command(
             ['rpm', '-qa', '--queryformat', '%{NAME}\t%{VERSION}-%{RELEASE}\t%{ARCH}\t%{SIZE}\n'],
             timeout=30,
         )
-        
+
         if ret == 0 and stdout:
             for line in stdout.strip().split('\n'):
                 parts = line.split('\t')
@@ -240,13 +262,13 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         is_automatic=False,
                     ))
             return packages
-        
+
         # Try pacman (Arch)
         ret, stdout, _ = await self.run_command(
             ['pacman', '-Q'],
             timeout=30,
         )
-        
+
         if ret == 0 and stdout:
             for line in stdout.strip().split('\n'):
                 parts = line.split()
@@ -261,37 +283,37 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         install_date=None,
                         is_automatic=False,
                     ))
-        
+
         return packages
-    
+
     async def _get_package_managers(self) -> list[str]:
         """Get available package managers."""
         managers = []
-        
-        pm_commands = ['apt', 'apt-get', 'dpkg', 'yum', 'dnf', 'rpm', 'pacman', 'zypper', 'apk', 'snap', 'flatpak']
-        
+
+        pm_commands = ['opkg', 'apt', 'apt-get', 'dpkg', 'yum', 'dnf', 'rpm', 'pacman', 'zypper', 'apk', 'snap', 'flatpak']
+
         for pm in pm_commands:
             ret, _, _ = await self.run_command(['which', pm], timeout=5)
             if ret == 0:
                 managers.append(pm)
-        
+
         return managers
-    
+
     async def _get_python_packages(self) -> list[PythonPackage]:
         """Get installed Python packages."""
         packages = []
-        
+
         try:
             # Use pip list
             ret, stdout, _ = await self.run_command(
                 [sys.executable, '-m', 'pip', 'list', '--format=json'],
                 timeout=30,
             )
-            
+
             if ret == 0 and stdout:
                 import json
                 pip_packages = json.loads(stdout)
-                
+
                 for pkg in pip_packages:
                     packages.append(PythonPackage(
                         name=pkg.get('name', ''),
@@ -304,41 +326,41 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                     ))
         except Exception as e:
             self.add_warning(f"Failed to get Python packages: {e}")
-        
+
         return packages
-    
+
     async def _get_pip_version(self) -> str | None:
         """Get pip version."""
         ret, stdout, _ = await self.run_command(
             [sys.executable, '-m', 'pip', '--version'],
             timeout=10,
         )
-        
+
         if ret == 0 and stdout:
             # Parse: pip 23.0.1 from /path/to/pip (python 3.11)
             match = re.match(r'pip (\S+)', stdout)
             if match:
                 return match.group(1)
-        
+
         return None
-    
+
     async def _get_system_services(self) -> list[SystemService]:
         """Get system services."""
         services = []
-        
+
         # Try systemctl
         ret, stdout, _ = await self.run_command(
             ['systemctl', 'list-units', '--type=service', '--all', '--no-pager', '--plain'],
             timeout=30,
         )
-        
+
         if ret == 0 and stdout:
             lines = stdout.strip().split('\n')
             for line in lines[1:]:  # Skip header
                 parts = line.split()
                 if len(parts) >= 4:
                     name = parts[0].replace('.service', '')
-                    
+
                     # Determine state
                     state = ServiceState.UNKNOWN
                     if 'running' in line.lower():
@@ -347,7 +369,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         state = ServiceState.STOPPED
                     elif 'failed' in line.lower():
                         state = ServiceState.FAILED
-                    
+
                     services.append(SystemService(
                         name=name,
                         display_name=None,
@@ -362,41 +384,41 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         service_type='systemd',
                         can_control=os.geteuid() == 0 if hasattr(os, 'geteuid') else False,
                     ))
-        
+
         return services
-    
+
     async def _get_init_system(self) -> str | None:
         """Detect the init system."""
         # Check for systemd
         if Path('/run/systemd/system').exists():
             return 'systemd'
-        
+
         # Check for upstart
         ret, _, _ = await self.run_command(['initctl', '--version'], timeout=5)
         if ret == 0:
             return 'upstart'
-        
+
         # Check for sysvinit
         if Path('/etc/init.d').exists():
             return 'sysvinit'
-        
+
         # Check for openrc
         ret, _, _ = await self.run_command(['rc-status', '--version'], timeout=5)
         if ret == 0:
             return 'openrc'
-        
+
         return None
-    
+
     async def _get_containers(self) -> list[ContainerInfo]:
         """Get running containers."""
         containers = []
-        
+
         # Try Docker
         ret, stdout, _ = await self.run_command(
             ['docker', 'ps', '-a', '--format', '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'],
             timeout=30,
         )
-        
+
         if ret == 0 and stdout:
             for line in stdout.strip().split('\n'):
                 if not line:
@@ -415,13 +437,13 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         runtime='docker',
                         can_control=True,
                     ))
-        
+
         # Try Podman
         ret, stdout, _ = await self.run_command(
             ['podman', 'ps', '-a', '--format', '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}'],
             timeout=30,
         )
-        
+
         if ret == 0 and stdout:
             for line in stdout.strip().split('\n'):
                 if not line:
@@ -440,46 +462,46 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         runtime='podman',
                         can_control=True,
                     ))
-        
+
         return containers
-    
+
     async def _get_container_runtimes(self) -> list[str]:
         """Get available container runtimes."""
         runtimes = []
-        
+
         for runtime in ['docker', 'podman', 'containerd', 'cri-o', 'lxc', 'lxd']:
             ret, _, _ = await self.run_command(['which', runtime], timeout=5)
             if ret == 0:
                 runtimes.append(runtime)
-        
+
         return runtimes
-    
+
     async def _get_running_processes(self) -> list[RunningProcess]:
         """Get running processes."""
         processes = []
-        
+
         try:
             proc_path = Path('/proc')
             for entry in proc_path.iterdir():
                 if entry.name.isdigit():
                     pid = int(entry.name)
-                    
+
                     try:
                         # Read process info
                         comm = await self.read_file_async(f'/proc/{pid}/comm')
                         cmdline = await self.read_file_async(f'/proc/{pid}/cmdline')
                         status = await self.read_file_async(f'/proc/{pid}/status')
-                        
+
                         if not comm:
                             continue
-                        
+
                         name = comm.strip()
                         cmd_parts = cmdline.replace('\x00', ' ').strip().split() if cmdline else []
-                        
+
                         # Parse status
                         user = 'unknown'
                         proc_status = 'unknown'
-                        
+
                         if status:
                             for line in status.split('\n'):
                                 if line.startswith('Uid:'):
@@ -491,7 +513,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                                         user = str(uid)
                                 elif line.startswith('State:'):
                                     proc_status = line.split()[1]
-                        
+
                         processes.append(RunningProcess(
                             pid=pid,
                             name=name,
@@ -505,7 +527,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                             create_time=None,
                             cwd=None,
                         ))
-                        
+
                         # Limit to first 100 processes
                         if len(processes) >= 100:
                             break
@@ -513,42 +535,42 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                         continue
         except Exception as e:
             self.add_warning(f"Failed to get processes: {e}")
-        
+
         return processes
-    
+
     async def _check_can_install_packages(self) -> bool:
         """Check if we can install packages."""
         # Check for root or sudo
         if hasattr(os, 'geteuid') and os.geteuid() == 0:
             return True
-        
+
         # Check sudo
         ret, _, _ = await self.run_command(['sudo', '-n', 'true'], timeout=5)
         return ret == 0
-    
+
     async def _check_can_manage_services(self) -> bool:
         """Check if we can manage services."""
         if hasattr(os, 'geteuid') and os.geteuid() == 0:
             return True
-        
+
         ret, _, _ = await self.run_command(['sudo', '-n', 'systemctl', 'list-units'], timeout=5)
         return ret == 0
-    
+
     async def _check_can_load_modules(self) -> bool:
         """Check if we can load kernel modules."""
         if hasattr(os, 'geteuid') and os.geteuid() == 0:
             return True
-        
+
         ret, _, _ = await self.run_command(['sudo', '-n', 'modprobe', '--dry-run', 'loop'], timeout=5)
         return ret == 0
-    
+
     async def _check_can_manage_containers(self) -> bool:
         """Check if we can manage containers."""
         # Check Docker socket access
         docker_sock = Path('/var/run/docker.sock')
         if docker_sock.exists() and os.access(str(docker_sock), os.W_OK):
             return True
-        
+
         # Check if in docker group
         try:
             import grp
@@ -557,10 +579,10 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
                 return True
         except Exception:
             pass
-        
+
         # Check podman (rootless)
         ret, _, _ = await self.run_command(['podman', 'info'], timeout=10)
         if ret == 0:
             return True
-        
+
         return False
