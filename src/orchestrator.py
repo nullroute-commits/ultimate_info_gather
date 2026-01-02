@@ -123,20 +123,20 @@ class InfoGatherOrchestrator:
         report_id = str(uuid.uuid4())
         
         # Phase 1: Environment Collection (Objective 1)
-        await self._report_progress(CollectionPhase.ENVIRONMENT, "Collecting environment...", 0)
+        await self._report_progress(CollectionPhase.ENVIRONMENT, "Collecting environment...", 0.0)
         self._environment_state = await self._collect_environment()
-        await self._report_progress(CollectionPhase.ENVIRONMENT, "Complete", 25)
+        await self._report_progress(CollectionPhase.ENVIRONMENT, "Complete", 25.0)
         
         # Phase 2: Permissions Collection (Objective 2)
         # Uses environment state from Phase 1
-        await self._report_progress(CollectionPhase.PERMISSIONS, "Analyzing permissions...", 25)
+        await self._report_progress(CollectionPhase.PERMISSIONS, "Analyzing permissions...", 25.0)
         self._permissions_info = await self._collect_permissions()
-        await self._report_progress(CollectionPhase.PERMISSIONS, "Complete", 50)
+        await self._report_progress(CollectionPhase.PERMISSIONS, "Complete", 50.0)
         
         # Phase 3: Hardware & Software Collection (Objective 3)
         # Uses environment and permissions data from prior phases
-        await self._report_progress(CollectionPhase.HARDWARE, "Scanning hardware...", 50)
-        await self._report_progress(CollectionPhase.SOFTWARE, "Scanning software...", 50)
+        await self._report_progress(CollectionPhase.HARDWARE, "Scanning hardware...", 50.0)
+        await self._report_progress(CollectionPhase.SOFTWARE, "Scanning software...", 50.0)
         
         # Hardware and software can run in parallel
         hw_task = asyncio.create_task(self._collect_hardware())
@@ -144,8 +144,8 @@ class InfoGatherOrchestrator:
         
         self._hardware_info, self._software_info = await asyncio.gather(hw_task, sw_task)
         
-        await self._report_progress(CollectionPhase.HARDWARE, "Complete", 100)
-        await self._report_progress(CollectionPhase.SOFTWARE, "Complete", 100)
+        await self._report_progress(CollectionPhase.HARDWARE, "Complete", 100.0)
+        await self._report_progress(CollectionPhase.SOFTWARE, "Complete", 100.0)
         
         # Calculate total time
         total_time_ms = (time.perf_counter() - self._start_time) * 1000
