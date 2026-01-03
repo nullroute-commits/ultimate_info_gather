@@ -19,12 +19,14 @@ from typing import Any
 from .collectors import (
     EnvironmentCollector,
     HardwareCollector,
+    NetworkCollector,
     PermissionsCollector,
     SoftwareCollector,
 )
 from .models import (
     EnvironmentState,
     HardwareInfo,
+    NetworkInfo,
     PermissionsInfo,
     SoftwareInfo,
     SystemReport,
@@ -36,6 +38,7 @@ class CollectionPhase(Enum):
     ENVIRONMENT = auto()
     PERMISSIONS = auto()
     HARDWARE = auto()
+    NETWORK = auto()
     SOFTWARE = auto()
 
 
@@ -77,6 +80,7 @@ class InfoGatherOrchestrator:
         self._environment_state: EnvironmentState | None = None
         self._permissions_info: PermissionsInfo | None = None
         self._hardware_info: HardwareInfo | None = None
+        self._network_info: NetworkInfo | None = None
         self._software_info: SoftwareInfo | None = None
 
         # Collection metadata
@@ -100,6 +104,11 @@ class InfoGatherOrchestrator:
         return self._hardware_info
 
     @property
+    def network_info(self) -> NetworkInfo | None:
+        """Get collected network info (intensive in-depth network capabilities)."""
+        return self._network_info
+
+    @property
     def software_info(self) -> SoftwareInfo | None:
         """Get collected software info (Objective 3)."""
         return self._software_info
@@ -111,7 +120,7 @@ class InfoGatherOrchestrator:
         Executes all collection phases in sequence, respecting dependencies:
         1. Environment collection (Objective 1)
         2. Permissions collection using environment data (Objective 2)
-        3. Hardware & Software collection using prior data (Objective 3)
+        3. Hardware, Network & Software collection using prior data (Objective 3)
         
         Returns:
             SystemReport: Complete system information report
@@ -125,26 +134,31 @@ class InfoGatherOrchestrator:
         # Phase 1: Environment Collection (Objective 1)
         await self._report_progress(CollectionPhase.ENVIRONMENT, "Collecting environment...", 0.0)
         self._environment_state = await self._collect_environment()
-        await self._report_progress(CollectionPhase.ENVIRONMENT, "Complete", 25.0)
+        await self._report_progress(CollectionPhase.ENVIRONMENT, "Complete", 20.0)
 
         # Phase 2: Permissions Collection (Objective 2)
         # Uses environment state from Phase 1
-        await self._report_progress(CollectionPhase.PERMISSIONS, "Analyzing permissions...", 25.0)
+        await self._report_progress(CollectionPhase.PERMISSIONS, "Analyzing permissions...", 20.0)
         self._permissions_info = await self._collect_permissions()
-        await self._report_progress(CollectionPhase.PERMISSIONS, "Complete", 50.0)
+        await self._report_progress(CollectionPhase.PERMISSIONS, "Complete", 40.0)
 
-        # Phase 3: Hardware & Software Collection (Objective 3)
+        # Phase 3: Hardware, Network & Software Collection (Objective 3)
         # Uses environment and permissions data from prior phases
-        await self._report_progress(CollectionPhase.HARDWARE, "Scanning hardware...", 50.0)
-        await self._report_progress(CollectionPhase.SOFTWARE, "Scanning software...", 50.0)
+        await self._report_progress(CollectionPhase.HARDWARE, "Scanning hardware...", 40.0)
+        await self._report_progress(CollectionPhase.NETWORK, "Scanning network...", 40.0)
+        await self._report_progress(CollectionPhase.SOFTWARE, "Scanning software...", 40.0)
 
-        # Hardware and software can run in parallel
+        # Hardware, network and software can run in parallel
         hw_task = asyncio.create_task(self._collect_hardware())
+        net_task = asyncio.create_task(self._collect_network())
         sw_task = asyncio.create_task(self._collect_software())
 
-        self._hardware_info, self._software_info = await asyncio.gather(hw_task, sw_task)
+        self._hardware_info, self._network_info, self._software_info = await asyncio.gather(
+            hw_task, net_task, sw_task
+        )
 
         await self._report_progress(CollectionPhase.HARDWARE, "Complete", 100.0)
+        await self._report_progress(CollectionPhase.NETWORK, "Complete", 100.0)
         await self._report_progress(CollectionPhase.SOFTWARE, "Complete", 100.0)
 
         # Calculate total time
@@ -158,6 +172,7 @@ class InfoGatherOrchestrator:
             environment=self._environment_state,
             permissions=self._permissions_info,
             hardware=self._hardware_info,
+            network=self._network_info,
             software=self._software_info,
             total_collection_time_ms=total_time_ms,
             collection_errors=self._errors.copy(),
@@ -201,6 +216,25 @@ class InfoGatherOrchestrator:
         """Collect hardware information (Objective 3)."""
         # Pass prior collection results
         collector = HardwareCollector(
+            environment_state=self._environment_state,
+            permissions_info=self._permissions_info,
+        )
+        result = await collector.safe_collect()
+
+        if not result.success:
+            self._errors.extend(result.errors)
+            return None
+
+        self._warnings.extend(result.warnings)
+        if result.data:
+            result.data.collection_duration_ms = result.duration_ms
+
+        return result.data
+
+    async def _collect_network(self) -> NetworkInfo | None:
+        """Collect network information (intensive in-depth network capabilities)."""
+        # Pass prior collection results
+        collector = NetworkCollector(
             environment_state=self._environment_state,
             permissions_info=self._permissions_info,
         )
@@ -302,6 +336,7 @@ class InfoGatherOrchestrator:
             'environment': self._environment_state,
             'permissions': self._permissions_info,
             'hardware': self._hardware_info,
+            'network': self._network_info,
             'software': self._software_info,
         }
 
