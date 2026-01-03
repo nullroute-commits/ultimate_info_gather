@@ -50,7 +50,20 @@ class RouteType(Enum):
 
 @dataclass
 class InterfaceStatistics:
-    """Network interface statistics."""
+    """
+    Network interface statistics from /sys/class/net/<iface>/statistics.
+    
+    Attributes:
+        rx_bytes: Total bytes received on the interface.
+        rx_packets: Total packets received on the interface.
+        rx_errors: Number of receive errors detected.
+        rx_dropped: Number of received packets dropped.
+        tx_bytes: Total bytes transmitted on the interface.
+        tx_packets: Total packets transmitted on the interface.
+        tx_errors: Number of transmission errors detected.
+        tx_dropped: Number of transmitted packets dropped.
+        collisions: Number of collisions detected on the interface.
+    """
     rx_bytes: int
     rx_packets: int
     rx_errors: int

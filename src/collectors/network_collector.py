@@ -305,8 +305,11 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
 
                         # Extract netmask from prefix
                         if '/' in addr_with_prefix:
-                            prefix = int(addr_with_prefix.split('/')[1])
-                            netmask = self._prefix_to_netmask(prefix)
+                            try:
+                                prefix = int(addr_with_prefix.split('/')[1])
+                                netmask = self._prefix_to_netmask(prefix)
+                            except ValueError:
+                                pass  # Invalid prefix, skip netmask extraction
 
                         # Extract broadcast
                         if 'brd' in parts:
@@ -739,12 +742,18 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
             # [::1]:22 format
             match = re.match(r'\[([^\]]+)\]:(\d+)', addr)
             if match:
-                return match.group(1), int(match.group(2))
+                try:
+                    return match.group(1), int(match.group(2))
+                except ValueError:
+                    return match.group(1), 0
         elif addr.count(':') > 1:
             # IPv6 without brackets - last colon separates port
             last_colon = addr.rfind(':')
             if last_colon > 0:
-                return addr[:last_colon], int(addr[last_colon + 1:])
+                try:
+                    return addr[:last_colon], int(addr[last_colon + 1:])
+                except ValueError:
+                    return addr[:last_colon], 0
 
         # IPv4 or simple format
         if ':' in addr:
@@ -878,7 +887,10 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
             ret, stdout, _ = await self.run_command(['iptables', '-L', '-n'], timeout=10)
             if ret == 0:
                 policies = self._parse_iptables_policies(stdout)
-                rules_count = stdout.count('\n') - 6  # Subtract headers
+                # iptables output has 6 header lines:
+                # 3 chains (INPUT, FORWARD, OUTPUT) x 2 lines each (Chain header + column headers)
+                iptables_header_lines = 6
+                rules_count = stdout.count('\n') - iptables_header_lines
                 return FirewallStatus(
                     enabled=rules_count > 0,
                     firewall_type='iptables',
@@ -893,7 +905,9 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
             ret, stdout, _ = await self.run_command(['ufw', 'status'], timeout=10)
             if ret == 0:
                 enabled = 'active' in stdout.lower()
-                rules_count = stdout.count('\n') - 4 if enabled else 0
+                # ufw status output has ~4 header lines before rules
+                ufw_header_lines = 4
+                rules_count = stdout.count('\n') - ufw_header_lines if enabled else 0
                 return FirewallStatus(
                     enabled=enabled,
                     firewall_type='ufw',
