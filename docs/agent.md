@@ -79,10 +79,6 @@ The agent can enumerate:
   - Device types (HDD, SSD, NVMe)
   - Access levels and SMART status
   
-- **Networking**
-  - Interfaces, addresses, states
-  - Speed, MTU, driver information
-  
 - **Graphics**
   - GPU enumeration (NVIDIA, AMD, Intel)
   - Driver versions, memory
@@ -91,7 +87,58 @@ The agent can enumerate:
   - USB device enumeration
   - PCI device listing
 
-### 4. Software Inventory
+### 4. Network Capabilities (Intensive In-Depth)
+
+The agent provides comprehensive network analysis:
+
+- **Extended Interface Information**
+  - Interface names, MAC addresses, IP addresses (IPv4/IPv6)
+  - Interface states (up/down), loopback, virtual
+  - Speed, MTU, duplex mode, carrier status
+  - Driver information
+  - Per-interface statistics (RX/TX bytes, packets, errors, dropped)
+  - Broadcast address, netmask, gateway
+
+- **Routing Information**
+  - Full routing table (IPv4 and IPv6)
+  - Default gateway and interface
+  - Route types (default, local, static, dynamic)
+  - Route metrics and flags
+
+- **DNS Configuration**
+  - Nameservers from /etc/resolv.conf
+  - Search domains
+  - DNS options
+
+- **ARP Table**
+  - IP to MAC address mappings
+  - Interface associations
+  - Entry states and flags
+
+- **Network Connections**
+  - Active TCP/UDP connections
+  - Connection states (LISTEN, ESTABLISHED, TIME_WAIT, etc.)
+  - Local and remote addresses/ports
+  - Process information (PID, process name)
+
+- **Listening Ports**
+  - TCP/UDP listening sockets
+  - Bound addresses and ports
+  - Associated processes
+  - Service name mapping
+
+- **Firewall Status**
+  - Detection of firewall type (nftables, iptables, ufw, firewalld)
+  - Firewall enabled/disabled status
+  - Default policies (INPUT, OUTPUT, FORWARD)
+  - Rules count and active zones
+
+- **Traffic Summary**
+  - Total RX/TX bytes across interfaces
+  - Active connection count
+  - Listening ports count
+
+### 5. Software Inventory
 
 The agent can catalog:
 
@@ -137,6 +184,7 @@ report = await agent.collect_all()
 env = agent.environment_state      # EnvironmentState
 perms = agent.permissions_info     # PermissionsInfo
 hw = agent.hardware_info           # HardwareInfo
+net = agent.network_info           # NetworkInfo (intensive in-depth)
 sw = agent.software_info           # SoftwareInfo
 
 # Generate outputs
@@ -268,6 +316,7 @@ context = {
     "environment": agent.environment_state.to_dict(),
     "permissions": agent.permissions_info.to_dict(),
     "hardware": agent.hardware_info.to_dict(),
+    "network": agent.network_info.to_dict(),  # Intensive network analysis
     "software": agent.software_info.to_dict(),
 }
 
@@ -289,6 +338,7 @@ schema = {
     "properties": {
         "environment": {"$ref": "#/definitions/EnvironmentState"},
         "permissions": {"$ref": "#/definitions/PermissionsInfo"},
+        "network": {"$ref": "#/definitions/NetworkInfo"},
         # ...
     }
 }
@@ -404,8 +454,9 @@ async def collect_basic():
 | Environment | <100ms | 500ms |
 | Permissions | <200ms | 1s |
 | Hardware | <500ms | 5s |
+| Network | <300ms | 3s |
 | Software | <2s | 30s |
-| **Total** | <3s | 37s |
+| **Total** | <3.5s | 40s |
 
 ### Resource Usage
 
@@ -414,11 +465,11 @@ async def collect_basic():
 | Memory | <100MB | 500MB |
 | CPU | <25% | 100% burst |
 | Disk I/O | Minimal | Read-only |
-| Network | None | None (local) |
+| Network | Minimal | Local queries only |
 
 ### Concurrency
 
-- Hardware and Software collectors run in parallel
+- Hardware, Network, and Software collectors run in parallel
 - Individual collectors use async I/O
 - No blocking operations in main thread
 

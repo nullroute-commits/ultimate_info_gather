@@ -14,6 +14,7 @@ from typing import Any
 
 from .environment import EnvironmentState
 from .hardware import HardwareInfo
+from .network import NetworkInfo
 from .permissions import PermissionsInfo
 from .software import SoftwareInfo
 
@@ -24,7 +25,7 @@ class SystemReport:
     Complete system information report.
     
     Aggregates all collected information from environment, permissions,
-    hardware, and software collectors into a unified report.
+    hardware, network, and software collectors into a unified report.
     """
 
     # Report metadata
@@ -36,6 +37,7 @@ class SystemReport:
     environment: EnvironmentState | None = None
     permissions: PermissionsInfo | None = None
     hardware: HardwareInfo | None = None
+    network: NetworkInfo | None = None
     software: SoftwareInfo | None = None
 
     # Collection metadata
@@ -57,6 +59,7 @@ class SystemReport:
             "environment": self.environment.to_dict() if self.environment else None,
             "permissions": self.permissions.to_dict() if self.permissions else None,
             "hardware": self.hardware.to_dict() if self.hardware else None,
+            "network": self.network.to_dict() if self.network else None,
             "software": self.software.to_dict() if self.software else None,
         }
 
@@ -106,6 +109,10 @@ class SystemReport:
 
         if self.hardware:
             lines.append(self.hardware.get_summary())
+            lines.append("")
+
+        if self.network:
+            lines.append(self.network.get_summary())
             lines.append("")
 
         if self.software:
@@ -265,6 +272,82 @@ class SystemReport:
             if hw.is_virtual_machine and hw.hypervisor:
                 lines.append(f"  \n**Hypervisor:** {hw.hypervisor}")
             lines.append("")
+
+        # Network section
+        if self.network:
+            net = self.network
+            lines.extend([
+                "## 🌐 Network",
+                "",
+                "### Interfaces",
+                "",
+                "| Interface | Status | IPv4 | Speed |",
+                "|-----------|--------|------|-------|",
+            ])
+            for iface in net.interfaces:
+                status = "🟢 UP" if iface.is_up else "🔴 DOWN"
+                ips = ", ".join(iface.ipv4_addresses) if iface.ipv4_addresses else "-"
+                speed = f"{iface.speed_mbps} Mbps" if iface.speed_mbps else "-"
+                lines.append(f"| {iface.name} | {status} | {ips} | {speed} |")
+            lines.append("")
+
+            lines.extend([
+                "### Routing",
+                "",
+                "| Property | Value |",
+                "|----------|-------|",
+                f"| Default Gateway | {net.default_gateway or 'None'} |",
+                f"| Default Interface | {net.default_interface or 'None'} |",
+                f"| Total Routes | {len(net.routes)} |",
+                "",
+            ])
+
+            if net.dns_config:
+                lines.extend([
+                    "### DNS Configuration",
+                    "",
+                    "| Property | Value |",
+                    "|----------|-------|",
+                    f"| Nameservers | {', '.join(net.dns_config.nameservers) or 'None'} |",
+                    f"| Search Domains | {', '.join(net.dns_config.search_domains) or 'None'} |",
+                    "",
+                ])
+
+            lines.extend([
+                "### Connections",
+                "",
+                "| Property | Value |",
+                "|----------|-------|",
+                f"| Active Connections | {net.active_connections_count} |",
+                f"| Listening Ports | {net.listening_ports_count} |",
+                f"| ARP Entries | {len(net.arp_table)} |",
+                "",
+            ])
+
+            if net.firewall:
+                fw_status = "🟢 Enabled" if net.firewall.enabled else "🔴 Disabled"
+                lines.extend([
+                    "### Firewall",
+                    "",
+                    "| Property | Value |",
+                    "|----------|-------|",
+                    f"| Status | {fw_status} |",
+                    f"| Type | {net.firewall.firewall_type} |",
+                    f"| Rules | {net.firewall.rules_count} |",
+                    "",
+                ])
+
+            total_rx_mb = net.total_rx_bytes / (1024 * 1024)
+            total_tx_mb = net.total_tx_bytes / (1024 * 1024)
+            lines.extend([
+                "### Traffic Summary",
+                "",
+                "| Direction | Amount |",
+                "|-----------|--------|",
+                f"| Total RX | {total_rx_mb:.2f} MB |",
+                f"| Total TX | {total_tx_mb:.2f} MB |",
+                "",
+            ])
 
         # Software section
         if self.software:
