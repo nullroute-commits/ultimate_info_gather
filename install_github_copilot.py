@@ -452,7 +452,7 @@ class GitHubCopilotInstaller:
                 print(f"❌ Failed to extract: {stderr}")
                 return False
 
-            # Find gh binary and move to /usr/local/bin
+            # Find gh binary and move to /usr/bin
             needs_sudo = await self._needs_sudo()
             
             # Find the extracted directory
