@@ -35,7 +35,7 @@ The script automatically:
 
 ### Required
 
-- **Python 3.11+**: The script requires Python 3.11 or higher (Python 3.13+ features are used for optimal async performance)
+- **Python 3.11+**: The script requires Python 3.11 or higher (uses modern async/await patterns)
 - **Internet connection**: To download packages and authenticate
 - **Credential file**: GitHub Personal Access Token or SSH key (see below)
 

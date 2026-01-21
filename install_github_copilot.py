@@ -287,7 +287,7 @@ class GitHubCopilotInstaller:
             if ret != 0:
                 print("⚠️  opkg update failed, continuing anyway...")
             cmd = prefix + ["opkg", "install", "node", "node-npm"]
-        elif self.caps.package_manager in ["apt"]:
+        elif self.caps.package_manager == "apt":
             print("🔧 Installing with apt: nodejs npm")
             # apt requires update first
             ret, _, _ = await DeviceCapabilityDetector._run_command(
@@ -474,6 +474,7 @@ class GitHubCopilotInstaller:
             return False
         
         # Write GPG key to file (binary mode)
+        tmp_keyring = None
         try:
             with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp:
                 tmp.write(key_bytes)
@@ -490,6 +491,13 @@ class GitHubCopilotInstaller:
         except Exception as e:
             print(f"❌ Failed to write GPG key: {e}")
             return False
+        finally:
+            # Clean up temp file if move failed
+            if tmp_keyring and Path(tmp_keyring).exists():
+                try:
+                    Path(tmp_keyring).unlink()
+                except Exception:
+                    pass
         
         # Step 2: Get architecture
         ret, arch_output, _ = await DeviceCapabilityDetector._run_command(
@@ -501,6 +509,7 @@ class GitHubCopilotInstaller:
         repo_line = f"deb [arch={arch} signed-by={keyring_file}] https://cli.github.com/packages stable main\n"
         sources_file = "/etc/apt/sources.list.d/github-cli.list"
         
+        tmp_sources = None
         try:
             with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
                 tmp.write(repo_line)
@@ -517,6 +526,13 @@ class GitHubCopilotInstaller:
         except Exception as e:
             print(f"❌ Failed to write sources file: {e}")
             return False
+        finally:
+            # Clean up temp file if move failed
+            if tmp_sources and Path(tmp_sources).exists():
+                try:
+                    Path(tmp_sources).unlink()
+                except Exception:
+                    pass
         
         # Step 4: Update package list
         print("🔄 Updating package list...")
