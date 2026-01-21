@@ -27,6 +27,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 # Minimum Python version check
 if sys.version_info < (3, 11):
@@ -40,19 +41,19 @@ class DeviceCapabilities:
 
     os_name: str
     architecture: str
-    package_manager: str | None  # opkg, apt, dnf, yum, pacman, apk, brew
+    package_manager: Optional[str]  # opkg, apt, dnf, yum, pacman, apk, brew
     has_opkg: bool
     is_openwrt: bool
-    available_space_mb: int | None
+    available_space_mb: Optional[int]
     has_node: bool
     has_npm: bool
     has_git: bool
     has_curl: bool
     has_wget: bool
     has_gh: bool
-    node_version: str | None
-    npm_version: str | None
-    gh_version: str | None
+    node_version: Optional[str]
+    npm_version: Optional[str]
+    gh_version: Optional[str]
 
 
 class DeviceCapabilityDetector:
@@ -138,7 +139,7 @@ class DeviceCapabilityDetector:
         return platform.machine()
 
     @staticmethod
-    async def _detect_package_manager() -> str | None:
+    async def _detect_package_manager() -> Optional[str]:
         """Detect available package manager (opkg prioritized first)."""
         # Check in priority order
         managers = ["opkg", "apt", "dnf", "yum", "pacman", "apk", "brew"]
@@ -169,7 +170,7 @@ class DeviceCapabilityDetector:
         return False
 
     @staticmethod
-    async def _get_available_space() -> int | None:
+    async def _get_available_space() -> Optional[int]:
         """Get available disk space in MB."""
         try:
             # Use appropriate root path per OS
@@ -190,7 +191,7 @@ class DeviceCapabilityDetector:
         return shutil.which(cmd) is not None
 
     @staticmethod
-    async def _get_version(cmd: str, arg: str) -> str | None:
+    async def _get_version(cmd: str, arg: str) -> Optional[str]:
         """Get version of a command."""
         try:
             process = await asyncio.create_subprocess_exec(
@@ -394,7 +395,7 @@ class GitHubCopilotInstaller:
             print(f"❌ Unsupported package manager: {self.caps.package_manager}")
             return False
 
-    async def _get_gh_latest_version(self) -> str | None:
+    async def _get_gh_latest_version(self) -> Optional[str]:
         """Get the latest GitHub CLI version from GitHub releases page."""
         try:
             # Try to get version from GitHub releases redirect URL
@@ -934,7 +935,7 @@ Host github.com
         return False
 
 
-async def find_credential_file() -> str | None:
+async def find_credential_file() -> Optional[str]:
     """Find id_player1 credential file."""
     search_paths = [
         Path.cwd() / "id_player1",
