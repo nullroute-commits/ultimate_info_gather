@@ -175,8 +175,12 @@ class DeviceCapabilityDetector:
         try:
             # Use appropriate root path per OS
             if platform.system() == "Windows":
-                # Use system drive on Windows (fallback to C: if not set)
-                root_path = os.environ.get("SystemDrive", "C:") + "\\"
+                # Use system drive on Windows (fallback to C: if not set or invalid)
+                system_drive = os.environ.get("SystemDrive", "C:")
+                # Validate drive letter format (A-Z followed by :)
+                if not (len(system_drive) == 2 and system_drive[0].isalpha() and system_drive[1] == ':'):
+                    system_drive = "C:"
+                root_path = system_drive + "\\"
             else:
                 # Use / on Unix-like systems
                 root_path = "/"
