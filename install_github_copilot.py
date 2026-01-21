@@ -511,8 +511,8 @@ class GitHubCopilotInstaller:
                 if self.caps.is_openwrt:
                     target_dir = Path("/usr/bin")
                 elif platform.system() == "Windows":
-                    # Windows support: use LOCALAPPDATA
-                    target_dir = Path(os.getenv("LOCALAPPDATA", "C:\\Program Files")) / "GitHub" / "cli"
+                    # Windows support: use user-writable LOCALAPPDATA
+                    target_dir = Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))) / "GitHub" / "cli"
                 elif Path("/usr/local/bin").exists():
                     target_dir = Path("/usr/local/bin")
                 else:
@@ -520,17 +520,26 @@ class GitHubCopilotInstaller:
 
                 print(f"🔧 Ensuring target directory exists: {target_dir}")
 
-                # Always run mkdir -p to ensure directory exists (idempotent)
-                mkdir_cmd = ["mkdir", "-p", str(target_dir)]
-                if needs_sudo:
-                    mkdir_cmd = ["sudo"] + mkdir_cmd
+                # Create directory using Python's pathlib on Windows, shell command on Unix
+                if platform.system() == "Windows":
+                    # Use Python's pathlib for Windows
+                    try:
+                        target_dir.mkdir(parents=True, exist_ok=True)
+                    except Exception as e:
+                        print(f"❌ Failed to create directory {target_dir}: {e}")
+                        return False
+                else:
+                    # Use mkdir -p on Unix systems
+                    mkdir_cmd = ["mkdir", "-p", str(target_dir)]
+                    if needs_sudo:
+                        mkdir_cmd = ["sudo"] + mkdir_cmd
 
-                ret, _, stderr = await DeviceCapabilityDetector._run_command(
-                    mkdir_cmd, timeout=10.0
-                )
-                if ret != 0:
-                    print(f"❌ Failed to create directory {target_dir}: {stderr}")
-                    return False
+                    ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                        mkdir_cmd, timeout=10.0
+                    )
+                    if ret != 0:
+                        print(f"❌ Failed to create directory {target_dir}: {stderr}")
+                        return False
 
                 # Verify directory was created
                 if not target_dir.exists():

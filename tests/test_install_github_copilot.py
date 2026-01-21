@@ -20,18 +20,16 @@ class TestFilesystemOperations:
 
     def test_openwrt_detection_linux_only(self):
         """Test that OpenWrt detection only runs on Linux."""
+        import asyncio
+        
         with patch('platform.system', return_value='Windows'):
             # On Windows, should return False without checking files
-            result = pytest.importorskip('asyncio').run(
-                DeviceCapabilityDetector._check_openwrt()
-            )
+            result = asyncio.run(DeviceCapabilityDetector._check_openwrt())
             assert result is False
 
         with patch('platform.system', return_value='Darwin'):
             # On macOS, should return False without checking files
-            result = pytest.importorskip('asyncio').run(
-                DeviceCapabilityDetector._check_openwrt()
-            )
+            result = asyncio.run(DeviceCapabilityDetector._check_openwrt())
             assert result is False
 
     @pytest.mark.asyncio
