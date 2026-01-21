@@ -460,7 +460,7 @@ class GitHubCopilotInstaller:
                 if Path(extract_dir).exists():
                     shutil.rmtree(extract_dir, ignore_errors=True)
             except Exception:
-                # Best-effort cleanup: ignore any errors when removing temporary directory
+                # Best-effort cleanup: ignore any errors when removing temporary files
                 pass
 
     async def _install_gh_apt(self) -> bool:
@@ -509,7 +509,7 @@ class GitHubCopilotInstaller:
                 try:
                     Path(tmp_keyring).unlink()
                 except Exception:
-                    # Best-effort cleanup: ignore any errors when removing the temporary file
+                    # Best-effort cleanup: ignore any errors when removing temporary files
                     pass
         
         # Step 2: Get architecture
@@ -545,7 +545,7 @@ class GitHubCopilotInstaller:
                 try:
                     Path(tmp_sources).unlink()
                 except Exception:
-                    # Best-effort cleanup: ignore any errors when removing the temporary file
+                    # Best-effort cleanup: ignore any errors when removing temporary files
                     pass
         
         # Step 4: Update package list
