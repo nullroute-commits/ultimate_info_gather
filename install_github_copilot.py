@@ -468,6 +468,19 @@ class GitHubCopilotInstaller:
                     print("❌ Failed to find gh binary in extracted directory")
                     return False
                 
+                # Ensure /usr/local/bin directory exists
+                target_dir = Path("/usr/local/bin")
+                if not target_dir.exists():
+                    mkdir_cmd = ["mkdir", "-p", str(target_dir)]
+                    if needs_sudo:
+                        mkdir_cmd = ["sudo"] + mkdir_cmd
+                    ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                        mkdir_cmd, timeout=10.0
+                    )
+                    if ret != 0:
+                        print(f"❌ Failed to create directory {target_dir}: {stderr}")
+                        return False
+                
                 # Copy to /usr/local/bin
                 move_cmd = ["cp", str(gh_binary), "/usr/local/bin/gh"]
                 if needs_sudo:
