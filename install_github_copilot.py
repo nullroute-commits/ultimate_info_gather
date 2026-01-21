@@ -82,7 +82,13 @@ class DeviceCapabilityDetector:
             return_exceptions=True,
         )
 
-        # Unpack results
+        # Handle exceptions in results before unpacking
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                print(f"⚠️  Warning: Detection task {i} failed: {result}")
+                results[i] = None
+
+        # Unpack results after handling exceptions
         (
             os_name,
             arch,
@@ -99,12 +105,6 @@ class DeviceCapabilityDetector:
             npm_ver,
             gh_ver,
         ) = results
-
-        # Handle exceptions in results
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                print(f"⚠️  Warning: Detection task {i} failed: {result}")
-                results[i] = None
 
         has_opkg = pkg_mgr == "opkg" if pkg_mgr else False
 
@@ -390,66 +390,78 @@ class GitHubCopilotInstaller:
             print("❌ Neither curl nor wget available")
             return False
 
-        ret, _, stderr = await DeviceCapabilityDetector._run_command(
-            download_cmd, timeout=120.0
-        )
-        if ret != 0:
-            print(f"❌ Failed to download GitHub CLI: {stderr}")
-            return False
-
-        # Extract
-        print("📂 Extracting...")
-        Path(extract_dir).mkdir(exist_ok=True)
-        ret, _, stderr = await DeviceCapabilityDetector._run_command(
-            ["tar", "-xzf", temp_file, "-C", extract_dir], timeout=60.0
-        )
-        if ret != 0:
-            print(f"❌ Failed to extract: {stderr}")
-            return False
-
-        # Find gh binary and move to /usr/local/bin
-        needs_sudo = await self._needs_sudo()
-        
-        # Find the extracted directory
         try:
-            extract_path = Path(extract_dir)
-            gh_dirs = list(extract_path.glob("gh_*"))
-            if not gh_dirs:
-                print("❌ Failed to find extracted gh directory")
-                return False
-            
-            gh_binary = gh_dirs[0] / "bin" / "gh"
-            if not gh_binary.exists():
-                print("❌ Failed to find gh binary in extracted directory")
-                return False
-            
-            # Copy to /usr/local/bin
-            move_cmd = ["cp", str(gh_binary), "/usr/local/bin/gh"]
-            if needs_sudo:
-                move_cmd = ["sudo"] + move_cmd
-            
             ret, _, stderr = await DeviceCapabilityDetector._run_command(
-                move_cmd, timeout=30.0
+                download_cmd, timeout=120.0
             )
             if ret != 0:
-                print(f"❌ Failed to install gh binary: {stderr}")
+                print(f"❌ Failed to download GitHub CLI: {stderr}")
                 return False
-        except Exception as e:
-            print(f"❌ Failed to locate gh binary: {e}")
-            return False
 
-        # Make executable
-        chmod_cmd = ["chmod", "+x", "/usr/local/bin/gh"]
-        if needs_sudo:
-            chmod_cmd = ["sudo"] + chmod_cmd
-        await DeviceCapabilityDetector._run_command(chmod_cmd, timeout=10.0)
+            # Extract
+            print("📂 Extracting...")
+            Path(extract_dir).mkdir(exist_ok=True)
+            ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                ["tar", "-xzf", temp_file, "-C", extract_dir], timeout=60.0
+            )
+            if ret != 0:
+                print(f"❌ Failed to extract: {stderr}")
+                return False
 
-        # Cleanup
-        Path(temp_file).unlink(missing_ok=True)
-        shutil.rmtree(extract_dir, ignore_errors=True)
+            # Find gh binary and move to /usr/local/bin
+            needs_sudo = await self._needs_sudo()
+            
+            # Find the extracted directory
+            try:
+                extract_path = Path(extract_dir)
+                gh_dirs = list(extract_path.glob("gh_*"))
+                if not gh_dirs:
+                    print("❌ Failed to find extracted gh directory")
+                    return False
+                
+                gh_binary = gh_dirs[0] / "bin" / "gh"
+                if not gh_binary.exists():
+                    print("❌ Failed to find gh binary in extracted directory")
+                    return False
+                
+                # Copy to /usr/local/bin
+                move_cmd = ["cp", str(gh_binary), "/usr/local/bin/gh"]
+                if needs_sudo:
+                    move_cmd = ["sudo"] + move_cmd
+                
+                ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                    move_cmd, timeout=30.0
+                )
+                if ret != 0:
+                    print(f"❌ Failed to install gh binary: {stderr}")
+                    return False
+            except Exception as e:
+                print(f"❌ Failed to locate gh binary: {e}")
+                return False
 
-        print("✅ GitHub CLI installed successfully")
-        return True
+            # Make executable
+            chmod_cmd = ["chmod", "+x", "/usr/local/bin/gh"]
+            if needs_sudo:
+                chmod_cmd = ["sudo"] + chmod_cmd
+            await DeviceCapabilityDetector._run_command(chmod_cmd, timeout=10.0)
+
+            print("✅ GitHub CLI installed successfully")
+            return True
+        finally:
+            # Cleanup temporary files - critical for embedded systems with limited storage
+            try:
+                if Path(temp_file).exists():
+                    Path(temp_file).unlink()
+            except Exception:
+                # Best-effort cleanup: ignore any errors when removing temporary files
+                pass
+            
+            try:
+                if Path(extract_dir).exists():
+                    shutil.rmtree(extract_dir, ignore_errors=True)
+            except Exception:
+                # Best-effort cleanup: ignore any errors when removing temporary directory
+                pass
 
     async def _install_gh_apt(self) -> bool:
         """Install GitHub CLI with apt."""
@@ -497,6 +509,7 @@ class GitHubCopilotInstaller:
                 try:
                     Path(tmp_keyring).unlink()
                 except Exception:
+                    # Best-effort cleanup: ignore any errors when removing the temporary file
                     pass
         
         # Step 2: Get architecture
@@ -532,6 +545,7 @@ class GitHubCopilotInstaller:
                 try:
                     Path(tmp_sources).unlink()
                 except Exception:
+                    # Best-effort cleanup: ignore any errors when removing the temporary file
                     pass
         
         # Step 4: Update package list
@@ -700,8 +714,14 @@ class GitHubCopilotInstaller:
             return False
 
     async def _authenticate_ssh(self, ssh_key: str, username: str) -> bool:
-        """Authenticate with SSH key."""
-        print("🔑 Configuring SSH authentication...")
+        """Configure SSH key for git operations with GitHub.
+        
+        Note: This configures SSH for git operations only. The gh CLI tool requires
+        token-based authentication via 'gh auth login --with-token' or interactive login.
+        SSH keys alone will not authenticate the gh CLI tool.
+        """
+        print("🔑 Configuring SSH key for git operations...")
+        print("ℹ️  Note: gh CLI requires token authentication separately")
 
         # Create .ssh directory if needed
         ssh_dir = Path.home() / ".ssh"
@@ -743,6 +763,8 @@ Host github.com
             else:
                 print(f"ℹ️  SSH config for github.com already exists")
 
+            print("⚠️  SSH key configured for git, but gh CLI needs token authentication")
+            print("    Run 'gh auth login' to authenticate gh CLI")
             return True
         except Exception as e:
             print(f"❌ Failed to configure SSH: {e}")
