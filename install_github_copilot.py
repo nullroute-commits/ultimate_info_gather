@@ -207,7 +207,7 @@ class DeviceCapabilityDetector:
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
             return (
-                process.returncode or 0,
+                process.returncode if process.returncode is not None else 0,
                 stdout.decode("utf-8", errors="replace"),
                 stderr.decode("utf-8", errors="replace"),
             )
@@ -424,32 +424,79 @@ class GitHubCopilotInstaller:
         needs_sudo = await self._needs_sudo()
         prefix = ["sudo"] if needs_sudo else []
 
-        # Add GitHub CLI repository
-        commands = [
-            prefix
-            + [
-                "bash",
-                "-c",
-                "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
-            ],
-            prefix
-            + [
-                "bash",
-                "-c",
-                'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list',
-            ],
-            prefix + ["apt-get", "update"],
-            prefix + ["apt-get", "install", "-y", "gh"],
-        ]
-
-        for cmd in commands:
+        # Add GitHub CLI repository - broken into safer steps
+        # Step 1: Download the GPG key
+        print("📥 Adding GitHub CLI repository...")
+        keyring_file = "/usr/share/keyrings/githubcli-archive-keyring.gpg"
+        
+        # Download GPG key
+        ret, stdout, stderr = await DeviceCapabilityDetector._run_command(
+            ["curl", "-fsSL", "https://cli.github.com/packages/githubcli-archive-keyring.gpg"],
+            timeout=30.0
+        )
+        if ret != 0:
+            print(f"❌ Failed to download GPG key: {stderr}")
+            return False
+        
+        # Write GPG key to file
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+                tmp.write(stdout)
+                tmp_keyring = tmp.name
+            
+            # Move to proper location
+            move_cmd = prefix + ["mv", tmp_keyring, keyring_file]
             ret, _, stderr = await DeviceCapabilityDetector._run_command(
-                cmd, timeout=120.0
+                move_cmd, timeout=10.0
             )
             if ret != 0:
-                print(f"❌ Command failed: {' '.join(cmd)}")
-                print(f"   Error: {stderr}")
+                print(f"❌ Failed to install GPG key: {stderr}")
                 return False
+        except Exception as e:
+            print(f"❌ Failed to write GPG key: {e}")
+            return False
+        
+        # Step 2: Get architecture
+        ret, arch_output, _ = await DeviceCapabilityDetector._run_command(
+            ["dpkg", "--print-architecture"], timeout=5.0
+        )
+        arch = arch_output.strip() if ret == 0 else "amd64"
+        
+        # Step 3: Add repository to sources list
+        repo_line = f"deb [arch={arch} signed-by={keyring_file}] https://cli.github.com/packages stable main\n"
+        sources_file = "/etc/apt/sources.list.d/github-cli.list"
+        
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+                tmp.write(repo_line)
+                tmp_sources = tmp.name
+            
+            # Move to proper location
+            move_cmd = prefix + ["mv", tmp_sources, sources_file]
+            ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                move_cmd, timeout=10.0
+            )
+            if ret != 0:
+                print(f"❌ Failed to add repository: {stderr}")
+                return False
+        except Exception as e:
+            print(f"❌ Failed to write sources file: {e}")
+            return False
+        
+        # Step 4: Update package list
+        print("🔄 Updating package list...")
+        ret, _, stderr = await DeviceCapabilityDetector._run_command(
+            prefix + ["apt-get", "update"], timeout=120.0
+        )
+        if ret != 0:
+            print(f"⚠️  apt-get update failed: {stderr}")
+        
+        # Step 5: Install gh
+        print("📦 Installing GitHub CLI...")
+        ret, _, stderr = await DeviceCapabilityDetector._run_command(
+            prefix + ["apt-get", "install", "-y", "gh"], timeout=120.0
+        )
 
         print("✅ GitHub CLI installed successfully")
         return True
@@ -780,7 +827,17 @@ async def main() -> int:
             return 1
 
         # Step 6: Authenticate
-        if not await installer.authenticate_github("nullroute-commits", credential_file):
+        # Extract username from credential file or use default
+        username = "nullroute-commits"  # Default username
+        
+        # Try to extract username from git config if available
+        ret, stdout, _ = await DeviceCapabilityDetector._run_command(
+            ["git", "config", "--global", "user.name"], timeout=5.0
+        )
+        if ret == 0 and stdout.strip():
+            username = stdout.strip()
+        
+        if not await installer.authenticate_github(username, credential_file):
             print("⚠️  Authentication failed or incomplete")
             print("    You may need to authenticate manually with: gh auth login")
 
