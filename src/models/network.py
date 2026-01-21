@@ -52,7 +52,7 @@ class RouteType(Enum):
 class InterfaceStatistics:
     """
     Network interface statistics from /sys/class/net/<iface>/statistics.
-    
+
     Attributes:
         rx_bytes: Total bytes received on the interface.
         rx_packets: Total packets received on the interface.
@@ -272,7 +272,7 @@ class FirewallStatus:
 class NetworkInfo:
     """
     Comprehensive network information collection.
-    
+
     Provides intensive in-depth network analysis with interfaces,
     routing, DNS, ARP, connections, and firewall information.
     """

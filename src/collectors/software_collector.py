@@ -32,7 +32,7 @@ from .base import BaseCollector
 class SoftwareCollector(BaseCollector[SoftwareInfo]):
     """
     Collects comprehensive software information.
-    
+
     Objective 3: Collect all software deployed and determine access levels.
     """
 
@@ -43,7 +43,7 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
     ):
         """
         Initialize with optional prior collection results.
-        
+
         Args:
             environment_state: Previously collected environment info
             permissions_info: Previously collected permissions info
@@ -145,12 +145,12 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
 
             # Get boot time and uptime
             uptime = 0.0
-            boot_time = None
+            boot_time: datetime | None = None
             uptime_content = await self.read_file_async('/proc/uptime')
             if uptime_content:
                 uptime = float(uptime_content.split()[0])
-                boot_time = datetime.now().timestamp() - uptime
-                boot_time = datetime.fromtimestamp(boot_time)
+                boot_timestamp = datetime.now().timestamp() - uptime
+                boot_time = datetime.fromtimestamp(boot_timestamp)
 
             return OSInfo(
                 name=name or uname.system,
@@ -582,7 +582,4 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
 
         # Check podman (rootless)
         ret, _, _ = await self.run_command(['podman', 'info'], timeout=10)
-        if ret == 0:
-            return True
-
-        return False
+        return ret == 0

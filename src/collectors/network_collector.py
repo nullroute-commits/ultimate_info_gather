@@ -8,6 +8,7 @@ and firewall status.
 
 from __future__ import annotations
 
+import contextlib
 import re
 from datetime import datetime
 from pathlib import Path
@@ -34,7 +35,7 @@ from .base import BaseCollector
 class NetworkCollector(BaseCollector[NetworkInfo]):
     """
     Collects comprehensive network information.
-    
+
     Provides intensive in-depth network analysis including:
     - Extended interface information with statistics
     - Routing tables
@@ -52,7 +53,7 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
     ):
         """
         Initialize with optional prior collection results.
-        
+
         Args:
             environment_state: Previously collected environment info
             permissions_info: Previously collected permissions info
@@ -92,11 +93,11 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
 
         # Calculate summary statistics
         total_rx = sum(
-            i.statistics.rx_bytes for i in interfaces 
+            i.statistics.rx_bytes for i in interfaces
             if i.statistics and not i.is_loopback
         )
         total_tx = sum(
-            i.statistics.tx_bytes for i in interfaces 
+            i.statistics.tx_bytes for i in interfaces
             if i.statistics and not i.is_loopback
         )
 
@@ -110,7 +111,7 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
                 break
 
         active_connections = [
-            c for c in connections 
+            c for c in connections
             if c.state == ConnectionState.ESTABLISHED
         ]
 
@@ -135,7 +136,7 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
 
     async def _get_interfaces(self) -> list[NetworkInterfaceExtended]:
         """Get extended network interface information."""
-        interfaces = []
+        interfaces: list[NetworkInterfaceExtended] = []
 
         try:
             net_path = Path('/sys/class/net')
@@ -192,12 +193,10 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
                 duplex_file = iface_dir / 'duplex'
                 duplex = None
                 if duplex_file.exists():
-                    try:
+                    with contextlib.suppress(OSError):
                         duplex = (
                             await self.read_file_async(str(duplex_file), silent_if_missing=True) or ''
                         ).strip() or None
-                    except OSError:
-                        pass
 
                 # Get carrier status
                 carrier_file = iface_dir / 'carrier'
@@ -431,10 +430,8 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
                     i += 1
             elif parts[i] == 'metric':
                 if i + 1 < len(parts):
-                    try:
+                    with contextlib.suppress(ValueError):
                         metric = int(parts[i + 1])
-                    except ValueError:
-                        pass
                     i += 2
                 else:
                     i += 1
@@ -844,7 +841,7 @@ class NetworkCollector(BaseCollector[NetworkInfo]):
             service_name=service_name,
         )
 
-    def _get_service_name(self, port: int, protocol: str) -> str | None:
+    def _get_service_name(self, port: int, _protocol: str) -> str | None:
         """Get service name for a port."""
         # Common services
         services = {

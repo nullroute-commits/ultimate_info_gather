@@ -255,7 +255,7 @@ class SystemBoardInfo:
 class HardwareInfo:
     """
     Complete hardware information collection.
-    
+
     Comprehensive hardware inventory with access level information.
     """
     timestamp: datetime

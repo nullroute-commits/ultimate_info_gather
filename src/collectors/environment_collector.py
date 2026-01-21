@@ -27,7 +27,7 @@ from .base import BaseCollector
 class EnvironmentCollector(BaseCollector[EnvironmentState]):
     """
     Collects comprehensive environment information.
-    
+
     Objective 1: Collect current env and determine running state.
     """
 
@@ -156,10 +156,7 @@ class EnvironmentCollector(BaseCollector[EnvironmentState]):
 
         # Check for container environment variables
         container_env_vars = ['KUBERNETES_SERVICE_HOST', 'DOCKER_CONTAINER']
-        if any(var in os.environ for var in container_env_vars):
-            return True
-
-        return False
+        return bool(any(var in os.environ for var in container_env_vars))
 
     async def _check_is_wsl(self) -> bool:
         """Check if running under Windows Subsystem for Linux."""
@@ -173,10 +170,7 @@ class EnvironmentCollector(BaseCollector[EnvironmentState]):
 
         # Check /proc/version
         version_content = await self.read_file_async('/proc/version')
-        if version_content and 'microsoft' in version_content.lower():
-            return True
-
-        return False
+        return bool(version_content and 'microsoft' in version_content.lower())
 
     async def _get_process_name(self, pid: int) -> str | None:
         """Get process name by PID."""
