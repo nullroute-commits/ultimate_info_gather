@@ -109,6 +109,59 @@ async def main():
 asyncio.run(main())
 ```
 
+## GitHub Copilot Setup
+
+Install and configure GitHub Copilot CLI for AI-powered command-line assistance:
+
+```bash
+python3 install_github_copilot.py
+```
+
+### Prerequisites
+
+- Python 3.11 or higher
+- GitHub Personal Access Token or SSH key in `id_player1` file
+- Supported package managers: opkg, apt, dnf, yum, pacman, apk, brew
+
+### Credential File
+
+Create an `id_player1` file containing either:
+- GitHub Personal Access Token (recommended)
+- SSH private key
+
+Save to one of these locations:
+- `./id_player1` (current directory)
+- `~/id_player1` (home directory)
+- `~/.ssh/id_player1` (SSH directory)
+
+Example:
+```bash
+# Save token to file
+echo "ghp_YourPersonalAccessTokenHere" > ~/id_player1
+chmod 600 ~/id_player1
+```
+
+### Features
+
+- **Multi-platform support**: Automatically detects and uses the appropriate package manager
+- **OpenWrt optimized**: Prioritizes opkg and downloads GitHub CLI binary
+- **Async operations**: Fast, efficient installation using Python async/await
+- **Authentication**: Automatically configures GitHub authentication
+- **Verification**: Validates installation before completing
+
+### Usage
+
+After installation:
+```bash
+# Get command suggestions
+gh copilot suggest "list all files larger than 100MB"
+
+# Explain commands
+gh copilot explain "tar -xzf archive.tar.gz"
+```
+
+For detailed instructions, see [GitHub Copilot Setup Guide](docs/tools/github-copilot-setup.md).
+
 ## Architecture
 
 ```
