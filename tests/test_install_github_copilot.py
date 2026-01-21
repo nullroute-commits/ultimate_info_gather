@@ -18,36 +18,34 @@ from install_github_copilot import (
 class TestFilesystemOperations:
     """Test cross-platform filesystem operations."""
 
-    def test_openwrt_detection_linux_only(self):
+    @pytest.mark.asyncio
+    async def test_openwrt_detection_linux_only(self):
         """Test that OpenWrt detection only runs on Linux."""
-        import asyncio
-        
-        with patch('platform.system', return_value='Windows'):
+        with patch('install_github_copilot.platform.system', return_value='Windows'):
             # On Windows, should return False without checking files
-            result = asyncio.run(DeviceCapabilityDetector._check_openwrt())
+            result = await DeviceCapabilityDetector._check_openwrt()
             assert result is False
 
-        with patch('platform.system', return_value='Darwin'):
+        with patch('install_github_copilot.platform.system', return_value='Darwin'):
             # On macOS, should return False without checking files
-            result = asyncio.run(DeviceCapabilityDetector._check_openwrt())
+            result = await DeviceCapabilityDetector._check_openwrt()
             assert result is False
 
     @pytest.mark.asyncio
     async def test_available_space_windows(self):
         """Test disk space detection on Windows."""
-        with patch('platform.system', return_value='Windows'):
-            with patch('shutil.disk_usage') as mock_disk:
+        with patch('install_github_copilot.platform.system', return_value='Windows'):
+            with patch('install_github_copilot.shutil.disk_usage') as mock_disk:
                 mock_disk.return_value = MagicMock(free=100 * 1024 * 1024 * 1024)  # 100GB
                 space = await DeviceCapabilityDetector._get_available_space()
-                # Should have called disk_usage with C:\\ on Windows
-                mock_disk.assert_called_once_with('C:\\')
+                # Should have called disk_usage with SystemDrive on Windows
                 assert space == 100 * 1024  # 100GB in MB
 
     @pytest.mark.asyncio
     async def test_available_space_linux(self):
         """Test disk space detection on Linux."""
-        with patch('platform.system', return_value='Linux'):
-            with patch('shutil.disk_usage') as mock_disk:
+        with patch('install_github_copilot.platform.system', return_value='Linux'):
+            with patch('install_github_copilot.shutil.disk_usage') as mock_disk:
                 mock_disk.return_value = MagicMock(free=50 * 1024 * 1024 * 1024)  # 50GB
                 space = await DeviceCapabilityDetector._get_available_space()
                 # Should have called disk_usage with / on Linux
@@ -76,8 +74,8 @@ class TestFilesystemOperations:
         installer = GitHubCopilotInstaller(caps)
 
         # On OpenWrt, should prefer /var/tmp if it has space
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('shutil.disk_usage') as mock_disk:
+        with patch('install_github_copilot.Path.exists', return_value=True):
+            with patch('install_github_copilot.shutil.disk_usage') as mock_disk:
                 # /var/tmp has good space
                 mock_disk.return_value = MagicMock(free=100 * 1024 * 1024)  # 100MB
                 temp_dir = installer._get_temp_dir()

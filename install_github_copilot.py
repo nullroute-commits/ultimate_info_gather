@@ -175,8 +175,8 @@ class DeviceCapabilityDetector:
         try:
             # Use appropriate root path per OS
             if platform.system() == "Windows":
-                # Use C:\ on Windows
-                root_path = "C:\\"
+                # Use system drive on Windows (fallback to C: if not set)
+                root_path = os.environ.get("SystemDrive", "C:") + "\\"
             else:
                 # Use / on Unix-like systems
                 root_path = "/"
@@ -484,7 +484,7 @@ class GitHubCopilotInstaller:
 
             # Extract
             print("📂 Extracting...")
-            extract_dir.mkdir(exist_ok=True)
+            extract_dir.mkdir(parents=True, exist_ok=True)
             ret, _, stderr = await DeviceCapabilityDetector._run_command(
                 ["tar", "-xzf", str(temp_file), "-C", str(extract_dir)], timeout=60.0
             )
@@ -508,39 +508,31 @@ class GitHubCopilotInstaller:
                     return False
 
                 # Ensure target directory exists
-                # On OpenWrt, use /usr/bin; on other systems, prefer /usr/local/bin if available
+                # On OpenWrt, use /usr/bin
                 if self.caps.is_openwrt:
                     target_dir = Path("/usr/bin")
-                elif platform.system() == "Windows":
-                    # Windows support: use user-writable LOCALAPPDATA
-                    target_dir = Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))) / "GitHub" / "cli"
-                elif Path("/usr/local/bin").exists():
-                    target_dir = Path("/usr/local/bin")
                 else:
-                    target_dir = Path("/usr/bin")
+                    # On Unix, prefer /usr/local/bin only if it exists and is writable by the
+                    # current user or we are explicitly using sudo for installation.
+                    local_bin = Path("/usr/local/bin")
+                    if local_bin.exists() and (os.access(str(local_bin), os.W_OK) or needs_sudo):
+                        target_dir = local_bin
+                    else:
+                        target_dir = Path("/usr/bin")
 
                 print(f"🔧 Ensuring target directory exists: {target_dir}")
 
-                # Create directory using Python's pathlib on Windows, shell command on Unix
-                if platform.system() == "Windows":
-                    # Use Python's pathlib for Windows
-                    try:
-                        target_dir.mkdir(parents=True, exist_ok=True)
-                    except Exception as e:
-                        print(f"❌ Failed to create directory {target_dir}: {e}")
-                        return False
-                else:
-                    # Use mkdir -p on Unix systems
-                    mkdir_cmd = ["mkdir", "-p", str(target_dir)]
-                    if needs_sudo:
-                        mkdir_cmd = ["sudo"] + mkdir_cmd
+                # Use mkdir -p on Unix systems (this method is Linux/OpenWrt-specific)
+                mkdir_cmd = ["mkdir", "-p", str(target_dir)]
+                if needs_sudo:
+                    mkdir_cmd = ["sudo"] + mkdir_cmd
 
-                    ret, _, stderr = await DeviceCapabilityDetector._run_command(
-                        mkdir_cmd, timeout=10.0
-                    )
-                    if ret != 0:
-                        print(f"❌ Failed to create directory {target_dir}: {stderr}")
-                        return False
+                ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                    mkdir_cmd, timeout=10.0
+                )
+                if ret != 0:
+                    print(f"❌ Failed to create directory {target_dir}: {stderr}")
+                    return False
 
                 # Verify directory was created
                 if not target_dir.exists():
