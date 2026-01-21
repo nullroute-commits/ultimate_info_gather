@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import os
 import platform
+import re
 import shutil
 import sys
 import tempfile
@@ -358,6 +359,41 @@ class GitHubCopilotInstaller:
             print(f"❌ Unsupported package manager: {self.caps.package_manager}")
             return False
 
+    async def _get_gh_latest_version(self) -> Optional[str]:
+        """Get the latest GitHub CLI version from GitHub releases page."""
+        try:
+            # Try to get version from GitHub releases redirect URL
+            if self.caps.has_curl:
+                # Use -I for HEAD request to get redirect without downloading full page
+                cmd = ["curl", "-sI", "https://github.com/cli/cli/releases/latest"]
+            elif self.caps.has_wget:
+                # wget with --spider for HEAD-like request
+                cmd = ["wget", "--spider", "-S", "https://github.com/cli/cli/releases/latest"]
+            else:
+                return None
+            
+            ret, stdout, stderr = await DeviceCapabilityDetector._run_command(cmd, timeout=30.0)
+            if ret != 0:
+                tool = "curl" if self.caps.has_curl else "wget"
+                print(f"⚠️  Failed to fetch version info using {tool}: {stderr}")
+                return None
+            
+            # For curl, check stdout; for wget, check stderr (wget outputs headers to stderr)
+            output = stdout if self.caps.has_curl else stderr
+            
+            # Extract version from Location header
+            # Location: https://github.com/cli/cli/releases/tag/v2.85.0
+            # Also handles pre-release versions like v2.85.0-beta1 or v2.85.0-rc2
+            version_match = re.search(r'/releases/tag/v(\d+\.\d+\.\d+(?:-[a-zA-Z0-9-]+)?)', output)
+            
+            if version_match:
+                return version_match.group(1)
+            
+            return None
+        except Exception as e:
+            print(f"⚠️  Failed to get latest version: {e}")
+            return None
+
     async def _install_gh_binary_openwrt(self) -> bool:
         """Install GitHub CLI binary on OpenWrt."""
         print("🔧 Installing GitHub CLI via binary download for OpenWrt...")
@@ -372,10 +408,18 @@ class GitHubCopilotInstaller:
         }
         arch = arch_map.get(self.caps.architecture, self.caps.architecture)
 
+        # Get the latest version
+        print("🔍 Finding latest GitHub CLI version...")
+        version = await self._get_gh_latest_version()
+        if not version:
+            print("❌ Failed to determine latest GitHub CLI version")
+            return False
+        
+        print(f"📌 Latest version: v{version}")
+
         # Download URL - GitHub CLI release format
         # Example: https://github.com/cli/cli/releases/download/v2.40.0/gh_2.40.0_linux_amd64.tar.gz
-        # We'll use the redirect for 'latest'
-        url = f"https://github.com/cli/cli/releases/latest/download/gh_linux_{arch}.tar.gz"
+        url = f"https://github.com/cli/cli/releases/download/v{version}/gh_{version}_linux_{arch}.tar.gz"
         temp_file = f"/tmp/gh_{arch}.tar.gz"
         extract_dir = "/tmp/gh_extract"
 
