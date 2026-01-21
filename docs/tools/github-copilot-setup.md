@@ -35,7 +35,7 @@ The script automatically:
 
 ### Required
 
-- **Python 3.11+**: The script requires Python 3.11 or higher
+- **Python 3.11+**: The script requires Python 3.11 or higher (Python 3.13+ features are used for optimal async performance)
 - **Internet connection**: To download packages and authenticate
 - **Credential file**: GitHub Personal Access Token or SSH key (see below)
 
@@ -104,8 +104,25 @@ The script will:
 - Detect your system capabilities
 - Show a summary of your environment
 - Install required components
-- Authenticate with GitHub
+- Authenticate with GitHub (using GITHUB_USERNAME env var, git config user.name, or default)
 - Verify the installation
+
+**Note**: The script determines the username in this order:
+1. `GITHUB_USERNAME` environment variable
+2. `git config --global user.name`
+3. Default: `nullroute-commits`
+
+You can set your username with:
+
+```bash
+# Using environment variable
+export GITHUB_USERNAME="your-github-username"
+python3 install_github_copilot.py
+
+# Or using git config
+git config --global user.name "your-github-username"
+python3 install_github_copilot.py
+```
 
 ### Manual Steps (if needed)
 

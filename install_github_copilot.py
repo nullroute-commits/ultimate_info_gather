@@ -23,6 +23,7 @@ import os
 import platform
 import shutil
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -430,7 +431,7 @@ class GitHubCopilotInstaller:
         keyring_file = "/usr/share/keyrings/githubcli-archive-keyring.gpg"
         
         # Download GPG key
-        ret, stdout, stderr = await DeviceCapabilityDetector._run_command(
+        ret, key_data, stderr = await DeviceCapabilityDetector._run_command(
             ["curl", "-fsSL", "https://cli.github.com/packages/githubcli-archive-keyring.gpg"],
             timeout=30.0
         )
@@ -438,11 +439,10 @@ class GitHubCopilotInstaller:
             print(f"❌ Failed to download GPG key: {stderr}")
             return False
         
-        # Write GPG key to file
+        # Write GPG key to file (binary mode for GPG key)
         try:
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
-                tmp.write(stdout)
+            with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp:
+                tmp.write(key_data.encode('latin-1'))  # GPG keys are binary, preserve bytes
                 tmp_keyring = tmp.name
             
             # Move to proper location
@@ -497,6 +497,10 @@ class GitHubCopilotInstaller:
         ret, _, stderr = await DeviceCapabilityDetector._run_command(
             prefix + ["apt-get", "install", "-y", "gh"], timeout=120.0
         )
+        
+        if ret != 0:
+            print(f"❌ Failed to install GitHub CLI: {stderr}")
+            return False
 
         print("✅ GitHub CLI installed successfully")
         return True
@@ -827,15 +831,19 @@ async def main() -> int:
             return 1
 
         # Step 6: Authenticate
-        # Extract username from credential file or use default
-        username = "nullroute-commits"  # Default username
+        # Extract username from credential file or use environment/git config
+        username = os.environ.get("GITHUB_USERNAME")  # Check environment first
         
-        # Try to extract username from git config if available
-        ret, stdout, _ = await DeviceCapabilityDetector._run_command(
-            ["git", "config", "--global", "user.name"], timeout=5.0
-        )
-        if ret == 0 and stdout.strip():
-            username = stdout.strip()
+        if not username:
+            # Try to extract username from git config if available
+            ret, stdout, _ = await DeviceCapabilityDetector._run_command(
+                ["git", "config", "--global", "user.name"], timeout=5.0
+            )
+            if ret == 0 and stdout.strip():
+                username = stdout.strip()
+        
+        if not username:
+            username = "nullroute-commits"  # Fallback default
         
         if not await installer.authenticate_github(username, credential_file):
             print("⚠️  Authentication failed or incomplete")
