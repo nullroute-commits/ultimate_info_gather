@@ -207,8 +207,13 @@ class DeviceCapabilityDetector:
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            
+            # Handle None returncode (should not happen but be safe)
+            if process.returncode is None:
+                return (-1, "", "Process terminated abnormally")
+            
             return (
-                process.returncode if process.returncode is not None else 0,
+                process.returncode,
                 stdout.decode("utf-8", errors="replace"),
                 stderr.decode("utf-8", errors="replace"),
             )
@@ -218,6 +223,34 @@ class DeviceCapabilityDetector:
             return (-1, "", f"Command not found: {cmd[0]}")
         except Exception as e:
             return (-1, "", str(e))
+
+    @staticmethod
+    async def _run_command_binary(
+        cmd: list[str], timeout: float = 30.0
+    ) -> tuple[int, bytes, bytes]:
+        """Run a command and return (returncode, stdout_bytes, stderr_bytes).
+        
+        Use this for commands that return binary data like GPG keys.
+        """
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            
+            # Handle None returncode (should not happen but be safe)
+            if process.returncode is None:
+                return (-1, b"", b"Process terminated abnormally")
+            
+            return (process.returncode, stdout or b"", stderr or b"")
+        except asyncio.TimeoutError:
+            return (-1, b"", b"Command timed out")
+        except FileNotFoundError:
+            return (-1, b"", f"Command not found: {cmd[0]}".encode())
+        except Exception as e:
+            return (-1, b"", str(e).encode())
 
 
 class GitHubCopilotInstaller:
@@ -426,23 +459,24 @@ class GitHubCopilotInstaller:
         prefix = ["sudo"] if needs_sudo else []
 
         # Add GitHub CLI repository - broken into safer steps
-        # Step 1: Download the GPG key
+        # Step 1: Download the GPG key (binary data)
         print("📥 Adding GitHub CLI repository...")
         keyring_file = "/usr/share/keyrings/githubcli-archive-keyring.gpg"
         
-        # Download GPG key
-        ret, key_data, stderr = await DeviceCapabilityDetector._run_command(
+        # Download GPG key as binary
+        ret, key_bytes, stderr_bytes = await DeviceCapabilityDetector._run_command_binary(
             ["curl", "-fsSL", "https://cli.github.com/packages/githubcli-archive-keyring.gpg"],
             timeout=30.0
         )
         if ret != 0:
+            stderr = stderr_bytes.decode("utf-8", errors="replace")
             print(f"❌ Failed to download GPG key: {stderr}")
             return False
         
-        # Write GPG key to file (binary mode for GPG key)
+        # Write GPG key to file (binary mode)
         try:
             with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp:
-                tmp.write(key_data.encode('latin-1'))  # GPG keys are binary, preserve bytes
+                tmp.write(key_bytes)
                 tmp_keyring = tmp.name
             
             # Move to proper location
