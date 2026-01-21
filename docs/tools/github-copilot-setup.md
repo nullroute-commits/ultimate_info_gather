@@ -200,8 +200,8 @@ uname -m
 cd /tmp
 wget https://github.com/cli/cli/releases/latest/download/gh_*_linux_arm64.tar.gz
 tar -xzf gh_*_linux_arm64.tar.gz
-mv gh_*/bin/gh /usr/local/bin/
-chmod +x /usr/local/bin/gh
+mv gh_*/bin/gh /usr/bin/
+chmod +x /usr/bin/gh
 
 # Install Node.js
 opkg update
@@ -375,7 +375,7 @@ python3.11 install_github_copilot.py
 3. **Manual download**:
    - Visit: https://github.com/cli/cli/releases/latest
    - Download appropriate architecture
-   - Extract and move to `/usr/local/bin/gh`
+   - Extract and move to `/usr/bin/gh`
 
 ### Issue: Copilot extension installation failed
 
