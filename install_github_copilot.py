@@ -27,7 +27,6 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 # Minimum Python version check
 if sys.version_info < (3, 11):
@@ -41,19 +40,19 @@ class DeviceCapabilities:
 
     os_name: str
     architecture: str
-    package_manager: Optional[str]  # opkg, apt, dnf, yum, pacman, apk, brew
+    package_manager: str | None  # opkg, apt, dnf, yum, pacman, apk, brew
     has_opkg: bool
     is_openwrt: bool
-    available_space_mb: Optional[int]
+    available_space_mb: int | None
     has_node: bool
     has_npm: bool
     has_git: bool
     has_curl: bool
     has_wget: bool
     has_gh: bool
-    node_version: Optional[str]
-    npm_version: Optional[str]
-    gh_version: Optional[str]
+    node_version: str | None
+    npm_version: str | None
+    gh_version: str | None
 
 
 class DeviceCapabilityDetector:
@@ -139,7 +138,7 @@ class DeviceCapabilityDetector:
         return platform.machine()
 
     @staticmethod
-    async def _detect_package_manager() -> Optional[str]:
+    async def _detect_package_manager() -> str | None:
         """Detect available package manager (opkg prioritized first)."""
         # Check in priority order
         managers = ["opkg", "apt", "dnf", "yum", "pacman", "apk", "brew"]
@@ -153,6 +152,10 @@ class DeviceCapabilityDetector:
     @staticmethod
     async def _check_openwrt() -> bool:
         """Check if running on OpenWrt."""
+        # OpenWrt is Linux-only
+        if platform.system() != "Linux":
+            return False
+
         # Check for OpenWrt-specific files
         openwrt_files = [
             "/etc/openwrt_release",
@@ -166,10 +169,17 @@ class DeviceCapabilityDetector:
         return False
 
     @staticmethod
-    async def _get_available_space() -> Optional[int]:
+    async def _get_available_space() -> int | None:
         """Get available disk space in MB."""
         try:
-            stat = shutil.disk_usage("/")
+            # Use appropriate root path per OS
+            if platform.system() == "Windows":
+                # Use C:\ on Windows
+                root_path = "C:\\"
+            else:
+                # Use / on Unix-like systems
+                root_path = "/"
+            stat = shutil.disk_usage(root_path)
             return stat.free // (1024 * 1024)  # Convert to MB
         except Exception:
             return None
@@ -180,7 +190,7 @@ class DeviceCapabilityDetector:
         return shutil.which(cmd) is not None
 
     @staticmethod
-    async def _get_version(cmd: str, arg: str) -> Optional[str]:
+    async def _get_version(cmd: str, arg: str) -> str | None:
         """Get version of a command."""
         try:
             process = await asyncio.create_subprocess_exec(
@@ -208,17 +218,17 @@ class DeviceCapabilityDetector:
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-            
+
             # Handle None returncode (should not happen but be safe)
             if process.returncode is None:
                 return (-1, "", "Process terminated abnormally")
-            
+
             return (
                 process.returncode,
                 stdout.decode("utf-8", errors="replace"),
                 stderr.decode("utf-8", errors="replace"),
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return (-1, "", "Command timed out")
         except FileNotFoundError:
             return (-1, "", f"Command not found: {cmd[0]}")
@@ -240,13 +250,13 @@ class DeviceCapabilityDetector:
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-            
+
             # Handle None returncode (should not happen but be safe)
             if process.returncode is None:
                 return (-1, b"", b"Process terminated abnormally")
-            
+
             return (process.returncode, stdout or b"", stderr or b"")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return (-1, b"", b"Command timed out")
         except FileNotFoundError:
             return (-1, b"", f"Command not found: {cmd[0]}".encode())
@@ -260,6 +270,31 @@ class GitHubCopilotInstaller:
     def __init__(self, capabilities: DeviceCapabilities):
         """Initialize installer with device capabilities."""
         self.caps = capabilities
+
+    def _get_temp_dir(self) -> Path:
+        """Get appropriate temp directory based on OS.
+        
+        On OpenWrt, avoid using /tmp which is often a small tmpfs in RAM.
+        Prefer /var/tmp or other locations with more space.
+        """
+        if self.caps.is_openwrt:
+            # OpenWrt often has /tmp as tmpfs (RAM), so prefer /var/tmp or check space
+            candidates = ["/var/tmp", "/tmp"]
+            for candidate in candidates:
+                try:
+                    candidate_path = Path(candidate)
+                    if candidate_path.exists():
+                        # Check if we have reasonable space (at least 50MB)
+                        stat = shutil.disk_usage(candidate)
+                        if stat.free > 50 * 1024 * 1024:  # 50MB
+                            return candidate_path
+                except Exception:
+                    continue
+            # Fallback to standard temp if nothing better found
+            return Path(tempfile.gettempdir())
+        else:
+            # For other systems, use standard temp directory
+            return Path(tempfile.gettempdir())
 
     async def install_nodejs(self) -> bool:
         """Install Node.js - handles opkg specially."""
@@ -278,7 +313,7 @@ class GitHubCopilotInstaller:
         # Check if we need sudo first
         needs_sudo = await self._needs_sudo()
         prefix = ["sudo"] if needs_sudo else []
-        
+
         if self.caps.package_manager == "opkg":
             print("🔧 Installing with opkg: node node-npm")
             # opkg requires update first
@@ -359,7 +394,7 @@ class GitHubCopilotInstaller:
             print(f"❌ Unsupported package manager: {self.caps.package_manager}")
             return False
 
-    async def _get_gh_latest_version(self) -> Optional[str]:
+    async def _get_gh_latest_version(self) -> str | None:
         """Get the latest GitHub CLI version from GitHub releases page."""
         try:
             # Try to get version from GitHub releases redirect URL
@@ -371,24 +406,24 @@ class GitHubCopilotInstaller:
                 cmd = ["wget", "--spider", "-S", "https://github.com/cli/cli/releases/latest"]
             else:
                 return None
-            
+
             ret, stdout, stderr = await DeviceCapabilityDetector._run_command(cmd, timeout=30.0)
             if ret != 0:
                 tool = "curl" if self.caps.has_curl else "wget"
                 print(f"⚠️  Failed to fetch version info using {tool}: {stderr}")
                 return None
-            
+
             # For curl, check stdout; for wget, check stderr (wget outputs headers to stderr)
             output = stdout if self.caps.has_curl else stderr
-            
+
             # Extract version from Location header
             # Location: https://github.com/cli/cli/releases/tag/v2.85.0
             # Also handles pre-release versions like v2.85.0-beta1 or v2.85.0-rc2
             version_match = re.search(r'/releases/tag/v(\d+\.\d+\.\d+(?:-[a-zA-Z0-9-]+)?)', output)
-            
+
             if version_match:
                 return version_match.group(1)
-            
+
             return None
         except Exception as e:
             print(f"⚠️  Failed to get latest version: {e}")
@@ -414,22 +449,26 @@ class GitHubCopilotInstaller:
         if not version:
             print("❌ Failed to determine latest GitHub CLI version")
             return False
-        
+
         print(f"📌 Latest version: v{version}")
 
         # Download URL - GitHub CLI release format
         # Example: https://github.com/cli/cli/releases/download/v2.40.0/gh_2.40.0_linux_amd64.tar.gz
         url = f"https://github.com/cli/cli/releases/download/v{version}/gh_{version}_linux_{arch}.tar.gz"
-        temp_file = f"/tmp/gh_{arch}.tar.gz"
-        extract_dir = "/tmp/gh_extract"
 
+        # Use OS-appropriate temp directory (OpenWrt-aware)
+        temp_dir = self._get_temp_dir()
+        temp_file = temp_dir / f"gh_{arch}.tar.gz"
+        extract_dir = temp_dir / "gh_extract"
+
+        print(f"📁 Using temp directory: {temp_dir}")
         print(f"📥 Downloading from: {url}")
 
         # Download
         if self.caps.has_curl:
-            download_cmd = ["curl", "-L", "-o", temp_file, url]
+            download_cmd = ["curl", "-L", "-o", str(temp_file), url]
         elif self.caps.has_wget:
-            download_cmd = ["wget", "-O", temp_file, url]
+            download_cmd = ["wget", "-O", str(temp_file), url]
         else:
             print("❌ Neither curl nor wget available")
             return False
@@ -444,67 +483,75 @@ class GitHubCopilotInstaller:
 
             # Extract
             print("📂 Extracting...")
-            Path(extract_dir).mkdir(exist_ok=True)
+            extract_dir.mkdir(exist_ok=True)
             ret, _, stderr = await DeviceCapabilityDetector._run_command(
-                ["tar", "-xzf", temp_file, "-C", extract_dir], timeout=60.0
+                ["tar", "-xzf", str(temp_file), "-C", str(extract_dir)], timeout=60.0
             )
             if ret != 0:
                 print(f"❌ Failed to extract: {stderr}")
                 return False
 
-            # Find gh binary and move to /usr/bin
+            # Find gh binary and move to appropriate bin directory
             needs_sudo = await self._needs_sudo()
-            
+
             # Find the extracted directory
             try:
-                extract_path = Path(extract_dir)
-                gh_dirs = list(extract_path.glob("gh_*"))
+                gh_dirs = list(extract_dir.glob("gh_*"))
                 if not gh_dirs:
                     print("❌ Failed to find extracted gh directory")
                     return False
-                
+
                 gh_binary = gh_dirs[0] / "bin" / "gh"
                 if not gh_binary.exists():
                     print("❌ Failed to find gh binary in extracted directory")
                     return False
-                
+
                 # Ensure target directory exists
-                # On OpenWrt, use /usr/bin instead of /usr/local/bin
-                target_dir = Path("/usr/bin")
+                # On OpenWrt, use /usr/bin; on other systems, prefer /usr/local/bin if available
+                if self.caps.is_openwrt:
+                    target_dir = Path("/usr/bin")
+                elif platform.system() == "Windows":
+                    # Windows support: use LOCALAPPDATA
+                    target_dir = Path(os.getenv("LOCALAPPDATA", "C:\\Program Files")) / "GitHub" / "cli"
+                elif Path("/usr/local/bin").exists():
+                    target_dir = Path("/usr/local/bin")
+                else:
+                    target_dir = Path("/usr/bin")
+
                 print(f"🔧 Ensuring target directory exists: {target_dir}")
-                
+
                 # Always run mkdir -p to ensure directory exists (idempotent)
                 mkdir_cmd = ["mkdir", "-p", str(target_dir)]
                 if needs_sudo:
                     mkdir_cmd = ["sudo"] + mkdir_cmd
-                
+
                 ret, _, stderr = await DeviceCapabilityDetector._run_command(
                     mkdir_cmd, timeout=10.0
                 )
                 if ret != 0:
                     print(f"❌ Failed to create directory {target_dir}: {stderr}")
                     return False
-                
+
                 # Verify directory was created
                 if not target_dir.exists():
                     print(f"❌ Directory {target_dir} does not exist after creation attempt")
                     return False
-                
+
                 print(f"✅ Target directory ready: {target_dir}")
-                
+
                 # Copy to target directory
                 target_path = target_dir / "gh"
                 move_cmd = ["cp", str(gh_binary), str(target_path)]
                 if needs_sudo:
                     move_cmd = ["sudo"] + move_cmd
-                
+
                 ret, _, stderr = await DeviceCapabilityDetector._run_command(
                     move_cmd, timeout=30.0
                 )
                 if ret != 0:
                     print(f"❌ Failed to install gh binary: {stderr}")
                     return False
-                
+
                 # Make executable
                 chmod_cmd = ["chmod", "+x", str(target_path)]
                 if needs_sudo:
@@ -524,14 +571,14 @@ class GitHubCopilotInstaller:
         finally:
             # Cleanup temporary files - critical for embedded systems with limited storage
             try:
-                if Path(temp_file).exists():
-                    Path(temp_file).unlink()
+                if temp_file.exists():
+                    temp_file.unlink()
             except Exception:
                 # Best-effort cleanup: ignore any errors when removing temporary files
                 pass
-            
+
             try:
-                if Path(extract_dir).exists():
+                if extract_dir.exists():
                     shutil.rmtree(extract_dir, ignore_errors=True)
             except Exception:
                 # Best-effort cleanup: ignore any errors when removing temporary files
@@ -548,7 +595,7 @@ class GitHubCopilotInstaller:
         # Step 1: Download the GPG key (binary data)
         print("📥 Adding GitHub CLI repository...")
         keyring_file = "/usr/share/keyrings/githubcli-archive-keyring.gpg"
-        
+
         # Download GPG key as binary
         ret, key_bytes, stderr_bytes = await DeviceCapabilityDetector._run_command_binary(
             ["curl", "-fsSL", "https://cli.github.com/packages/githubcli-archive-keyring.gpg"],
@@ -558,14 +605,14 @@ class GitHubCopilotInstaller:
             stderr = stderr_bytes.decode("utf-8", errors="replace")
             print(f"❌ Failed to download GPG key: {stderr}")
             return False
-        
+
         # Write GPG key to file (binary mode)
         tmp_keyring = None
         try:
             with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp:
                 tmp.write(key_bytes)
                 tmp_keyring = tmp.name
-            
+
             # Move to proper location
             move_cmd = prefix + ["mv", tmp_keyring, keyring_file]
             ret, _, stderr = await DeviceCapabilityDetector._run_command(
@@ -585,23 +632,23 @@ class GitHubCopilotInstaller:
                 except Exception:
                     # Best-effort cleanup: ignore any errors when removing temporary files
                     pass
-        
+
         # Step 2: Get architecture
         ret, arch_output, _ = await DeviceCapabilityDetector._run_command(
             ["dpkg", "--print-architecture"], timeout=5.0
         )
         arch = arch_output.strip() if ret == 0 else "amd64"
-        
+
         # Step 3: Add repository to sources list
         repo_line = f"deb [arch={arch} signed-by={keyring_file}] https://cli.github.com/packages stable main\n"
         sources_file = "/etc/apt/sources.list.d/github-cli.list"
-        
+
         tmp_sources = None
         try:
             with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
                 tmp.write(repo_line)
                 tmp_sources = tmp.name
-            
+
             # Move to proper location
             move_cmd = prefix + ["mv", tmp_sources, sources_file]
             ret, _, stderr = await DeviceCapabilityDetector._run_command(
@@ -621,7 +668,7 @@ class GitHubCopilotInstaller:
                 except Exception:
                     # Best-effort cleanup: ignore any errors when removing temporary files
                     pass
-        
+
         # Step 4: Update package list
         print("🔄 Updating package list...")
         ret, _, stderr = await DeviceCapabilityDetector._run_command(
@@ -629,13 +676,13 @@ class GitHubCopilotInstaller:
         )
         if ret != 0:
             print(f"⚠️  apt-get update failed: {stderr}")
-        
+
         # Step 5: Install gh
         print("📦 Installing GitHub CLI...")
         ret, _, stderr = await DeviceCapabilityDetector._run_command(
             prefix + ["apt-get", "install", "-y", "gh"], timeout=120.0
         )
-        
+
         if ret != 0:
             print(f"❌ Failed to install GitHub CLI: {stderr}")
             return False
@@ -835,7 +882,7 @@ Host github.com
                 config_path.chmod(0o600)
                 print(f"✅ SSH config updated: {config_path}")
             else:
-                print(f"ℹ️  SSH config for github.com already exists")
+                print("ℹ️  SSH config for github.com already exists")
 
             print("⚠️  SSH key configured for git, but gh CLI needs token authentication")
             print("    Run 'gh auth login' to authenticate gh CLI")
@@ -878,7 +925,7 @@ Host github.com
         return False
 
 
-async def find_credential_file() -> Optional[str]:
+async def find_credential_file() -> str | None:
     """Find id_player1 credential file."""
     search_paths = [
         Path.cwd() / "id_player1",
@@ -979,7 +1026,7 @@ async def main() -> int:
         # Step 6: Authenticate
         # Extract username from credential file or use environment/git config
         username = os.environ.get("GITHUB_USERNAME")  # Check environment first
-        
+
         if not username:
             # Try to extract username from git config if available
             ret, stdout, _ = await DeviceCapabilityDetector._run_command(
@@ -987,10 +1034,10 @@ async def main() -> int:
             )
             if ret == 0 and stdout.strip():
                 username = stdout.strip()
-        
+
         if not username:
             username = "nullroute-commits"  # Fallback default
-        
+
         if not await installer.authenticate_github(username, credential_file):
             print("⚠️  Authentication failed or incomplete")
             print("    You may need to authenticate manually with: gh auth login")
