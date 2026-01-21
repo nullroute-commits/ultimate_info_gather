@@ -374,7 +374,8 @@ class GitHubCopilotInstaller:
             
             ret, stdout, stderr = await DeviceCapabilityDetector._run_command(cmd, timeout=30.0)
             if ret != 0:
-                print(f"⚠️  Failed to fetch version info: {stderr}")
+                tool = "curl" if self.caps.has_curl else "wget"
+                print(f"⚠️  Failed to fetch version info using {tool}: {stderr}")
                 return None
             
             # For curl, check stdout; for wget, check stderr (wget outputs headers to stderr)
@@ -382,8 +383,8 @@ class GitHubCopilotInstaller:
             
             # Extract version from Location header
             # Location: https://github.com/cli/cli/releases/tag/v2.85.0
-            # Also handles pre-release versions like v2.85.0-beta.1
-            version_match = re.search(r'/releases/tag/v(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?)', output)
+            # Also handles pre-release versions like v2.85.0-beta1 or v2.85.0-rc2
+            version_match = re.search(r'/releases/tag/v(\d+\.\d+\.\d+(?:-[a-zA-Z0-9-]+)?)', output)
             
             if version_match:
                 return version_match.group(1)
