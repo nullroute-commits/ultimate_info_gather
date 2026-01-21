@@ -509,7 +509,12 @@ class GitHubCopilotInstaller:
                 chmod_cmd = ["chmod", "+x", str(target_path)]
                 if needs_sudo:
                     chmod_cmd = ["sudo"] + chmod_cmd
-                await DeviceCapabilityDetector._run_command(chmod_cmd, timeout=10.0)
+                ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                    chmod_cmd, timeout=10.0
+                )
+                if ret != 0:
+                    print(f"❌ Failed to make gh binary executable: {stderr}")
+                    return False
             except Exception as e:
                 print(f"❌ Failed to locate gh binary: {e}")
                 return False
