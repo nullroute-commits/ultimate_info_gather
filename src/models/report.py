@@ -23,7 +23,7 @@ from .software import SoftwareInfo
 class SystemReport:
     """
     Complete system information report.
-    
+
     Aggregates all collected information from environment, permissions,
     hardware, network, and software collectors into a unified report.
     """

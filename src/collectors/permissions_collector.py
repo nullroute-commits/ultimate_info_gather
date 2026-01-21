@@ -6,6 +6,7 @@ Determines permission levels and available resources for the running process.
 
 from __future__ import annotations
 
+import contextlib
 import grp
 import os
 import pwd
@@ -30,7 +31,7 @@ from .base import BaseCollector
 class PermissionsCollector(BaseCollector[PermissionsInfo]):
     """
     Collects permission and resource information.
-    
+
     Objective 2: Determine permissions level and resources available.
     """
 
@@ -57,7 +58,7 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
     def __init__(self, environment_state: EnvironmentState | None = None):
         """
         Initialize with optional environment state.
-        
+
         Args:
             environment_state: Previously collected environment info
         """
@@ -191,7 +192,7 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
 
     async def _get_capabilities(self) -> list[CapabilityInfo]:
         """Get Linux capabilities for the process."""
-        capabilities = []
+        capabilities: list[CapabilityInfo] = []
 
         # Read capability info from /proc/self/status
         status_content = await self.read_file_async('/proc/self/status')
@@ -266,9 +267,9 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
 
             try:
                 st = p.stat()
-                owner_uid = st.st_uid
-                owner_gid = st.st_gid
-                mode = st.st_mode
+                owner_uid: int | None = st.st_uid
+                owner_gid: int | None = st.st_gid
+                mode: int | None = st.st_mode
             except Exception:
                 owner_uid = owner_gid = mode = None
 
@@ -399,10 +400,8 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
 
         net_path = Path('/sys/class/net')
         if net_path.exists():
-            try:
+            with contextlib.suppress(Exception):
                 interfaces = [d.name for d in net_path.iterdir()]
-            except Exception:
-                pass
 
         return interfaces
 

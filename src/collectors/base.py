@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from typing import Any, Generic, TypeVar
 
@@ -29,11 +29,11 @@ class CollectionResult(Generic[T]):
 class BaseCollector(ABC, Generic[T]):
     """
     Abstract base class for all collectors.
-    
+
     Provides common async utilities and error handling patterns.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._errors: list[str] = []
         self._warnings: list[str] = []
         self._start_time: float = 0.0
@@ -86,7 +86,7 @@ class BaseCollector(ABC, Generic[T]):
     ) -> tuple[int, str, str]:
         """
         Run a command asynchronously.
-        
+
         Returns:
             Tuple of (return_code, stdout, stderr)
         """
@@ -119,7 +119,7 @@ class BaseCollector(ABC, Generic[T]):
     async def read_file_async(self, path: str, silent_if_missing: bool = False) -> str | None:
         """
         Read a file asynchronously.
-        
+
         Args:
             path: File path to read
             silent_if_missing: If True, don't warn when file doesn't exist or has read errors
@@ -163,7 +163,7 @@ class BaseCollector(ABC, Generic[T]):
 
     async def gather_with_errors(
         self,
-        *coros,
+        *coros: Coroutine[Any, Any, Any],
         return_exceptions: bool = True,
     ) -> list[Any]:
         """Gather coroutines and handle exceptions."""

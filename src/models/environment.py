@@ -52,7 +52,13 @@ class PythonEnvironment:
         """Capture current Python environment."""
         return cls(
             version=sys.version,
-            version_info=tuple(sys.version_info),
+            version_info=(
+                sys.version_info.major,
+                sys.version_info.minor,
+                sys.version_info.micro,
+                sys.version_info.releaselevel,
+                sys.version_info.serial,
+            ),
             implementation=sys.implementation.name,
             executable=sys.executable,
             prefix=sys.prefix,
@@ -101,7 +107,7 @@ class ProcessInfo:
 class EnvironmentState:
     """
     Complete environment state capturing.
-    
+
     Stores comprehensive information about the execution environment
     including Python runtime, process details, and system variables.
     """

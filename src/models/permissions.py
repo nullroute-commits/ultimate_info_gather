@@ -158,7 +158,7 @@ class ResourceInfo:
 class PermissionsInfo:
     """
     Complete permissions and access information.
-    
+
     Stores comprehensive information about process permissions,
     capabilities, group memberships, and resource access levels.
     """

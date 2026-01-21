@@ -54,7 +54,7 @@ class CollectionProgress:
 class InfoGatherOrchestrator:
     """
     Main orchestrator for system information gathering.
-    
+
     Coordinates all collectors in proper sequence, respecting dependencies
     between collection phases, and produces comprehensive reports.
     """
@@ -68,7 +68,7 @@ class InfoGatherOrchestrator:
     ):
         """
         Initialize the orchestrator.
-        
+
         Args:
             output_dir: Directory for output files (default: ./output)
             progress_callback: Optional callback for progress updates
@@ -116,12 +116,12 @@ class InfoGatherOrchestrator:
     async def collect_all(self) -> SystemReport:
         """
         Perform full system information collection.
-        
+
         Executes all collection phases in sequence, respecting dependencies:
         1. Environment collection (Objective 1)
         2. Permissions collection using environment data (Objective 2)
         3. Hardware, Network & Software collection using prior data (Objective 3)
-        
+
         Returns:
             SystemReport: Complete system information report
         """
@@ -293,12 +293,12 @@ class InfoGatherOrchestrator:
     ) -> dict[str, Path]:
         """
         Generate output files in various formats.
-        
+
         Args:
             report: The system report to output
             formats: List of formats ('json', 'markdown', 'text')
                     Default: all formats
-        
+
         Returns:
             Dictionary mapping format to output file path
         """
@@ -329,7 +329,7 @@ class InfoGatherOrchestrator:
     def get_stored_data(self) -> dict[str, Any]:
         """
         Get all stored collection data.
-        
+
         Returns data stored for later use as per Objectives 1-3.
         """
         return {
@@ -341,7 +341,7 @@ class InfoGatherOrchestrator:
         }
 
 
-async def main():
+async def main() -> int:
     """Main entry point for CLI usage."""
     import argparse
     import sys
@@ -376,7 +376,7 @@ async def main():
 
     args = parser.parse_args()
 
-    def progress_callback(progress: CollectionProgress):
+    def progress_callback(progress: CollectionProgress) -> None:
         if not args.quiet:
             print(f"[{progress.percent_complete:5.1f}%] {progress.phase.name}: {progress.status}")
 

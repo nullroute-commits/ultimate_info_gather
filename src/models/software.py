@@ -227,7 +227,7 @@ class OSInfo:
 class SoftwareInfo:
     """
     Complete software information collection.
-    
+
     Comprehensive software inventory with access level information.
     """
     timestamp: datetime

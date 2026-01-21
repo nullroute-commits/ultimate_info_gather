@@ -31,7 +31,7 @@ from .base import BaseCollector
 class HardwareCollector(BaseCollector[HardwareInfo]):
     """
     Collects comprehensive hardware information.
-    
+
     Objective 3: Collect all hardware deployed and determine access levels.
     """
 
@@ -42,7 +42,7 @@ class HardwareCollector(BaseCollector[HardwareInfo]):
     ):
         """
         Initialize with optional prior collection results.
-        
+
         Args:
             environment_state: Previously collected environment info
             permissions_info: Previously collected permissions info
@@ -267,7 +267,7 @@ class HardwareCollector(BaseCollector[HardwareInfo]):
 
     async def _get_storage_devices(self) -> list[StorageDevice]:
         """Get storage device information."""
-        devices = []
+        devices: list[StorageDevice] = []
 
         try:
             block_path = Path('/sys/block')
@@ -363,9 +363,8 @@ class HardwareCollector(BaseCollector[HardwareInfo]):
         if mounts:
             for line in mounts.split('\n'):
                 parts = line.split()
-                if len(parts) >= 2:
-                    if device_name in parts[0]:
-                        mount_points.append(parts[1])
+                if len(parts) >= 2 and device_name in parts[0]:
+                    mount_points.append(parts[1])
 
         return mount_points
 
@@ -386,7 +385,7 @@ class HardwareCollector(BaseCollector[HardwareInfo]):
 
     async def _get_network_interfaces(self) -> list[NetworkInterface]:
         """Get network interface information."""
-        interfaces = []
+        interfaces: list[NetworkInterface] = []
 
         try:
             net_path = Path('/sys/class/net')
@@ -652,7 +651,7 @@ class HardwareCollector(BaseCollector[HardwareInfo]):
         for i, gpu in enumerate(gpus):
             summary[f'gpu:{i}:{gpu.name}'] = gpu.access_level
 
-        for device in usb:
-            summary[f'usb:{device.bus}:{device.device}'] = device.access_level
+        for usb_device in usb:
+            summary[f'usb:{usb_device.bus}:{usb_device.device}'] = usb_device.access_level
 
         return summary
