@@ -240,35 +240,46 @@ class GitHubCopilotInstaller:
             return False
 
         # Build install command based on package manager
+        # Check if we need sudo first
+        needs_sudo = await self._needs_sudo()
+        prefix = ["sudo"] if needs_sudo else []
+        
         if self.caps.package_manager == "opkg":
-            cmd = ["opkg", "update", "&&", "opkg", "install", "node", "node-npm"]
             print("🔧 Installing with opkg: node node-npm")
+            # opkg requires update first
+            ret, _, _ = await DeviceCapabilityDetector._run_command(
+                prefix + ["opkg", "update"], timeout=60.0
+            )
+            if ret != 0:
+                print("⚠️  opkg update failed, continuing anyway...")
+            cmd = prefix + ["opkg", "install", "node", "node-npm"]
         elif self.caps.package_manager in ["apt"]:
-            cmd = ["apt-get", "update", "&&", "apt-get", "install", "-y", "nodejs", "npm"]
             print("🔧 Installing with apt: nodejs npm")
+            # apt requires update first
+            ret, _, _ = await DeviceCapabilityDetector._run_command(
+                prefix + ["apt-get", "update"], timeout=60.0
+            )
+            if ret != 0:
+                print("⚠️  apt-get update failed, continuing anyway...")
+            cmd = prefix + ["apt-get", "install", "-y", "nodejs", "npm"]
         elif self.caps.package_manager == "dnf":
-            cmd = ["dnf", "install", "-y", "nodejs", "npm"]
             print("🔧 Installing with dnf: nodejs npm")
+            cmd = prefix + ["dnf", "install", "-y", "nodejs", "npm"]
         elif self.caps.package_manager == "yum":
-            cmd = ["yum", "install", "-y", "nodejs", "npm"]
             print("🔧 Installing with yum: nodejs npm")
+            cmd = prefix + ["yum", "install", "-y", "nodejs", "npm"]
         elif self.caps.package_manager == "pacman":
-            cmd = ["pacman", "-S", "--noconfirm", "nodejs", "npm"]
             print("🔧 Installing with pacman: nodejs npm")
+            cmd = prefix + ["pacman", "-S", "--noconfirm", "nodejs", "npm"]
         elif self.caps.package_manager == "apk":
-            cmd = ["apk", "add", "nodejs", "npm"]
             print("🔧 Installing with apk: nodejs npm")
+            cmd = prefix + ["apk", "add", "nodejs", "npm"]
         elif self.caps.package_manager == "brew":
-            cmd = ["brew", "install", "node"]
             print("🔧 Installing with brew: node")
+            cmd = ["brew", "install", "node"]
         else:
             print(f"❌ Unsupported package manager: {self.caps.package_manager}")
             return False
-
-        # Check if we need sudo
-        needs_sudo = await self._needs_sudo()
-        if needs_sudo:
-            cmd = ["sudo"] + cmd
 
         # Execute installation
         ret, stdout, stderr = await DeviceCapabilityDetector._run_command(
@@ -327,8 +338,10 @@ class GitHubCopilotInstaller:
         }
         arch = arch_map.get(self.caps.architecture, self.caps.architecture)
 
-        # Download URL
-        url = f"https://github.com/cli/cli/releases/latest/download/gh_{arch}_linux_{arch}.tar.gz"
+        # Download URL - GitHub CLI release format
+        # Example: https://github.com/cli/cli/releases/download/v2.40.0/gh_2.40.0_linux_amd64.tar.gz
+        # We'll use the redirect for 'latest'
+        url = f"https://github.com/cli/cli/releases/latest/download/gh_linux_{arch}.tar.gz"
         temp_file = f"/tmp/gh_{arch}.tar.gz"
         extract_dir = "/tmp/gh_extract"
 
@@ -362,15 +375,33 @@ class GitHubCopilotInstaller:
 
         # Find gh binary and move to /usr/local/bin
         needs_sudo = await self._needs_sudo()
-        move_cmd = ["mv", f"{extract_dir}/gh_*/bin/gh", "/usr/local/bin/gh"]
-        if needs_sudo:
-            move_cmd = ["sudo"] + move_cmd
-
-        ret, _, stderr = await DeviceCapabilityDetector._run_command(
-            move_cmd, timeout=30.0
-        )
-        if ret != 0:
-            print(f"❌ Failed to install gh binary: {stderr}")
+        
+        # Find the extracted directory
+        try:
+            extract_path = Path(extract_dir)
+            gh_dirs = list(extract_path.glob("gh_*"))
+            if not gh_dirs:
+                print("❌ Failed to find extracted gh directory")
+                return False
+            
+            gh_binary = gh_dirs[0] / "bin" / "gh"
+            if not gh_binary.exists():
+                print("❌ Failed to find gh binary in extracted directory")
+                return False
+            
+            # Copy to /usr/local/bin
+            move_cmd = ["cp", str(gh_binary), "/usr/local/bin/gh"]
+            if needs_sudo:
+                move_cmd = ["sudo"] + move_cmd
+            
+            ret, _, stderr = await DeviceCapabilityDetector._run_command(
+                move_cmd, timeout=30.0
+            )
+            if ret != 0:
+                print(f"❌ Failed to install gh binary: {stderr}")
+                return False
+        except Exception as e:
+            print(f"❌ Failed to locate gh binary: {e}")
             return False
 
         # Make executable
