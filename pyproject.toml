@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ultimate-info-gather"
 version = "1.0.0"
-description = "Async Python 3.11+ system information collection framework"
+description = "Async Python 3.9+ system information collection framework"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 authors = [
     {name = "System Administrator"}
 ]
