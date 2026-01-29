@@ -3,7 +3,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An async Python 3.11+ OOP framework for comprehensive system information collection, permission analysis, and hardware/software inventory.
+An async Python 3.9+ OOP framework for comprehensive system information collection, permission analysis, and hardware/software inventory.
 
 ## Features
 
@@ -17,7 +17,7 @@ An async Python 3.11+ OOP framework for comprehensive system information collect
 
 ## Requirements
 
-- Python 3.11 or higher
+- Python 3.9 or higher
 - Linux operating system (primary target)
 
 ## Installation
