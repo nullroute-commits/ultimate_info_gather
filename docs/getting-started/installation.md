@@ -11,8 +11,8 @@
 ### Clone Repository
 
 ```bash
-git clone https://github.com/example/ultimate-info-gather.git
-cd ultimate-info-gather
+git clone https://github.com/nullroute-commits/ultimate_info_gather.git
+cd ultimate_info_gather
 ```
 
 ### Create Virtual Environment

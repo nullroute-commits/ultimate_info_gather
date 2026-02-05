@@ -24,8 +24,8 @@ An async Python 3.11+ OOP framework for comprehensive system information collect
 
 ```bash
 # Clone the repository
-git clone https://github.com/example/ultimate-info-gather.git
-cd ultimate-info-gather
+git clone https://github.com/nullroute-commits/ultimate_info_gather.git
+cd ultimate_info_gather
 
 # Create virtual environment
 python3.11 -m venv venv
