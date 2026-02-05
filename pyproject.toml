@@ -52,9 +52,9 @@ docs = [
 info-gather = "src.orchestrator:main"
 
 [project.urls]
-Homepage = "https://github.com/example/ultimate-info-gather"
-Documentation = "https://example.github.io/ultimate-info-gather"
-Repository = "https://github.com/example/ultimate-info-gather"
+Homepage = "https://github.com/nullroute-commits/ultimate_info_gather"
+Documentation = "https://nullroute-commits.github.io/ultimate_info_gather"
+Repository = "https://github.com/nullroute-commits/ultimate_info_gather"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -76,8 +76,8 @@ opkg update
 opkg install python3 python3-pip
 
 # Clone and install
-git clone https://github.com/example/ultimate-info-gather.git
-cd ultimate-info-gather
+git clone https://github.com/nullroute-commits/ultimate_info_gather.git
+cd ultimate_info_gather
 python3 main.py
 ```
 

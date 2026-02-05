@@ -1,8 +1,8 @@
 site_name: Ultimate Info Gather
 site_description: Async Python 3.11+ System Information Collection Framework
 site_author: System Administrator
-repo_url: https://github.com/example/ultimate-info-gather
-repo_name: ultimate-info-gather
+repo_url: https://github.com/nullroute-commits/ultimate_info_gather
+repo_name: ultimate_info_gather
 
 theme:
   name: material
@@ -93,7 +93,7 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/example/ultimate-info-gather
+      link: https://github.com/nullroute-commits/ultimate_info_gather
   version:
     provider: mike
 
