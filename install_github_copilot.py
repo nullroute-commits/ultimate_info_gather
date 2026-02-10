@@ -276,6 +276,44 @@ class GitHubCopilotInstaller:
         """Initialize installer with device capabilities."""
         self.caps = capabilities
 
+    @staticmethod
+    def _parse_gh_version(version_str: Optional[str]) -> tuple[int, int, int]:
+        """Parse gh version string to tuple of (major, minor, patch).
+        
+        Args:
+            version_str: Version string like "gh version 2.86.0 (2026-01-21)"
+        
+        Returns:
+            Tuple of (major, minor, patch) or (0, 0, 0) if parsing fails
+        """
+        if not version_str:
+            return (0, 0, 0)
+        
+        try:
+            # Extract version number from strings like "gh version 2.86.0 (2026-01-21)"
+            import re
+            match = re.search(r'(\d+)\.(\d+)\.(\d+)', version_str)
+            if match:
+                return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        except Exception:
+            pass
+        
+        return (0, 0, 0)
+
+    def _is_copilot_builtin(self) -> bool:
+        """Check if gh copilot is built-in (gh CLI >= 2.14.0).
+        
+        Starting with gh CLI v2.14.0 (January 2026), copilot became a built-in
+        command instead of requiring a separate extension installation.
+        """
+        version = self._parse_gh_version(self.caps.gh_version)
+        # Check if version >= 2.14.0
+        if version[0] > 2:
+            return True
+        if version[0] == 2 and version[1] >= 14:
+            return True
+        return False
+
     def _get_temp_dir(self) -> Path:
         """Get appropriate temp directory based on OS.
         
@@ -767,8 +805,38 @@ class GitHubCopilotInstaller:
         return True
 
     async def install_copilot_extension(self) -> bool:
-        """Install gh-copilot extension."""
+        """Install gh-copilot extension or verify built-in copilot."""
+        # Check if copilot is built-in (gh >= 2.14.0)
+        if self._is_copilot_builtin():
+            print("\n📦 GitHub Copilot CLI (built-in)")
+            print("ℹ️  gh CLI v2.14.0+ includes copilot as a built-in command")
+            print("ℹ️  No extension installation needed")
+            
+            # Check if the copilot command actually works
+            ret, stdout, stderr = await DeviceCapabilityDetector._run_command(
+                ["gh", "copilot", "--help"], timeout=10.0
+            )
+            
+            if ret == 0:
+                print("✅ GitHub Copilot built-in command is available")
+                return True
+            else:
+                # Built-in should be available but isn't working
+                print("⚠️  Copilot built-in command not responding")
+                if self.caps.is_openwrt or self.caps.architecture == "aarch64":
+                    print("\n⚠️  KNOWN ISSUE: GitHub Copilot on OpenWrt/aarch64")
+                    print("    The gh CLI binary for aarch64 may not include copilot support")
+                    print("    even though the version indicates it should be built-in.")
+                    print("\n📝 Workaround options:")
+                    print("    1. Use a different architecture if available (x86_64)")
+                    print("    2. Wait for GitHub to release aarch64 builds with copilot")
+                    print("    3. Use the standalone copilot CLI via npm:")
+                    print("       npm install -g @github/copilot")
+                return False
+        
+        # For older gh CLI versions, try installing as extension
         print("\n📦 Installing GitHub Copilot extension...")
+        print("ℹ️  gh CLI version < 2.14.0, installing as extension")
 
         ret, stdout, stderr = await DeviceCapabilityDetector._run_command(
             ["gh", "extension", "install", "github/gh-copilot"], timeout=120.0
@@ -786,6 +854,14 @@ class GitHubCopilotInstaller:
                 print("✅ GitHub Copilot is available (built-in or already installed)")
                 return True
             print(f"❌ Failed to install extension: {stderr}")
+            
+            # Additional guidance for OpenWrt/embedded
+            if self.caps.is_openwrt or self.caps.architecture == "aarch64":
+                print("\n⚠️  Extension installation failed on OpenWrt/aarch64")
+                print("    This may be due to missing pre-built binaries for this architecture.")
+                print("\n📝 Try the standalone copilot CLI:")
+                print("    npm install -g @github/copilot")
+            
             return False
 
     async def authenticate_github(
@@ -924,7 +1000,47 @@ Host github.com
             print(f"✅ GitHub Copilot CLI is working: {stdout.strip()}")
             return True
         else:
-            print(f"❌ GitHub Copilot CLI verification failed: {stderr}")
+            # Provide detailed error diagnostics
+            stderr_lower = stderr.lower()
+            print(f"❌ GitHub Copilot CLI verification failed")
+            
+            # Check for common error patterns
+            if "no such file or directory" in stderr_lower or "fork/exec" in stderr_lower:
+                print("\n🔍 DIAGNOSIS: Copilot binary not found")
+                print(f"   Error: {stderr.strip()}")
+                
+                if self._is_copilot_builtin():
+                    print("\n📊 Your gh CLI version indicates copilot should be built-in")
+                    print(f"   Version: {self.caps.gh_version}")
+                    
+                    if self.caps.is_openwrt or self.caps.architecture == "aarch64":
+                        print("\n⚠️  KNOWN LIMITATION: OpenWrt/aarch64 builds")
+                        print("   The gh CLI binary for aarch64 may be missing copilot support")
+                        print("   even though newer versions should include it built-in.")
+                        print("\n   This is a known issue with:")
+                        print("   • OpenWrt embedded systems")
+                        print("   • ARM64/aarch64 architectures")
+                        print("   • Custom-compiled gh CLI binaries")
+                        print("\n📝 WORKAROUNDS:")
+                        print("   Option 1: Use standalone copilot CLI (requires Node.js):")
+                        print("     npm install -g @github/copilot")
+                        print("     Then use: copilot (instead of gh copilot)")
+                        print("\n   Option 2: Use x86_64 system if available")
+                        print("\n   Option 3: Wait for official aarch64 builds with copilot support")
+                    else:
+                        print("\n   Try reinstalling gh CLI or the copilot extension:")
+                        print("   gh extension remove github/gh-copilot")
+                        print("   gh extension install github/gh-copilot")
+                else:
+                    # Old gh version, should use extension
+                    print("\n   Your gh CLI version requires the copilot extension")
+                    print(f"   Version: {self.caps.gh_version}")
+                    print("   Try: gh extension install github/gh-copilot")
+            else:
+                print(f"   Error: {stderr.strip()}")
+                print("\n   Try running: gh copilot --version")
+                print("   For help: gh copilot --help")
+            
             return False
 
     async def _needs_sudo(self) -> bool:
@@ -1056,9 +1172,17 @@ async def main() -> int:
             print_usage_instructions()
             return 0
         else:
-            print("\n⚠️  Installation completed but verification failed")
-            print("   Please check the errors above and try running:")
-            print("   gh copilot --version")
+            print("\n⚠️  Setup completed but copilot verification failed")
+            print("\n📝 Next steps:")
+            print("   1. Review the diagnostic information above")
+            print("   2. Try: gh copilot --version")
+            
+            # Provide specific guidance based on the system
+            if caps.is_openwrt or caps.architecture == "aarch64":
+                print("\n   For OpenWrt/aarch64 systems, consider using:")
+                print("   • npm install -g @github/copilot (standalone CLI)")
+                print("   • Then run: copilot")
+            
             return 1
 
     except KeyboardInterrupt:
