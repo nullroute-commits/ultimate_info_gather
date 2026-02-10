@@ -27,9 +27,15 @@ The script automatically:
 1. Detects your device capabilities
 2. Installs Node.js and npm (if needed)
 3. Installs GitHub CLI
-4. Installs the gh-copilot extension
+4. Detects gh CLI version and handles built-in copilot (v2.14.0+) or installs as extension
 5. Authenticates with GitHub
 6. Verifies the installation
+
+### Important Notes
+
+**GitHub CLI v2.14.0+ (January 2026)**: Copilot is now built-in to gh CLI and no longer requires separate extension installation. The script automatically detects this and handles both old and new versions appropriately.
+
+**OpenWrt/aarch64 Limitation**: Due to missing binary support in some aarch64 builds, GitHub Copilot may not work even with newer gh CLI versions. The script detects this and recommends using the standalone `@github/copilot` npm package as a workaround.
 
 ## Prerequisites
 
@@ -429,6 +435,49 @@ python3.11 install_github_copilot.py
    ```bash
    gh auth status
    ```
+
+### Issue: Copilot verification failed on OpenWrt/aarch64
+
+**Error**: `❌ GitHub Copilot CLI verification failed: fork/exec /root/.local/share/gh/copilot/copilot: no such file or directory`
+
+**Diagnosis**: This occurs on OpenWrt aarch64 systems with gh CLI v2.14.0+ where copilot should be built-in but the binary is missing or not compiled with copilot support.
+
+**Why this happens**:
+- gh CLI v2.14.0+ (January 2026) includes copilot as a built-in command
+- However, some aarch64/ARM64 builds may not include copilot support
+- OpenWrt custom-compiled binaries may be missing copilot functionality
+- The extension installation path no longer works for built-in copilot
+
+**Solutions**:
+
+1. **Use standalone Copilot CLI (Recommended for OpenWrt/aarch64)**:
+   ```bash
+   # Install via npm
+   npm install -g @github/copilot
+   
+   # Authenticate (opens browser)
+   copilot
+   
+   # Use copilot commands directly (not "gh copilot")
+   copilot suggest "your command"
+   copilot explain "your code"
+   ```
+
+2. **Check gh version and capabilities**:
+   ```bash
+   gh --version
+   gh copilot --help  # Check if copilot is available
+   ```
+
+3. **Use x86_64 system if available**:
+   - Copilot works better on x86_64 architecture
+   - Consider using a different device for development
+
+4. **Wait for official aarch64 builds with copilot**:
+   - GitHub is working on better ARM64 support
+   - Check GitHub CLI releases for updates
+
+**Note**: The script now automatically detects this issue and provides guidance for OpenWrt/aarch64 systems.
 
 ### Issue: Low disk space (OpenWrt)
 
