@@ -183,13 +183,14 @@ class TestCopilotExtensionInstallation:
             has_gh=True,
             node_version="20.0.0",
             npm_version="10.0.0",
-            gh_version="2.86.0",
+            gh_version="2.86.0",  # Built-in copilot version
         )
         installer = GitHubCopilotInstaller(caps)
 
-        # Mock "already installed" error
+        # For gh >= 2.14.0, copilot is built-in, so it checks "gh copilot --help"
         with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
-            mock_run.return_value = (1, "", "extension already installed")
+            # First call is "gh copilot --help" which succeeds
+            mock_run.return_value = (0, "usage: gh copilot", "")
             result = await installer.install_copilot_extension()
             assert result is True
 
@@ -211,13 +212,13 @@ class TestCopilotExtensionInstallation:
             has_gh=True,
             node_version="20.0.0",
             npm_version="10.0.0",
-            gh_version="2.86.0",
+            gh_version="2.86.0",  # Built-in copilot version
         )
         installer = GitHubCopilotInstaller(caps)
 
-        # Mock "built-in command" error (the bug fix we're testing)
+        # Mock "gh copilot --help" succeeding (built-in works)
         with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
-            mock_run.return_value = (1, "", '"copilot" matches the name of a built-in command or alias')
+            mock_run.return_value = (0, "usage: gh copilot", "")
             result = await installer.install_copilot_extension()
             # This should return True after our fix
             assert result is True
@@ -240,13 +241,71 @@ class TestCopilotExtensionInstallation:
             has_gh=True,
             node_version="20.0.0",
             npm_version="10.0.0",
-            gh_version="2.86.0",
+            gh_version="2.86.0",  # Built-in copilot version
         )
         installer = GitHubCopilotInstaller(caps)
 
-        # Mock unrelated error
+        # Mock error when checking "gh copilot --help" (built-in doesn't work)
         with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
             mock_run.return_value = (1, "", "network connection failed")
             result = await installer.install_copilot_extension()
-            # This should return False for unrelated errors
+            # This should return False for errors
             assert result is False
+
+    @pytest.mark.asyncio
+    async def test_install_copilot_openwrt_aarch64_builtin_missing(self):
+        """Test copilot on OpenWrt aarch64 where built-in is missing."""
+        caps = DeviceCapabilities(
+            os_name="Linux",
+            architecture="aarch64",
+            package_manager="opkg",
+            has_opkg=True,
+            is_openwrt=True,
+            available_space_mb=5000,
+            has_node=True,
+            has_npm=True,
+            has_git=True,
+            has_curl=True,
+            has_wget=False,
+            has_gh=True,
+            node_version="20.20.0",
+            npm_version="10.8.2",
+            gh_version="gh version 2.86.0 (2026-01-21)",  # Built-in copilot version
+        )
+        installer = GitHubCopilotInstaller(caps)
+
+        # Mock "gh copilot --help" failing (binary missing on aarch64)
+        with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
+            mock_run.return_value = (1, "", "fork/exec /root/.local/share/gh/copilot/copilot: no such file or directory")
+            result = await installer.install_copilot_extension()
+            # Should return False and provide OpenWrt-specific guidance
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_install_copilot_old_version_extension(self):
+        """Test copilot installation on old gh version requiring extension."""
+        caps = DeviceCapabilities(
+            os_name="Linux",
+            architecture="x86_64",
+            package_manager="apt",
+            has_opkg=False,
+            is_openwrt=False,
+            available_space_mb=10000,
+            has_node=True,
+            has_npm=True,
+            has_git=True,
+            has_curl=True,
+            has_wget=False,
+            has_gh=True,
+            node_version="20.0.0",
+            npm_version="10.0.0",
+            gh_version="gh version 2.10.0 (2023-01-01)",  # Old version < 2.14.0
+        )
+        installer = GitHubCopilotInstaller(caps)
+
+        # Mock extension install success
+        with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
+            mock_run.return_value = (0, "Extension installed", "")
+            result = await installer.install_copilot_extension()
+            # Should install as extension for old gh versions
+            assert result is True
