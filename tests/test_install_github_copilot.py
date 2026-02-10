@@ -132,3 +132,121 @@ class TestFilesystemOperations:
         temp_dir = installer._get_temp_dir()
         expected = Path(tempfile.gettempdir())
         assert temp_dir == expected
+
+
+class TestCopilotExtensionInstallation:
+    """Test GitHub Copilot extension installation."""
+
+    @pytest.mark.asyncio
+    async def test_install_copilot_success(self):
+        """Test successful copilot extension installation."""
+        caps = DeviceCapabilities(
+            os_name="Linux",
+            architecture="x86_64",
+            package_manager="apt",
+            has_opkg=False,
+            is_openwrt=False,
+            available_space_mb=10000,
+            has_node=True,
+            has_npm=True,
+            has_git=True,
+            has_curl=True,
+            has_wget=False,
+            has_gh=True,
+            node_version="20.0.0",
+            npm_version="10.0.0",
+            gh_version="2.86.0",
+        )
+        installer = GitHubCopilotInstaller(caps)
+
+        # Mock successful installation
+        with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
+            mock_run.return_value = (0, "Extension installed successfully", "")
+            result = await installer.install_copilot_extension()
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_install_copilot_already_installed(self):
+        """Test copilot extension already installed scenario."""
+        caps = DeviceCapabilities(
+            os_name="Linux",
+            architecture="x86_64",
+            package_manager="apt",
+            has_opkg=False,
+            is_openwrt=False,
+            available_space_mb=10000,
+            has_node=True,
+            has_npm=True,
+            has_git=True,
+            has_curl=True,
+            has_wget=False,
+            has_gh=True,
+            node_version="20.0.0",
+            npm_version="10.0.0",
+            gh_version="2.86.0",
+        )
+        installer = GitHubCopilotInstaller(caps)
+
+        # Mock "already installed" error
+        with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
+            mock_run.return_value = (1, "", "extension already installed")
+            result = await installer.install_copilot_extension()
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_install_copilot_builtin_command(self):
+        """Test copilot as built-in command scenario."""
+        caps = DeviceCapabilities(
+            os_name="Linux",
+            architecture="x86_64",
+            package_manager="apt",
+            has_opkg=False,
+            is_openwrt=False,
+            available_space_mb=10000,
+            has_node=True,
+            has_npm=True,
+            has_git=True,
+            has_curl=True,
+            has_wget=False,
+            has_gh=True,
+            node_version="20.0.0",
+            npm_version="10.0.0",
+            gh_version="2.86.0",
+        )
+        installer = GitHubCopilotInstaller(caps)
+
+        # Mock "built-in command" error (the bug fix we're testing)
+        with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
+            mock_run.return_value = (1, "", '"copilot" matches the name of a built-in command or alias')
+            result = await installer.install_copilot_extension()
+            # This should return True after our fix
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_install_copilot_other_error(self):
+        """Test copilot installation with unrelated error."""
+        caps = DeviceCapabilities(
+            os_name="Linux",
+            architecture="x86_64",
+            package_manager="apt",
+            has_opkg=False,
+            is_openwrt=False,
+            available_space_mb=10000,
+            has_node=True,
+            has_npm=True,
+            has_git=True,
+            has_curl=True,
+            has_wget=False,
+            has_gh=True,
+            node_version="20.0.0",
+            npm_version="10.0.0",
+            gh_version="2.86.0",
+        )
+        installer = GitHubCopilotInstaller(caps)
+
+        # Mock unrelated error
+        with patch.object(DeviceCapabilityDetector, '_run_command') as mock_run:
+            mock_run.return_value = (1, "", "network connection failed")
+            result = await installer.install_copilot_extension()
+            # This should return False for unrelated errors
+            assert result is False
