@@ -778,9 +778,12 @@ class GitHubCopilotInstaller:
             print("✅ GitHub Copilot extension installed successfully")
             return True
         else:
-            # Check if already installed
-            if "already installed" in stderr.lower() or "already installed" in stdout.lower():
-                print("✅ GitHub Copilot extension already installed")
+            # Check if already installed or built-in
+            stderr_lower = stderr.lower()
+            stdout_lower = stdout.lower()
+            if ("already installed" in stderr_lower or "already installed" in stdout_lower or
+                "built-in command" in stderr_lower or "built-in command" in stdout_lower):
+                print("✅ GitHub Copilot is available (built-in or already installed)")
                 return True
             print(f"❌ Failed to install extension: {stderr}")
             return False
