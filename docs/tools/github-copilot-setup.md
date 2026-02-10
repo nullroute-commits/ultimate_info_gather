@@ -33,7 +33,7 @@ The script automatically:
 
 ### Important Notes
 
-**GitHub CLI v2.14.0+ (January 2026)**: Copilot is now built-in to gh CLI and no longer requires separate extension installation. The script automatically detects this and handles both old and new versions appropriately.
+**GitHub CLI v2.14.0+ (January 2026)**: Starting with version 2.14.0 released in January 2026, Copilot is now built-in to gh CLI and no longer requires separate extension installation. The script automatically detects this and handles both old and new versions appropriately. This change happened concurrently with the deprecation of the `github/gh-copilot` extension.
 
 **OpenWrt/aarch64 Limitation**: Due to missing binary support in some aarch64 builds, GitHub Copilot may not work even with newer gh CLI versions. The script detects this and recommends using the standalone `@github/copilot` npm package as a workaround.
 
@@ -463,11 +463,20 @@ python3.11 install_github_copilot.py
    copilot explain "your code"
    ```
 
-2. **Check gh version and capabilities**:
+2. **Verify gh version includes copilot support**:
    ```bash
+   # Check gh version
    gh --version
-   gh copilot --help  # Check if copilot is available
+   
+   # Test if copilot is available (should show help text if working)
+   gh copilot --help
+   
+   # If you get "fork/exec" error, copilot is not available in your build
+   # Expected output for working copilot:
+   # "Your AI command line copilot..."
    ```
+   
+   **Version vs. Binary Support**: Note that gh CLI version number alone doesn't guarantee copilot support. Some builds (especially aarch64) may have version 2.14.0+ but lack the copilot binary. The `gh copilot --help` test is the definitive check.
 
 3. **Use x86_64 system if available**:
    - Copilot works better on x86_64 architecture
