@@ -117,11 +117,13 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
         package_name="netboxlabs-diode-netbox-plugin",
         module_name="netbox_diode_plugin",
         version="1.7.1",
-        enabled=True,
+        enabled=False,
         support_tier="supported-netboxlabs",
         rationale=(
             "Official NetBox Labs Diode plugin. Upstream declares "
-            "min_version='4.4.10' and max_version='4.5.99'."
+            "min_version='4.4.10' and max_version='4.5.99', but the generated "
+            "bundle does not yet render a companion Diode service. Keep it "
+            "disabled until that service wiring is added."
         ),
         config={
             "diode_username": "diode",

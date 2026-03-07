@@ -297,14 +297,15 @@ def _collect_notes(track: str) -> list[str]:
             "explicitly declares min_version='4.5.0'."
         ),
         (
-            "Diode is enabled using netboxlabs-diode-netbox-plugin 1.7.1 "
-            "with module netbox_diode_plugin; upstream declares min_version=4.4.10 "
-            "and max_version=4.5.99, so it is compatible with the pinned NetBox 4.5.x."
+            "The Diode plugin (netboxlabs-diode-netbox-plugin 1.7.1) is "
+            "included in the plugin catalog, but remains disabled by default "
+            "until the generated bundle also renders a companion Diode service."
         ),
         (
-            "netbox-acls 1.9.1, netbox-proxbox 0.0.6b2, and "
-            "netbox-prometheus-sd 0.5 remain disabled by default "
-            "because their declared max_version constraints do not include NetBox 4.5.x."
+            "netbox-acls 1.9.1, netbox-proxbox 0.0.6b2, "
+            "netbox-prometheus-sd 0.5, and netboxlabs-diode-netbox-plugin 1.7.1 "
+            "remain disabled by default until their compatibility or companion "
+            "service requirements are satisfied for this generated bundle."
         ),
         (
             "Requested plugins netbox-config-diff 2.14.0, "

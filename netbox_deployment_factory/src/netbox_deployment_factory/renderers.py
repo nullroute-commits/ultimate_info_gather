@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import pprint
+import re
 from pathlib import Path
 
 from .models import DeploymentPlan
@@ -501,8 +502,18 @@ def render_waf_default_conf() -> str:
 """
 
 
-def render_traefik_cert_script() -> str:
+def render_traefik_cert_script(plan: DeploymentPlan) -> str:
     """Render a bootstrap script that generates a self-signed certificate."""
+
+    san_entries = [
+        "DNS:localhost",
+        "DNS:traefik",
+        "DNS:netbox",
+        "IP:127.0.0.1",
+    ]
+    hostname = plan.host.hostname.strip()
+    if hostname and re.fullmatch(r"[A-Za-z0-9.-]+", hostname):
+        san_entries.append(f"DNS:{hostname}")
 
     return """#!/bin/sh
 set -eu
@@ -518,7 +529,7 @@ openssl req \
   -days 365 \
   -newkey rsa:4096 \
   -subj '/CN=localhost' \
-  -addext 'subjectAltName=DNS:localhost,DNS:traefik,DNS:netbox,IP:127.0.0.1' \
+  -addext 'subjectAltName=""" + ",".join(san_entries) + """' \
   -keyout /certs/tls.key \
   -out /certs/tls.crt
 chmod 600 /certs/tls.key
@@ -846,7 +857,7 @@ def _response_error(response) -> str:
 
 
 def _post_import(client, url_name: str, payload: str, label: str) -> None:
-  from django.urls import reverse
+    from django.urls import reverse
 
     if not payload.strip():
         print(f"No {label} definitions found. Skipping.")
@@ -1001,6 +1012,7 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 - Worker containers: {max(1, plan.sizing.netbox_worker_containers)}
 - Orchestration metadata: `configuration/orb/orchestration.yml`
+- ORB sidecar: readiness-gated placeholder that records the generated orchestration file path.
 
 ## Device-Type Library
 
@@ -1019,6 +1031,16 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 - Bootstrap email: {plan.admin_privacy.bootstrap_email}
 - Rotation required: {plan.admin_privacy.rotation_required}
 - Rationale: {plan.admin_privacy.rationale}
+
+## First Start
+
+- Before running `docker compose up -d`, copy each `secrets/*.example` file to the
+  same path without the `.example` suffix.
+- Replace the placeholder values in `secrets/db_password`, `secrets/secret_key`,
+  `secrets/superuser_password`, `secrets/superuser_api_token`, and
+  `secrets/api_token_pepper_1`.
+- Keep `secrets/superuser_name` aligned with the pseudonymous bootstrap account unless
+  you intentionally rotate it before first start.
 
 ## Native Import Workflow
 
@@ -1079,7 +1101,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir
         / "scripts"
         / "import-device-type-library.py": render_device_type_library_import_runner(),
-        output_dir / "scripts" / "generate-traefik-cert.sh": render_traefik_cert_script(),
+        output_dir / "scripts" / "generate-traefik-cert.sh": render_traefik_cert_script(plan),
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "run-orb-agent.sh": render_orb_agent_script(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",

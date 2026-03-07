@@ -12,7 +12,7 @@ The generated bundle is opinionated in five ways:
 - Requested plugins are enabled in the generated deployment using upstream compatibility metadata.
 - The bootstrap superuser is pseudonymous and secret-file backed so the initial administrative identity is not tied to a human username.
 - The community device-type library is included as a separate pinned import workflow that uses NetBox core bulk-import support instead of an external helper script.
-- ORB sidecar orchestration metadata and container wiring are generated and deployed by default with NetBox API readiness as the control gate.
+- ORB sidecar orchestration metadata and readiness-gated container wiring are generated and deployed by default.
 
 ## Version Pins
 
@@ -90,6 +90,10 @@ The generated deployment uses a pseudonymous bootstrap admin identity:
 - Database and bootstrap-admin secrets are separated into distinct files.
 - The import service runs as a separate one-shot workload, but the default generated wiring reuses the bootstrap secret set unless you override the import username.
 - The bootstrap account is intended only for first login, RBAC setup, and immediate rotation or disablement.
+
+Before the first `docker compose up -d`, copy each file in `secrets/*.example` to the
+same path without the `.example` suffix and replace placeholder values with real
+secrets.
 
 ## Least Privilege
 
