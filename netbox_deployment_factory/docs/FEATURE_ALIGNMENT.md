@@ -10,7 +10,19 @@ The repository enables `netbox-bgp` because it directly extends NetBox as a sour
 
 ## DNS
 
-The repository does not enable a DNS plugin by default. The last hard-coded `netbox-dns` pin was not reproducible from the official `netbox-community` GitHub organization and did not match an installable package release. To keep the generated bundle aligned with NetBox Labs installation guidance and official NetBox Community sources, DNS is now treated as an explicit gap rather than a silently broken default.
+The repository enables `netbox-plugin-dns` (module: `netbox_dns`) version 1.5.3, which explicitly declares `min_version = "4.5.0"` and is published from the official netbox-community source path. This plugin provides DNS zone, record, nameserver, and DNSSEC key template management natively inside NetBox, making DNS a first-class member of the network source of truth alongside IPAM and topology data.
+
+The generated plugin configuration uses the package defaults. Operators who require custom SOA timers, zone TTL defaults, or filtered RR types can extend `PLUGINS_CONFIG["netbox_dns"]` in the generated `configuration/plugins.py`.
+
+## Proxmox
+
+The repository includes `netbox-proxbox` (module: `netbox_proxbox`) version 0.0.6b2 in the plugin spec list as a documented integration option, but sets it to `enabled=False` because the current release declares `max_version='4.2.99'`, which is incompatible with the pinned NetBox 4.5.x image. Enabling it on a NetBox 4.5 deployment would cause NetBox to refuse startup due to the declared version ceiling.
+
+Two integration paths are available until a NetBox 4.5-compatible netbox-proxbox release ships:
+
+1. **netbox-proxbox (plugin)**: Set `enabled=True` in `DEFAULT_PLUGIN_SPECS` once an officially supported release targeting NetBox 4.5 is available. The plugin provides inventory synchronization (clusters, nodes, VMs, containers, interfaces) from Proxmox VE into NetBox via a FastAPI backend.
+
+2. **NetBox Labs event-driven automation (webhook-based)**: The `netboxlabs/netbox-proxmox-automation` project provides event-driven Proxmox VM provisioning and management triggered by NetBox event rules and webhooks. This approach does not require a NetBox plugin and is compatible with current NetBox 4.x releases. See [https://github.com/netboxlabs/netbox-proxmox-automation](https://github.com/netboxlabs/netbox-proxmox-automation) for setup instructions.
 
 ## Device-Type Library
 

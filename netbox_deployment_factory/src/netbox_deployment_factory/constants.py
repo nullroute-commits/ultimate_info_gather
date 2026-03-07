@@ -54,4 +54,36 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
             "top_level_menu": True,
         },
     ),
+    PluginSpec(
+        package_name="netbox-plugin-dns",
+        module_name="netbox_dns",
+        version="1.5.3",
+        enabled=True,
+        support_tier="supported-community",
+        rationale=(
+            "Explicit NetBox 4.5.0+ compatibility (min_version='4.5.0'). "
+            "Provides DNS zone, record, and nameserver management natively "
+            "inside NetBox, enabling DNS as a first-class part of the network "
+            "source of truth alongside IPAM and topology data."
+        ),
+        config={},
+    ),
+    PluginSpec(
+        package_name="netbox-proxbox",
+        module_name="netbox_proxbox",
+        version="0.0.6b2",
+        enabled=False,
+        support_tier="community-beta",
+        rationale=(
+            "Integrates Proxmox VE inventory (clusters, nodes, VMs, containers) "
+            "with NetBox as the network source of truth. This plugin is the "
+            "proxmox-netboxlabs solution for Proxmox–NetBox synchronization. "
+            "Currently disabled because the latest release (0.0.6b2) declares "
+            "max_version='4.2.99', making it incompatible with the pinned "
+            "NetBox 4.5.x image. Enable once an officially supported release "
+            "targeting NetBox 4.5 is available, or when using a NetBox 4.2.x "
+            "deployment track."
+        ),
+        config={},
+    ),
 )
