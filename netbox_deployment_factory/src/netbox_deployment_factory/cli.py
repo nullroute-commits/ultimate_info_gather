@@ -39,6 +39,45 @@ def build_parser() -> argparse.ArgumentParser:
         default="netbox-stack",
         help="Logical name for the generated deployment.",
     )
+    parser.add_argument(
+        "--cidr-mode",
+        choices=("deterministic", "dynamic"),
+        default="deterministic",
+        help="CIDR planning mode for generated Docker networks.",
+    )
+    parser.add_argument(
+        "--edge-hosts",
+        type=int,
+        default=16,
+        help="Required host capacity for the edge network in dynamic mode.",
+    )
+    parser.add_argument(
+        "--app-hosts",
+        type=int,
+        default=16,
+        help="Required host capacity for the app network in dynamic mode.",
+    )
+    parser.add_argument(
+        "--data-hosts",
+        type=int,
+        default=16,
+        help="Required host capacity for the data network in dynamic mode.",
+    )
+    parser.add_argument(
+        "--security-hosts",
+        type=int,
+        default=8,
+        help="Required host capacity for the security network in dynamic mode.",
+    )
+    parser.add_argument(
+        "--worker-containers",
+        type=int,
+        default=None,
+        help=(
+            "Override the number of NetBox worker containers. "
+            "Defaults to the host-derived sizing profile."
+        ),
+    )
     return parser
 
 
@@ -56,6 +95,14 @@ def main() -> int:
         track=args.track,
         deployment_name=args.deployment_name,
         source_report=report_path,
+        cidr_mode=args.cidr_mode,
+        required_hosts={
+            "edge": args.edge_hosts,
+            "app": args.app_hosts,
+            "data": args.data_hosts,
+            "security": args.security_hosts,
+        },
+        worker_containers=args.worker_containers,
     )
     written = write_bundle(plan, output_dir)
 

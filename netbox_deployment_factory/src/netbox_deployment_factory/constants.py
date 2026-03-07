@@ -69,6 +69,67 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
         config={},
     ),
     PluginSpec(
+        package_name="netbox-acls",
+        module_name="netbox_acls",
+        version="1.9.1",
+        enabled=False,
+        support_tier="supported-community",
+        rationale=(
+            "Official netbox-community plugin and package, but the current "
+            "plugin config declares max_version='4.4.99'. It is intentionally "
+            "disabled on NetBox 4.5.x until a compatible release exists."
+        ),
+        config={
+            "top_level_menu": True,
+        },
+    ),
+    PluginSpec(
+        package_name="netbox-reorder-rack",
+        module_name="netbox_reorder_rack",
+        version="1.1.4",
+        enabled=True,
+        support_tier="community",
+        rationale=(
+            "Community rack layout tooling that exposes drag-and-drop rack "
+            "reordering. Upstream compatibility matrix states >=4.0.0."
+        ),
+        config={},
+    ),
+    PluginSpec(
+        package_name="netbox-prometheus-sd",
+        module_name="netbox_prometheus_sd",
+        version="0.5",
+        enabled=False,
+        support_tier="community-legacy",
+        rationale=(
+            "Provides Prometheus HTTP SD endpoints for NetBox devices, but "
+            "the current release imports legacy 'extras.plugins' and fails to "
+            "load on NetBox 4.5.x. Kept disabled until an updated release "
+            "targets modern NetBox plugin APIs."
+        ),
+        config={
+            "custom_field_name": "monitored",
+            "target_port": 9100,
+            "gnmic_target_port": 32767,
+        },
+    ),
+    PluginSpec(
+        package_name="netboxlabs-diode-netbox-plugin",
+        module_name="netbox_diode_plugin",
+        version="1.7.1",
+        enabled=True,
+        support_tier="supported-netboxlabs",
+        rationale=(
+            "Official NetBox Labs Diode plugin. Upstream declares "
+            "min_version='4.4.10' and max_version='4.5.99'."
+        ),
+        config={
+            "diode_username": "diode",
+            "diode_target_override": "grpc://diode:8080/diode",
+            "secrets_path": "/run/secrets/",
+        },
+    ),
+    PluginSpec(
         package_name="netbox-proxbox",
         module_name="netbox_proxbox",
         version="0.0.6b2",

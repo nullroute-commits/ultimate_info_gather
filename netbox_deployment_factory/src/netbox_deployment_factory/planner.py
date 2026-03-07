@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import ipaddress
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -22,6 +23,8 @@ from .models import (
     DeviceTypeLibraryProfile,
     HostProfile,
     ImageSelection,
+    NetworkProfile,
+    NetworkSegment,
     PluginSpec,
     ServiceSizing,
 )
@@ -72,6 +75,7 @@ def _derive_sizing(host: HostProfile) -> ServiceSizing:
         return ServiceSizing(
             profile_name="small",
             netbox_workers=1,
+            netbox_worker_containers=1,
             postgres_shared_buffers="256MB",
             postgres_max_connections=200,
             housekeeping_interval_minutes=30,
@@ -80,6 +84,7 @@ def _derive_sizing(host: HostProfile) -> ServiceSizing:
         return ServiceSizing(
             profile_name="medium",
             netbox_workers=2,
+            netbox_worker_containers=2,
             postgres_shared_buffers="512MB",
             postgres_max_connections=300,
             housekeeping_interval_minutes=20,
@@ -87,6 +92,7 @@ def _derive_sizing(host: HostProfile) -> ServiceSizing:
     return ServiceSizing(
         profile_name="large",
         netbox_workers=4,
+        netbox_worker_containers=4,
         postgres_shared_buffers="1GB",
         postgres_max_connections=500,
         housekeeping_interval_minutes=15,
@@ -156,6 +162,82 @@ def _select_plugins() -> list[PluginSpec]:
     return [copy.deepcopy(spec) for spec in DEFAULT_PLUGIN_SPECS]
 
 
+def _prefix_for_required_hosts(required_hosts: int) -> int:
+    if required_hosts < 2:
+        required_hosts = 2
+
+    host_bits = 2
+    while (2**host_bits - 2) < required_hosts:
+        host_bits += 1
+
+    return 32 - host_bits
+
+
+def _derive_network_profile(
+    cidr_mode: str,
+    required_hosts: dict[str, int] | None = None,
+) -> NetworkProfile:
+    defaults = {
+        "edge": 16,
+        "app": 16,
+        "data": 16,
+        "security": 8,
+    }
+    requested = defaults | (required_hosts or {})
+
+    if cidr_mode == "deterministic":
+        return NetworkProfile(
+            cidr_mode=cidr_mode,
+            segments=[
+                NetworkSegment(
+                    name="edge",
+                    cidr="172.30.0.0/27",
+                    required_hosts=requested["edge"],
+                ),
+                NetworkSegment(
+                    name="app",
+                    cidr="172.30.0.32/27",
+                    required_hosts=requested["app"],
+                ),
+                NetworkSegment(
+                    name="data",
+                    cidr="172.30.0.64/27",
+                    required_hosts=requested["data"],
+                ),
+                NetworkSegment(
+                    name="security",
+                    cidr="172.30.0.96/28",
+                    required_hosts=requested["security"],
+                ),
+            ],
+        )
+
+    if cidr_mode != "dynamic":
+        raise ValueError("Unsupported cidr_mode. Expected one of: deterministic, dynamic")
+
+    base_start = int(ipaddress.IPv4Address("172.31.0.0"))
+    base_end = int(ipaddress.IPv4Address("172.31.255.255"))
+    cursor = base_start
+    segments: list[NetworkSegment] = []
+
+    for name in ("edge", "app", "data", "security"):
+        prefix = _prefix_for_required_hosts(requested[name])
+        block_size = 2 ** (32 - prefix)
+
+        remainder = cursor % block_size
+        if remainder:
+            cursor += block_size - remainder
+
+        if cursor + block_size - 1 > base_end:
+            raise ValueError("Requested dynamic network sizing exceeds 172.31.0.0/16")
+
+        cidr = f"{ipaddress.IPv4Address(cursor)}/{prefix}"
+        segments.append(NetworkSegment(name=name, cidr=cidr, required_hosts=requested[name]))
+        cursor += block_size
+
+    return NetworkProfile(cidr_mode=cidr_mode, segments=segments)
+
+
 def _collect_warnings(host: HostProfile) -> list[str]:
     warnings: list[str] = []
     if host.is_wsl:
@@ -184,6 +266,16 @@ def _collect_warnings(host: HostProfile) -> list[str]:
         "(https://github.com/netboxlabs/netbox-proxmox-automation) as a "
         "webhook-based alternative that does not require a plugin."
     )
+    warnings.append(
+        "The ACL plugin (netbox-acls) is included but disabled because upstream "
+        "declares max_version='4.4.99'. Keep it disabled on NetBox 4.5.x until "
+        "a compatible release is published."
+    )
+    warnings.append(
+        "The Prometheus discovery plugin (netbox-prometheus-sd) is included "
+        "but disabled because version 0.5 still imports the legacy "
+        "extras.plugins API and fails on NetBox 4.5.x."
+    )
     return warnings
 
 
@@ -203,6 +295,26 @@ def _collect_notes(track: str) -> list[str]:
             "current NetBox 4.5 compatibility evidence from official NetBox "
             "Community sources. The DNS plugin (netbox-plugin-dns 1.5.3) "
             "explicitly declares min_version='4.5.0'."
+        ),
+        (
+            "Diode is enabled using netboxlabs-diode-netbox-plugin 1.7.1 "
+            "with module netbox_diode_plugin; upstream declares min_version=4.4.10 "
+            "and max_version=4.5.99, so it is compatible with the pinned NetBox 4.5.x."
+        ),
+        (
+            "netbox-acls 1.9.1, netbox-proxbox 0.0.6b2, and "
+            "netbox-prometheus-sd 0.5 remain disabled by default "
+            "because their declared max_version constraints do not include NetBox 4.5.x."
+        ),
+        (
+            "netbox-reorder-rack 1.1.4 is enabled as a community integration; "
+            "validate in staging before production because upstream metadata does "
+            "not publish a strict NetBox 4.5 compatibility matrix."
+        ),
+        (
+            "Worker-container orchestration is generated explicitly so RQ workers "
+            "can scale as independent containers while preserving a deterministic "
+            "startup dependency on NetBox health."
         ),
         (
             "DNS management is provided by netbox-plugin-dns 1.5.3, which "
@@ -238,6 +350,9 @@ def build_plan(
     track: str,
     deployment_name: str,
     source_report: Path | str,
+    cidr_mode: str = "deterministic",
+    required_hosts: dict[str, int] | None = None,
+    worker_containers: int | None = None,
 ) -> DeploymentPlan:
     """Build a deployment plan from a collector report."""
 
@@ -247,13 +362,16 @@ def build_plan(
 
     host = _build_host_profile(report)
     image_defaults = TRACK_IMAGE_DEFAULTS[track]
+    sizing = _derive_sizing(host)
+    if worker_containers is not None:
+        sizing.netbox_worker_containers = max(1, worker_containers)
 
     return DeploymentPlan(
         deployment_name=deployment_name,
         source_report=str(source_report),
         source_generator_version=report["report_metadata"]["generator_version"],
         host=host,
-        sizing=_derive_sizing(host),
+        sizing=sizing,
         images=ImageSelection(
             netbox_image=NETBOX_IMAGE,
             postgres_image=image_defaults["postgres_image"],
@@ -262,6 +380,7 @@ def build_plan(
             release_reference=image_defaults["release_reference"],
         ),
         plugins=_select_plugins(),
+        networks=_derive_network_profile(cidr_mode=cidr_mode, required_hosts=required_hosts),
         admin_privacy=_derive_admin_privacy(report),
         device_type_library=_derive_device_type_library_profile(),
         warnings=_collect_warnings(host),
