@@ -37,6 +37,7 @@ class PluginSpec:
     enabled: bool
     support_tier: str
     rationale: str
+    install_when_disabled: bool = False
     config: dict[str, Any] = field(default_factory=dict)
 
 
@@ -46,6 +47,7 @@ class ServiceSizing:
 
     profile_name: str
     netbox_workers: int
+    netbox_worker_containers: int
     postgres_shared_buffers: str
     postgres_max_connections: int
     housekeeping_interval_minutes: int
@@ -86,6 +88,23 @@ class DeviceTypeLibraryProfile:
 
 
 @dataclass(slots=True)
+class NetworkSegment:
+    """A single scoped Docker network segment."""
+
+    name: str
+    cidr: str
+    required_hosts: int
+
+
+@dataclass(slots=True)
+class NetworkProfile:
+    """Network planning inputs and computed segment allocations."""
+
+    cidr_mode: str
+    segments: list[NetworkSegment]
+
+
+@dataclass(slots=True)
 class DeploymentPlan:
     """Complete deployment plan used by the renderers."""
 
@@ -96,6 +115,7 @@ class DeploymentPlan:
     sizing: ServiceSizing
     images: ImageSelection
     plugins: list[PluginSpec]
+    networks: NetworkProfile
     admin_privacy: AdminPrivacyProfile
     device_type_library: DeviceTypeLibraryProfile
     warnings: list[str]

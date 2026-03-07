@@ -2,13 +2,13 @@
 
 ## Objective
 
-Generate a new repository that consumes `ultimate_info_gather` output and produces a reproducible, NetBox Labs-aligned Docker deployment bundle for NetBox with topology, BGP, and NetBox community device-type-library support, while surfacing DNS as a documented integration gap until an official-community-backed source path is validated.
+Generate a repository flow that consumes `ultimate_info_gather` output and produces a reproducible, NetBox Labs-aligned Docker deployment bundle for NetBox with topology, BGP, DNS, requested plugin-catalog integrations, ORB sidecar orchestration metadata, and NetBox community device-type-library support.
 
 ## Standards Baseline
 
 1. Use the official netbox-docker plugin workflow as the deployment pattern.
 2. Keep plugin behavior additive through `PLUGINS` and `PLUGINS_CONFIG` only.
-3. Treat NetBox as the network source of truth for topology, IPAM, and automation-facing inventory, and document any unsupported DNS integration gaps explicitly.
+3. Treat NetBox as the network source of truth for topology, IPAM, and automation-facing inventory, and keep unvalidated plugin compatibility claims gated.
 4. Use the NetBox community device-type library as a separately pinned import workflow rather than bundling ad hoc data.
 5. Protect the bootstrap admin identity by making it pseudonymous and secret-file backed.
 6. Enforce least privilege by separating database and admin secrets, using the NetBox token pepper model, and dropping unnecessary container capabilities.
@@ -24,6 +24,7 @@ Generate a new repository that consumes `ultimate_info_gather` output and produc
 6. Add a pinned device-type-library import workflow using the NetBox community library and NetBox core bulk-import views.
 7. Create a Docker-localized CI/CD pipeline so linting, typing, tests, and example bundle generation all run in containers.
 8. Generate a deployment bundle from the current host report to prove end-to-end functionality.
+9. Generate ORB sidecar configuration and compose profile wiring that is gated by NetBox API readiness.
 
 ## Current Host Findings
 
@@ -39,4 +40,8 @@ Generate a new repository that consumes `ultimate_info_gather` output and produc
 - BGP: enable `netbox-bgp`
 - DNS: enable `netbox-plugin-dns` 1.5.3 (explicit NetBox 4.5.0+ support, official netbox-community source)
 - Proxmox: include `netbox-proxbox` 0.0.6b2 in the plugin spec list but disable by default due to `max_version='4.2.99'` incompatibility with NetBox 4.5; document the NetBox Labs event-driven automation alternative
+- Config drift: enable `netbox-config-diff` 2.14.0 (`min_version=4.5.0`, `max_version=4.5.99`)
+- Floorplan: enable `netbox-floorplan-plugin` 0.9.0 (`min_version=4.5.0-beta1`, `max_version=4.5.99`)
+- Inventory: enable `netbox-inventory` 2.5.0 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses NetBox core bulk import
+- ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks

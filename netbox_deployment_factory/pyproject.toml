@@ -43,7 +43,7 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-exclude = ["generated", ".mypy_cache", ".pytest_cache"]
+exclude = ["generated", ".artifacts", ".mypy_cache", ".pytest_cache"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]

@@ -27,9 +27,11 @@ sequenceDiagram
     P-->>O: PermissionsInfo
     par Phase 3
         O->>H: Collect Hardware (with prior data)
+        O->>N: Collect Network (with prior data)
         O->>S: Collect Software (with prior data)
     end
     H-->>O: HardwareInfo
+    N-->>O: NetworkInfo
     S-->>O: SoftwareInfo
     O->>O: Generate Report
 ```
@@ -56,9 +58,9 @@ Analyzes permissions and available resources using environment data:
 - Sudo capabilities
 - Resource limits (ulimits)
 
-### Phase 3: Hardware & Software Inventory (Objective 3)
+### Phase 3: Hardware, Network & Software Inventory (Objective 3)
 
-Collects comprehensive hardware and software information in parallel:
+Collects comprehensive hardware, network, and software information in parallel:
 
 **Hardware:**
 - CPU details (model, cores, frequency, cache)
@@ -68,10 +70,19 @@ Collects comprehensive hardware and software information in parallel:
 - GPUs (NVIDIA, AMD, Intel)
 - USB devices
 
+**Network:**
+- Network interfaces (MAC, speed, MTU, state)
+- IP addresses (IPv4/IPv6 with masks and scopes)
+- Routing table
+- DNS configuration
+- Firewall rules (iptables/nftables)
+- Active connections
+- Interface statistics
+
 **Software:**
 - Operating system details
 - Kernel modules
-- Installed packages (apt, rpm, pacman)
+- Installed packages (opkg, apt, rpm, pacman, apk)
 - Python packages
 - System services
 - Running containers
@@ -86,6 +97,7 @@ Each collection phase produces a strongly-typed data model:
 | `EnvironmentState` | Execution environment details |
 | `PermissionsInfo` | Permissions and resource access |
 | `HardwareInfo` | Hardware inventory |
+| `NetworkInfo` | Intensive in-depth network capabilities |
 | `SoftwareInfo` | Software inventory |
 | `SystemReport` | Aggregated report |
 
