@@ -47,6 +47,16 @@
         - __init__
         - collect
 
+## Network Collector
+
+::: src.collectors.network_collector.NetworkCollector
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - __init__
+        - collect
+
 ## Software Collector
 
 ::: src.collectors.software_collector.SoftwareCollector

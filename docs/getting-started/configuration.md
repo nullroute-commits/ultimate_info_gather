@@ -30,7 +30,7 @@ from src.orchestrator import CollectionProgress, CollectionPhase
 
 def my_callback(progress: CollectionProgress):
     """
-    progress.phase: CollectionPhase (ENVIRONMENT, PERMISSIONS, HARDWARE, SOFTWARE)
+    progress.phase: CollectionPhase (ENVIRONMENT, PERMISSIONS, HARDWARE, NETWORK, SOFTWARE)
     progress.status: str - Current status message
     progress.percent_complete: float - 0-100
     progress.elapsed_ms: float - Time elapsed in milliseconds

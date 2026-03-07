@@ -4,14 +4,13 @@
 
 ```
 tests/
-├── conftest.py              # Shared fixtures
-├── test_environment.py      # Environment collector tests
-├── test_permissions.py      # Permissions collector tests
-├── test_hardware.py         # Hardware collector tests
-├── test_software.py         # Software collector tests
-├── test_orchestrator.py     # Orchestrator tests
-├── test_models.py           # Data model tests
-└── test_integration.py      # Integration tests
+├── conftest.py                      # Shared fixtures
+├── test_environment.py              # Environment collector tests
+├── test_permissions.py              # Permissions collector tests
+├── test_network.py                  # Network collector tests
+├── test_orchestrator.py             # Orchestrator tests
+├── test_improvements.py             # Embedded system improvements tests
+└── test_install_github_copilot.py   # GitHub Copilot installer tests
 ```
 
 ## Running Tests

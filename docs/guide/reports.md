@@ -13,6 +13,7 @@ class SystemReport:
     environment: EnvironmentState | None
     permissions: PermissionsInfo | None
     hardware: HardwareInfo | None
+    network: NetworkInfo | None
     software: SoftwareInfo | None
     total_collection_time_ms: float
     collection_errors: list[str]
@@ -54,6 +55,7 @@ JSON structure:
   },
   "permissions": { ... },
   "hardware": { ... },
+  "network": { ... },
   "software": { ... }
 }
 ```

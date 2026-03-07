@@ -12,12 +12,14 @@ __author__ = "System Administrator"
 from .collectors import (
     EnvironmentCollector,
     HardwareCollector,
+    NetworkCollector,
     PermissionsCollector,
     SoftwareCollector,
 )
 from .models import (
     EnvironmentState,
     HardwareInfo,
+    NetworkInfo,
     PermissionsInfo,
     ResourceInfo,
     SoftwareInfo,
@@ -30,11 +32,13 @@ __all__ = [
     "PermissionsInfo",
     "ResourceInfo",
     "HardwareInfo",
+    "NetworkInfo",
     "SoftwareInfo",
     "SystemReport",
     "EnvironmentCollector",
     "PermissionsCollector",
     "HardwareCollector",
+    "NetworkCollector",
     "SoftwareCollector",
     "InfoGatherOrchestrator",
 ]

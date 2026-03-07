@@ -73,6 +73,7 @@ async def main():
     env = orchestrator.environment_state      # Objective 1
     perms = orchestrator.permissions_info     # Objective 2
     hw = orchestrator.hardware_info           # Objective 3
+    net = orchestrator.network_info           # Objective 3 (intensive network analysis)
     sw = orchestrator.software_info           # Objective 3
     
     # Generate outputs
@@ -173,6 +174,7 @@ ultimate_info_gather/
 │   │   ├── environment.py       # Environment state model
 │   │   ├── permissions.py       # Permissions model
 │   │   ├── hardware.py          # Hardware model
+│   │   ├── network.py           # Network info model
 │   │   ├── software.py          # Software model
 │   │   └── report.py            # Report aggregation
 │   └── collectors/               # Async collectors
@@ -180,6 +182,7 @@ ultimate_info_gather/
 │       ├── environment_collector.py
 │       ├── permissions_collector.py
 │       ├── hardware_collector.py
+│       ├── network_collector.py
 │       └── software_collector.py
 ├── docs/                         # MkDocs documentation
 ├── tests/                        # Test suite
@@ -204,9 +207,10 @@ The orchestrator executes collection in a specific sequence to satisfy data depe
    - Security context (SELinux/AppArmor)
    - Resource limits
 
-3. **Phase 3 - Hardware & Software** (Objective 3)
+3. **Phase 3 - Hardware, Network & Software** (Objective 3)
    - Run in parallel for efficiency
    - Hardware: CPU, memory, storage, network, GPU, USB
+   - Network: Interfaces, routes, connections, DNS, firewall rules
    - Software: OS, packages, services, containers, processes
 
 ## Data Storage
@@ -223,6 +227,7 @@ stored = orchestrator.get_stored_data()
 #     'environment': EnvironmentState,
 #     'permissions': PermissionsInfo,
 #     'hardware': HardwareInfo,
+#     'network': NetworkInfo,
 #     'software': SoftwareInfo,
 # }
 ```

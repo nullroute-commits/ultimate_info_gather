@@ -95,6 +95,31 @@
     options:
       show_root_heading: true
 
+## Network Models
+
+::: src.models.network.NetworkInfo
+    options:
+      show_root_heading: true
+      members:
+        - to_dict
+        - get_summary
+
+::: src.models.network.InterfaceStatistics
+    options:
+      show_root_heading: true
+
+::: src.models.network.ConnectionState
+    options:
+      show_root_heading: true
+
+::: src.models.network.Protocol
+    options:
+      show_root_heading: true
+
+::: src.models.network.RouteType
+    options:
+      show_root_heading: true
+
 ## Software Models
 
 ::: src.models.software.SoftwareInfo
