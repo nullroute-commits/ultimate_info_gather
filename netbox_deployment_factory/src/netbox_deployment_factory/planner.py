@@ -175,9 +175,14 @@ def _collect_warnings(host: HostProfile) -> list[str]:
             "this host."
         )
     warnings.append(
-        "DNS plugin support is not enabled by default because the previously "
-        "pinned netbox-dns release was not reproducible from the official "
-        "netbox-community source set or a valid matching package pin."
+        "The Proxmox plugin (netbox-proxbox) is included in the plugin spec "
+        "list but disabled because the current release (0.0.6b2) declares "
+        "max_version='4.2.99', which is incompatible with the pinned NetBox "
+        "4.5.x image. To enable Proxmox inventory sync, wait for an officially "
+        "supported netbox-proxbox release targeting NetBox 4.5, or use the "
+        "NetBox Labs event-driven Proxmox automation solution "
+        "(https://github.com/netboxlabs/netbox-proxmox-automation) as a "
+        "webhook-based alternative that does not require a plugin."
     )
     return warnings
 
@@ -194,14 +199,21 @@ def _collect_notes(track: str) -> list[str]:
             f"{image_defaults['release_reference']} for OS lifecycle alignment."
         ),
         (
-            "Topology and BGP plugins are enabled because they have current "
-            "NetBox 4.5 compatibility evidence from official NetBox Community "
-            "sources."
+            "Topology, BGP, and DNS plugins are enabled because they have "
+            "current NetBox 4.5 compatibility evidence from official NetBox "
+            "Community sources."
         ),
         (
-            "DNS is left out of the default plugin set until it can be pinned "
-            "to an official-community-backed and installable release path "
-            "without breaking reproducibility."
+            "DNS management is provided by netbox-plugin-dns 1.5.3, which "
+            "explicitly declares min_version='4.5.0' and handles zones, records, "
+            "nameservers, and DNSSEC key templates natively inside NetBox."
+        ),
+        (
+            "The Proxmox plugin (netbox-proxbox) is included in the plugin "
+            "spec list as a documented integration option but is disabled "
+            "because the current release is incompatible with NetBox 4.5. "
+            "For event-driven Proxmox automation without a plugin, see the "
+            "NetBox Labs netbox-proxmox-automation project."
         ),
         (
             "The NetBox community device-type library is pinned by commit and "

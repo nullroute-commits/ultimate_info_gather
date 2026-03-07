@@ -37,5 +37,6 @@ Generate a new repository that consumes `ultimate_info_gather` output and produc
 
 - Topology: enable `netbox-topology-views`
 - BGP: enable `netbox-bgp`
-- DNS: do not enable by default until a reproducible official-community-backed source path is validated
+- DNS: enable `netbox-plugin-dns` 1.5.3 (explicit NetBox 4.5.0+ support, official netbox-community source)
+- Proxmox: include `netbox-proxbox` 0.0.6b2 in the plugin spec list but disable by default due to `max_version='4.2.99'` incompatibility with NetBox 4.5; document the NetBox Labs event-driven automation alternative
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses NetBox core bulk import

@@ -44,14 +44,36 @@ class PlannerTests(unittest.TestCase):
             "https://github.com/netbox-community/devicetype-library.git",
         )
         self.assertEqual(plan.device_type_library.library_ref, "cf50cfe")
-        self.assertNotIn(
+
+    def test_dns_and_proxmox_plugins_are_integrated(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        module_names = [plugin.module_name for plugin in plan.plugins]
+        self.assertIn(
             "netbox_dns",
-            [plugin.module_name for plugin in plan.plugins],
+            module_names,
         )
-        self.assertNotIn(
+        self.assertIn(
             "netbox_proxbox",
-            [plugin.module_name for plugin in plan.plugins],
+            module_names,
         )
+
+        dns_plugin = next(p for p in plan.plugins if p.module_name == "netbox_dns")
+        proxbox_plugin = next(p for p in plan.plugins if p.module_name == "netbox_proxbox")
+
+        self.assertTrue(dns_plugin.enabled)
+        self.assertEqual(dns_plugin.package_name, "netbox-plugin-dns")
+        self.assertEqual(dns_plugin.version, "1.5.3")
+
+        self.assertFalse(proxbox_plugin.enabled)
+        self.assertEqual(proxbox_plugin.package_name, "netbox-proxbox")
+        self.assertEqual(proxbox_plugin.version, "0.0.6b2")
+        self.assertIn("4.2.99", proxbox_plugin.rationale)
 
     def test_admin_identity_is_pseudonymous(self) -> None:
         plan = build_plan(
