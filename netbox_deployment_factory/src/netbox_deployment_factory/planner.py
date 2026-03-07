@@ -298,14 +298,14 @@ def _collect_notes(track: str) -> list[str]:
         ),
         (
             "The Diode plugin (netboxlabs-diode-netbox-plugin 1.7.1) is "
-            "included in the plugin catalog, but remains disabled by default "
-            "until the generated bundle also renders a companion Diode service."
+            "enabled by default and paired with a generated companion Diode "
+            "service so the plugin target resolves in the composed deployment."
         ),
         (
             "netbox-acls 1.9.1, netbox-proxbox 0.0.6b2, "
-            "netbox-prometheus-sd 0.5, and netboxlabs-diode-netbox-plugin 1.7.1 "
-            "remain disabled by default until their compatibility or companion "
-            "service requirements are satisfied for this generated bundle."
+            "and netbox-prometheus-sd 0.5 remain disabled by default until "
+            "their compatibility requirements are satisfied for this generated "
+            "bundle."
         ),
         (
             "Requested plugins netbox-config-diff 2.14.0, "

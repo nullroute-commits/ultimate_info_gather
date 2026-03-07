@@ -234,6 +234,12 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
+  diode:
+    image: netboxlabs/diode:latest
+    restart: unless-stopped
+    networks:
+      - data
+
   netbox:
     build:
       context: .
@@ -247,6 +253,8 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      diode:
+        condition: service_started
     env_file:
       - env/netbox.env
     secrets:

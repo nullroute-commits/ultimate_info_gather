@@ -112,7 +112,7 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(prometheus_plugin.package_name, "netbox-prometheus-sd")
         self.assertIn("extras.plugins", prometheus_plugin.rationale)
 
-        self.assertFalse(diode_plugin.enabled)
+        self.assertTrue(diode_plugin.enabled)
         self.assertEqual(diode_plugin.package_name, "netboxlabs-diode-netbox-plugin")
         self.assertIn("companion Diode service", diode_plugin.rationale)
 
@@ -228,6 +228,7 @@ class PlannerTests(unittest.TestCase):
             rendered_plan = json.loads(plan_file.read_text(encoding="utf-8"))
             self.assertEqual(rendered_plan["images"]["track"], "debian")
             compose_text = compose_file.read_text(encoding="utf-8")
+            plugins_text = plugins_file.read_text(encoding="utf-8")
             netbox_env = (output_dir / "env" / "netbox.env").read_text(
                 encoding="utf-8"
             )
@@ -257,7 +258,10 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)
-            self.assertNotIn("diode:", compose_text)
+            self.assertIn("diode:", compose_text)
+            self.assertIn("image: netboxlabs/diode:latest", compose_text)
+            self.assertIn("diode_target_override", plugins_text)
+            self.assertIn("grpc://diode:8080/diode", plugins_text)
             self.assertNotIn('profiles: ["orb"]', compose_text)
             self.assertIn("443:443", compose_text)
             self.assertNotIn("8080:8080", compose_text)
