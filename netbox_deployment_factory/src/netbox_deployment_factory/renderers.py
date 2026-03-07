@@ -142,9 +142,10 @@ def render_compose(plan: DeploymentPlan) -> str:
 
     return f"""services:
   traefik-certgen:
-    image: alpine:3.20
+    image: alpine/openssl:latest
     restart: "no"
-    command: ["/bin/sh", "/opt/scripts/generate-traefik-cert.sh"]
+    entrypoint: ["/bin/sh"]
+    command: ["/opt/scripts/generate-traefik-cert.sh"]
     volumes:
       - traefik-certs:/certs
       - ./scripts:/opt/scripts:ro
@@ -235,7 +236,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - data
 
   diode:
-    image: netboxlabs/diode:latest
+    image: netboxlabs/diode-auth:latest
     restart: unless-stopped
     networks:
       - data
@@ -535,7 +536,6 @@ if [ -s /certs/tls.crt ] && [ -s /certs/tls.key ]; then
   exit 0
 fi
 
-apk add --no-cache openssl >/dev/null
 openssl req \
   -x509 \
   -nodes \
@@ -1047,6 +1047,7 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 ## First Start
 
+- Build the local NetBox plugin image first: `docker compose build`.
 - Before running `docker compose up -d`, copy each `secrets/*.example` file to the
   same path without the `.example` suffix.
 - Replace the placeholder values in `secrets/db_password`, `secrets/secret_key`,

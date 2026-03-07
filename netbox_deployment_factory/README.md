@@ -91,9 +91,12 @@ The generated deployment uses a pseudonymous bootstrap admin identity:
 - The import service runs as a separate one-shot workload, but the default generated wiring reuses the bootstrap secret set unless you override the import username.
 - The bootstrap account is intended only for first login, RBAC setup, and immediate rotation or disablement.
 
-Before the first `docker compose up -d`, copy each file in `secrets/*.example` to the
-same path without the `.example` suffix and replace placeholder values with real
-secrets.
+Before the first `docker compose up -d`:
+
+1. Run `docker compose build` to build the local NetBox plugin image used by
+   `netbox`, `netbox-worker`, and `orb-agent`.
+2. Copy each file in `secrets/*.example` to the same path without the `.example`
+   suffix and replace placeholder values with real secrets.
 
 ## Least Privilege
 
