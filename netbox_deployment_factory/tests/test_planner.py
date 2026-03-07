@@ -185,6 +185,7 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(plan.admin_privacy.bootstrap_email.endswith("@invalid.local"))
 
     def test_bundle_writer_emits_expected_files(self) -> None:
+        self.report["environment"]["hostname"] = " localhost "
         plan = build_plan(
             self.report,
             track="debian",
@@ -291,7 +292,14 @@ class PlannerTests(unittest.TestCase):
             )
             self.assertIn('/api/status/', orb_agent_text)
             self.assertIn('ORB_NETBOX_TOKEN_FILE', orb_agent_text)
-            self.assertIn(plan.host.hostname, cert_script_file.read_text(encoding="utf-8"))
+            self.assertIn(
+                plan.host.hostname.strip(),
+                cert_script_file.read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                cert_script_file.read_text(encoding="utf-8").count("DNS:localhost"),
+                1,
+            )
             self.assertIn("## First Start", generated_readme_text)
             self.assertIn("copy each `secrets/*.example` file", generated_readme_text)
             self.assertNotIn("Dockerfile-DeviceTypeLibraryImport", compose_text)

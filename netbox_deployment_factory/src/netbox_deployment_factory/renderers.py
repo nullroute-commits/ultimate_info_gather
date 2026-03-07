@@ -516,7 +516,9 @@ def render_traefik_cert_script(plan: DeploymentPlan) -> str:
         r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*",
         hostname,
     ):
-        san_entries.append(f"DNS:{hostname}")
+        hostname_entry = f"DNS:{hostname}"
+        if hostname_entry not in san_entries:
+            san_entries.append(hostname_entry)
 
     return """#!/bin/sh
 set -eu
