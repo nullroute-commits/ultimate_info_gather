@@ -392,7 +392,7 @@ class GitHubCopilotInstaller:
             cmd = ["brew", "install", "node"]
         else:
             print(f"❌ Unsupported package manager: {self.caps.package_manager}")
-            return False
+            return False  
 
         # Execute installation
         ret, stdout, stderr = await DeviceCapabilityDetector._run_command(
