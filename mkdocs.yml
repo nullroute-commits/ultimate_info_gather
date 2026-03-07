@@ -44,8 +44,10 @@ nav:
     - Environment Collection: guide/environment.md
     - Permissions Analysis: guide/permissions.md
     - Hardware Scanning: guide/hardware.md
+    - Network Analysis: guide/network.md
     - Software Inventory: guide/software.md
     - Report Generation: guide/reports.md
+    - Embedded Systems: guide/embedded-systems.md
   - API Reference:
     - Orchestrator: api/orchestrator.md
     - Models: api/models.md
@@ -54,6 +56,8 @@ nav:
     - Contributing: development/contributing.md
     - Architecture: development/architecture.md
     - Testing: development/testing.md
+  - Tools:
+    - GitHub Copilot Setup: tools/github-copilot-setup.md
   - Agent Specification: agent.md
 
 plugins:

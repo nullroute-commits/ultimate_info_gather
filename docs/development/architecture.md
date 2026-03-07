@@ -19,22 +19,32 @@ Ultimate Info Gather follows a modular, async-first architecture designed for:
 │  - Aggregates results into SystemReport                     │
 └────────────────────────┬────────────────────────────────────┘
                          │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
+     ┌───────────────────┼───────────────────┐
+     │                   │                   │
+     ▼                   ▼                   ▼
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
 │ Environment │  │ Permissions │  │  Hardware   │
 │  Collector  │  │  Collector  │  │  Collector  │
 └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
        │                │                │
-       │         ┌──────┘                │
-       │         │                       │
-       ▼         ▼                       ▼
-┌─────────────────────────────────────────────────┐
-│                   Data Models                    │
-│  EnvironmentState, PermissionsInfo, HardwareInfo │
-│  SoftwareInfo, SystemReport                      │
-└─────────────────────────────────────────────────┘
+       │         ┌──────┘         ┌──────┘
+       │         │                │
+       │         │         ┌─────────────┐
+       │         │         │   Network   │
+       │         │         │  Collector  │
+       │         │         └──────┬──────┘
+       │         │                │
+       │         │         ┌─────────────┐
+       │         │         │  Software   │
+       │         │         │  Collector  │
+       │         │         └──────┬──────┘
+       │         │                │
+       ▼         ▼                ▼
+┌────────────────────────────────────────────────────────┐
+│                      Data Models                        │
+│  EnvironmentState, PermissionsInfo, HardwareInfo        │
+│  NetworkInfo, SoftwareInfo, SystemReport                │
+└────────────────────────────────────────────────────────┘
 ```
 
 ## Base Collector Pattern
@@ -74,7 +84,7 @@ Phase 1: Environment
     ↓ (provides execution context)
 Phase 2: Permissions (uses Environment)
     ↓ (provides access info)
-Phase 3: Hardware + Software (parallel, use both prior)
+Phase 3: Hardware + Network + Software (parallel, use both prior)
     ↓
 Final: SystemReport aggregation
 ```
@@ -84,10 +94,11 @@ Final: SystemReport aggregation
 ### Parallel Collection
 
 ```python
-async def _collect_hardware_and_software(self):
+async def _collect_phase3(self):
     hw_task = asyncio.create_task(self._collect_hardware())
+    net_task = asyncio.create_task(self._collect_network())
     sw_task = asyncio.create_task(self._collect_software())
-    return await asyncio.gather(hw_task, sw_task)
+    return await asyncio.gather(hw_task, net_task, sw_task)
 ```
 
 ### Safe Subprocess Execution

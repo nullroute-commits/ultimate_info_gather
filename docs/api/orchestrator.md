@@ -12,6 +12,7 @@
         - environment_state
         - permissions_info
         - hardware_info
+        - network_info
         - software_info
 
 ## Collection Progress

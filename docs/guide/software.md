@@ -50,6 +50,7 @@ Detected package managers:
 
 | Manager | Systems |
 |---------|---------|
+| `opkg` | OpenWrt, embedded systems (checked first) |
 | `apt`, `apt-get`, `dpkg` | Debian/Ubuntu |
 | `yum`, `dnf`, `rpm` | RHEL/CentOS/Fedora |
 | `pacman` | Arch Linux |
