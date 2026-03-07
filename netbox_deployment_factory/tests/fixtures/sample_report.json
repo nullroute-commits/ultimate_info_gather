@@ -1,0 +1,42 @@
+{
+  "report_metadata": {
+    "report_id": "12345678-90ab-cdef-1234-567890abcdef",
+    "generated_at": "2026-03-05T21:23:11.970679",
+    "generator_version": "1.0.0",
+    "total_collection_time_ms": 1234.0,
+    "collection_errors": [],
+    "warnings": []
+  },
+  "environment": {
+    "hostname": "test-host",
+    "is_wsl": true
+  },
+  "hardware": {
+    "is_virtual_machine": true,
+    "hypervisor": "wsl",
+    "cpu": {
+      "logical_cores": 8
+    },
+    "memory": {
+      "total_bytes": 4294967296,
+      "available_bytes": 1073741824
+    }
+  },
+  "network": {
+    "default_gateway": "10.0.0.1",
+    "dns_config": {
+      "nameservers": ["1.1.1.1", "8.8.8.8"]
+    }
+  },
+  "software": {
+    "os_info": {
+      "name": "Ubuntu",
+      "version": "24.04.4 LTS",
+      "kernel_version": "6.6.87.2-microsoft-standard-WSL2",
+      "architecture": "x86_64"
+    },
+    "can_manage_containers": true,
+    "container_runtimes": ["docker"],
+    "can_install_packages": false
+  }
+}

@@ -1,0 +1,671 @@
+"""Render deployment bundles from a deployment plan."""
+
+from __future__ import annotations
+
+import json
+import pprint
+from pathlib import Path
+
+from .models import DeploymentPlan
+
+
+def _render_plugin_list(plan: DeploymentPlan) -> list[str]:
+    return [plugin.module_name for plugin in plan.plugins if plugin.enabled]
+
+
+def _render_plugins_config(plan: DeploymentPlan) -> dict[str, object]:
+    return {
+        plugin.module_name: plugin.config
+        for plugin in plan.plugins
+        if plugin.enabled and plugin.config
+    }
+
+
+def render_plugin_requirements(plan: DeploymentPlan) -> str:
+    """Render plugin requirements with exact versions."""
+
+    lines = [
+        f"{plugin.package_name}=={plugin.version}"
+        for plugin in plan.plugins
+        if plugin.enabled
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_plugins_py(plan: DeploymentPlan) -> str:
+    """Render NetBox plugin configuration."""
+
+    plugins = pprint.pformat(_render_plugin_list(plan), indent=4, sort_dicts=False)
+    config = pprint.pformat(_render_plugins_config(plan), indent=4, sort_dicts=True)
+    return (
+        '"""Generated plugin configuration for NetBox."""\n\n'
+        f"PLUGINS = {plugins}\n\n"
+        f"PLUGINS_CONFIG = {config}\n"
+    )
+
+
+def render_dockerfile_plugins(plan: DeploymentPlan) -> str:
+    """Render the plugin image Dockerfile."""
+
+    return f"""ARG NETBOX_IMAGE={plan.images.netbox_image}
+FROM ${{NETBOX_IMAGE}}
+
+COPY plugin_requirements.txt /opt/netbox/plugin_requirements.txt
+RUN /usr/local/bin/uv pip install \
+  --python /opt/netbox/venv/bin/python \
+  -r /opt/netbox/plugin_requirements.txt
+
+COPY configuration/plugins.py /etc/netbox/config/plugins.py
+RUN mkdir -p /opt/netbox/netbox/static/netbox_topology_views/img
+RUN SECRET_KEY=dummydummydummydummydummydummydummydummydummydummy \\
+    /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
+"""
+
+
+def _render_library_archive_url(plan: DeploymentPlan) -> str:
+    repository = plan.device_type_library.library_repository.removesuffix(".git")
+    return f"{repository}/archive/{plan.device_type_library.library_ref}.tar.gz"
+
+
+def _render_netbox_healthcheck_command() -> str:
+  return (
+    "from urllib.request import urlopen; import sys; "
+    "response = urlopen('http://127.0.0.1:8080/login/', timeout=10); "
+    "sys.exit(0 if response.status == 200 else 1)"
+  )
+
+
+def render_compose(plan: DeploymentPlan) -> str:
+    """Render a standalone compose file aligned to netbox-docker conventions."""
+
+    return f"""services:
+  postgres:
+    image: {plan.images.postgres_image}
+    restart: unless-stopped
+    env_file:
+      - env/postgres.env
+    secrets:
+      - db_password
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [\"CMD-SHELL\", \"pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB\"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  valkey:
+    image: {plan.images.valkey_image}
+    restart: unless-stopped
+    command: [\"valkey-server\", \"--appendonly\", \"yes\"]
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: [\"CMD\", \"valkey-cli\", \"ping\"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  netbox:
+    build:
+      context: .
+      dockerfile: Dockerfile-Plugins
+      args:
+        NETBOX_IMAGE: {plan.images.netbox_image}
+    image: {plan.deployment_name}:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    env_file:
+      - env/netbox.env
+    secrets:
+      - db_password
+      - api_token_pepper_1
+      - secret_key
+      - superuser_name
+      - superuser_password
+      - superuser_api_token
+    ports:
+      - \"8080:8080\"
+    healthcheck:
+      test:
+        [
+          \"CMD\",
+          \"/opt/netbox/venv/bin/python\",
+          \"-c\",
+          \"{_render_netbox_healthcheck_command()}\",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    cap_drop: [\"ALL\"]
+    security_opt: [\"no-new-privileges:true\"]
+    tmpfs:
+      - /tmp
+    volumes:
+      - netbox-media:/opt/netbox/netbox/media
+      - netbox-reports:/etc/netbox/reports
+      - netbox-scripts:/etc/netbox/scripts
+
+  netbox-worker:
+    image: {plan.deployment_name}:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    env_file:
+      - env/netbox.env
+    secrets:
+      - db_password
+      - api_token_pepper_1
+      - secret_key
+      - superuser_name
+      - superuser_password
+      - superuser_api_token
+    command: [\"/opt/netbox/venv/bin/python\", \"/opt/netbox/netbox/manage.py\", \"rqworker\"]
+    cap_drop: [\"ALL\"]
+    security_opt: [\"no-new-privileges:true\"]
+    tmpfs:
+      - /tmp
+
+  {plan.device_type_library.import_service_name}:
+    profiles: [\"device-type-library-import\"]
+    image: {plan.deployment_name}:local
+    restart: \"no\"
+    depends_on:
+      netbox:
+        condition: service_healthy
+    env_file:
+      - env/netbox.env
+      - env/device-type-library-import.env
+    secrets:
+      - db_password
+      - api_token_pepper_1
+      - secret_key
+      - superuser_name
+      - superuser_password
+      - superuser_api_token
+    command: ["/bin/sh", "/opt/netbox/import-scripts/run-device-type-library-import.sh"]
+    cap_drop: [\"ALL\"]
+    security_opt: [\"no-new-privileges:true\"]
+    user: "${{LOCAL_UID:-1000}}:${{LOCAL_GID:-1000}}"
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./scripts:/opt/netbox/import-scripts:ro
+
+secrets:
+  db_password:
+    file: secrets/db_password
+  api_token_pepper_1:
+    file: secrets/api_token_pepper_1
+  secret_key:
+    file: secrets/secret_key
+  superuser_name:
+    file: secrets/superuser_name
+  superuser_password:
+    file: secrets/superuser_password
+  superuser_api_token:
+    file: secrets/superuser_api_token
+
+volumes:
+  postgres-data:
+  valkey-data:
+  netbox-media:
+  netbox-reports:
+  netbox-scripts:
+"""
+
+
+def render_netbox_env(plan: DeploymentPlan) -> str:
+    """Render the NetBox application environment."""
+
+    return f"""ALLOWED_HOSTS=localhost 127.0.0.1 netbox {plan.host.hostname}
+DB_HOST=postgres
+DB_NAME=netbox
+DB_PORT=5432
+DB_USER=netbox
+DB_PASSWORD_FILE=/run/secrets/db_password
+METRICS_ENABLED=true
+REDIS_CACHE_HOST=valkey
+REDIS_CACHE_PORT=6379
+REDIS_HOST=valkey
+REDIS_PORT=6379
+RELEASE_CHECK_URL=
+SECRET_KEY_FILE=/run/secrets/secret_key
+SKIP_SUPERUSER=false
+SUPERUSER_NAME_FILE=/run/secrets/superuser_name
+SUPERUSER_PASSWORD_FILE=/run/secrets/superuser_password
+SUPERUSER_API_TOKEN_FILE=/run/secrets/superuser_api_token
+SUPERUSER_EMAIL={plan.admin_privacy.bootstrap_email}
+WEB_CONCURRENCY={plan.sizing.netbox_workers}
+"""
+
+
+def render_postgres_env(plan: DeploymentPlan) -> str:
+    """Render the PostgreSQL environment."""
+
+    return f"""POSTGRES_DB=netbox
+POSTGRES_USER=netbox
+POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+PG_SHARED_BUFFERS={plan.sizing.postgres_shared_buffers}
+PG_MAX_CONNECTIONS={plan.sizing.postgres_max_connections}
+"""
+
+
+def render_device_type_library_import_env(plan: DeploymentPlan) -> str:
+    """Render the env file for the device-type-library import helper."""
+
+    return f"""NETBOX_URL=http://netbox:8080
+DEVICE_TYPE_LIBRARY_VENDORS=
+DEVICE_TYPE_LIBRARY_REPOSITORY={plan.device_type_library.library_repository}
+DEVICE_TYPE_LIBRARY_REF={plan.device_type_library.library_ref}
+DEVICE_TYPE_LIBRARY_ARCHIVE_URL={_render_library_archive_url(plan)}
+NETBOX_IMPORT_USERNAME_FILE=/run/secrets/superuser_name
+"""
+
+
+def render_device_type_library_import_script(plan: DeploymentPlan) -> str:
+    """Render a wrapper script for the pinned importer container."""
+
+    return """#!/bin/sh
+set -eu
+
+attempt=1
+while [ "$attempt" -le 60 ]; do
+  if /opt/netbox/venv/bin/python - <<'PY'
+import os
+import sys
+from urllib.error import URLError
+from urllib.request import urlopen
+
+url = os.environ["NETBOX_URL"].rstrip("/") + "/login/"
+
+try:
+    with urlopen(url, timeout=10) as response:
+        sys.exit(0 if response.status == 200 else 1)
+except URLError:
+    sys.exit(1)
+PY
+  then
+    break
+  fi
+
+  if [ "$attempt" -eq 60 ]; then
+    echo "NetBox service did not become ready in time" >&2
+    exit 1
+  fi
+
+  attempt=$((attempt + 1))
+  sleep 2
+done
+
+exec /opt/netbox/venv/bin/python /opt/netbox/import-scripts/import-device-type-library.py
+"""
+
+
+def render_device_type_library_import_runner() -> str:
+  """Render a NetBox-native importer for the community device-type library."""
+
+  return '''#!/usr/bin/env python3
+from __future__ import annotations
+
+import os
+import re
+import sys
+import tarfile
+import tempfile
+from pathlib import Path
+from urllib.request import urlretrieve
+
+import yaml
+
+
+def _slugify(value: str) -> str:
+  return re.sub(r"\\W+", "-", value.casefold()).strip("-")
+
+
+def _split_csv(value: str) -> set[str]:
+  return {item.strip().casefold() for item in value.split(",") if item.strip()}
+
+
+def _read_username() -> str:
+  username = os.environ.get("NETBOX_IMPORT_USERNAME", "").strip()
+  if username:
+    return username
+
+  username_file = os.environ.get("NETBOX_IMPORT_USERNAME_FILE", "").strip()
+  if username_file:
+    path = Path(username_file)
+    if not path.is_file():
+      raise RuntimeError(f"Missing NetBox import username file: {username_file}")
+    return path.read_text(encoding="utf-8").strip()
+
+  raise RuntimeError("NETBOX_IMPORT_USERNAME or NETBOX_IMPORT_USERNAME_FILE must be set")
+
+
+def _download_library() -> Path:
+  archive_url = os.environ["DEVICE_TYPE_LIBRARY_ARCHIVE_URL"]
+  working_dir = Path(tempfile.mkdtemp(prefix="netbox-device-library-"))
+  archive_path = working_dir / "library.tar.gz"
+  extract_dir = working_dir / "extract"
+  extract_dir.mkdir(parents=True, exist_ok=True)
+
+  urlretrieve(archive_url, archive_path)
+  with tarfile.open(archive_path, mode="r:gz") as archive:
+    archive.extractall(extract_dir)
+
+  extracted_roots = sorted(path for path in extract_dir.iterdir() if path.is_dir())
+  if not extracted_roots:
+    raise RuntimeError(f"Archive did not contain an extracted repository: {archive_url}")
+
+  return extracted_roots[0]
+
+
+def _iter_definition_files(root: Path, directory_name: str, vendors: set[str]) -> list[Path]:
+  base_dir = root / directory_name
+  if not base_dir.exists():
+    return []
+
+  files: list[Path] = []
+  for vendor_dir in sorted(path for path in base_dir.iterdir() if path.is_dir()):
+    if vendors and vendor_dir.name.casefold() not in vendors:
+      continue
+    for pattern in ("*.yaml", "*.yml"):
+      files.extend(sorted(vendor_dir.glob(pattern)))
+  return files
+
+
+def _load_documents(paths: list[Path]) -> list[tuple[Path, dict[str, object]]]:
+  documents: list[tuple[Path, dict[str, object]]] = []
+  for path in paths:
+    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(document, dict):
+      raise RuntimeError(f"Expected a YAML object in {path}")
+    documents.append((path, document))
+  return documents
+
+
+def _manufacturer_payload(*document_sets: list[tuple[Path, dict[str, object]]]) -> str:
+  manufacturers: dict[str, dict[str, str]] = {}
+  for document_set in document_sets:
+    for _, document in document_set:
+      manufacturer = document.get("manufacturer")
+      if isinstance(manufacturer, str) and manufacturer not in manufacturers:
+        manufacturers[manufacturer] = {
+          "name": manufacturer,
+          "slug": _slugify(manufacturer),
+        }
+
+  ordered = [manufacturers[name] for name in sorted(manufacturers, key=str.casefold)]
+  return yaml.safe_dump(ordered, sort_keys=False)
+
+
+def _join_yaml_documents(paths: list[Path]) -> str:
+  return "\\n---\\n".join(path.read_text(encoding="utf-8").strip() for path in paths)
+
+
+def _response_error(response) -> str:
+  contexts = getattr(response, "context", None)
+  if contexts is not None:
+    if not isinstance(contexts, list):
+      contexts = [contexts]
+    errors: list[str] = []
+    for context in contexts:
+      if not hasattr(context, "get"):
+        continue
+      form = context.get("form")
+      if form is not None and getattr(form, "errors", None):
+        errors.append(form.errors.as_json())
+    if errors:
+      return "\\n".join(errors)
+
+  return response.content.decode("utf-8", errors="replace")[:4000]
+
+
+def _post_import(client, url_name: str, payload: str, label: str) -> None:
+  if not payload.strip():
+    print(f"No {label} definitions found. Skipping.")
+    return
+
+  response = client.post(
+    reverse(url_name),
+    data={"data": payload, "format": "yaml"},
+    follow=False,
+  )
+  if response.status_code != 302:
+    raise RuntimeError(
+      f"NetBox native import failed for {label}: {_response_error(response)}"
+    )
+
+  print(f"Imported {label} via NetBox core bulk import.")
+
+
+sys.path.insert(0, "/opt/netbox/netbox")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "netbox.settings")
+
+import django
+
+django.setup()
+
+from django.contrib.auth import get_user_model
+from django.test import Client
+from django.urls import reverse
+
+
+def main() -> None:
+  vendors = _split_csv(os.environ.get("DEVICE_TYPE_LIBRARY_VENDORS", ""))
+  library_root = _download_library()
+
+  device_documents = _load_documents(
+    _iter_definition_files(library_root, "device-types", vendors)
+  )
+  module_documents = _load_documents(
+    _iter_definition_files(library_root, "module-types", vendors)
+  )
+  rack_documents = _load_documents(
+    _iter_definition_files(library_root, "rack-types", vendors)
+  )
+
+  user_model = get_user_model()
+  username = _read_username()
+  try:
+    user = user_model.objects.get(username=username)
+  except user_model.DoesNotExist as exc:
+    raise RuntimeError(f"Configured NetBox import user does not exist: {username}") from exc
+
+  client = Client()
+  client.force_login(user)
+
+  _post_import(
+    client,
+    "dcim:manufacturer_bulk_import",
+    _manufacturer_payload(device_documents, module_documents, rack_documents),
+    "manufacturers",
+  )
+  _post_import(
+    client,
+    "dcim:racktype_bulk_import",
+    _join_yaml_documents([path for path, _ in rack_documents]),
+    "rack types",
+  )
+  _post_import(
+    client,
+    "dcim:devicetype_bulk_import",
+    _join_yaml_documents([path for path, _ in device_documents]),
+    "device types",
+  )
+  _post_import(
+    client,
+    "dcim:moduletype_bulk_import",
+    _join_yaml_documents([path for path, _ in module_documents]),
+    "module types",
+  )
+
+
+if __name__ == "__main__":
+  main()
+'''
+
+
+def render_plan_json(plan: DeploymentPlan) -> str:
+    """Render the plan as JSON."""
+
+    return json.dumps(plan.to_dict(), indent=2, sort_keys=True) + "\n"
+
+
+def render_summary_markdown(plan: DeploymentPlan) -> str:
+    """Render a human-readable plan summary."""
+
+    plugin_lines = [
+        f"- {plugin.module_name} ({plugin.package_name}=={plugin.version}) [{plugin.support_tier}]"
+        for plugin in plan.plugins
+        if plugin.enabled
+    ]
+    warning_lines = [f"- {warning}" for warning in plan.warnings] or ["- None"]
+    note_lines = [f"- {note}" for note in plan.notes]
+    permission_lines = [
+        f"- {permission}" for permission in plan.device_type_library.least_privilege_permissions
+    ]
+
+    return f"""# Generated Deployment Plan
+
+## Source
+
+- Report: {plan.source_report}
+- Generator version: {plan.source_generator_version}
+- Deployment name: {plan.deployment_name}
+
+## Host Summary
+
+- Hostname: {plan.host.hostname}
+- OS: {plan.host.operating_system} {plan.host.operating_system_version}
+- Kernel: {plan.host.kernel_version}
+- Architecture: {plan.host.architecture}
+- WSL: {plan.host.is_wsl}
+- Docker capable: {plan.host.docker_capable}
+- Memory total: {plan.host.total_memory_bytes}
+- Memory available: {plan.host.available_memory_bytes}
+
+## Standards Alignment
+
+- Deployment pattern follows the official netbox-docker plugin workflow.
+- Plugins are configured only through `PLUGINS` and `PLUGINS_CONFIG`.
+- Core NetBox behavior is left untouched; integrations are additive.
+- Admin bootstrap is pseudonymous and secret-file backed.
+- Least privilege is applied through separated secrets and dropped Linux capabilities;
+  the importer can be switched to a dedicated NetBox user when desired.
+
+## Images
+
+- NetBox: {plan.images.netbox_image}
+- PostgreSQL: {plan.images.postgres_image}
+- Valkey: {plan.images.valkey_image}
+- Track: {plan.images.track}
+- Lifecycle reference: {plan.images.release_reference}
+
+## Enabled Plugins
+
+{chr(10).join(plugin_lines)}
+
+## Device-Type Library
+
+- Library repository: {plan.device_type_library.library_repository}
+- Library ref: {plan.device_type_library.library_ref}
+- Import service: {plan.device_type_library.import_service_name}
+- Rationale: {plan.device_type_library.rationale}
+
+### Least-Privilege Import Permissions
+
+{chr(10).join(permission_lines)}
+
+## Privacy Controls
+
+- Bootstrap username: {plan.admin_privacy.bootstrap_username}
+- Bootstrap email: {plan.admin_privacy.bootstrap_email}
+- Rotation required: {plan.admin_privacy.rotation_required}
+- Rationale: {plan.admin_privacy.rationale}
+
+## Native Import Workflow
+
+- The generated one-shot import service downloads the pinned device-type library archive.
+- Imports run through NetBox core bulk-import views for manufacturers, rack types,
+  device types, and module types.
+- The default import user is the pseudonymous bootstrap superuser referenced by
+  `secrets/superuser_name`.
+- For stricter RBAC, create a dedicated NetBox user with the permissions above and
+  override `NETBOX_IMPORT_USERNAME` or `NETBOX_IMPORT_USERNAME_FILE`.
+
+## Warnings
+
+{chr(10).join(warning_lines)}
+
+## Notes
+
+{chr(10).join(note_lines)}
+"""
+
+
+def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
+    """Write the full deployment bundle."""
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration").mkdir(exist_ok=True)
+    (output_dir / "env").mkdir(exist_ok=True)
+    (output_dir / "secrets").mkdir(exist_ok=True)
+    (output_dir / "scripts").mkdir(exist_ok=True)
+
+    files: dict[Path, str] = {
+        output_dir / "docker-compose.yml": render_compose(plan),
+        output_dir / "Dockerfile-Plugins": render_dockerfile_plugins(plan),
+        output_dir / "plugin_requirements.txt": render_plugin_requirements(plan),
+        output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
+        output_dir / "env" / "netbox.env": render_netbox_env(plan),
+        output_dir / "env" / "postgres.env": render_postgres_env(plan),
+        output_dir
+        / "env"
+        / "device-type-library-import.env": render_device_type_library_import_env(plan),
+        output_dir / "deployment-plan.json": render_plan_json(plan),
+        output_dir / "README.md": render_summary_markdown(plan),
+        output_dir
+        / "scripts"
+        / "run-device-type-library-import.sh": render_device_type_library_import_script(
+            plan
+        ),
+        output_dir
+        / "scripts"
+        / "import-device-type-library.py": render_device_type_library_import_runner(),
+        output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",
+        output_dir / "secrets" / "db_password.example": (
+            "replace-with-a-strong-database-password\n"
+        ),
+        output_dir / "secrets" / "api_token_pepper_1.example": (
+            "replace-with-a-strong-api-token-pepper\n"
+        ),
+        output_dir / "secrets" / "secret_key.example": (
+            "replace-with-a-50+-character-random-secret\n"
+        ),
+        output_dir / "secrets" / "superuser_name.example": (
+            f"{plan.admin_privacy.bootstrap_username}\n"
+        ),
+        output_dir / "secrets" / "superuser_password.example": (
+            "replace-with-a-strong-bootstrap-password\n"
+        ),
+        output_dir / "secrets" / "superuser_api_token.example": (
+            "replace-with-a-bootstrap-api-token\n"
+        ),
+    }
+
+    written: list[Path] = []
+    for path, content in files.items():
+        path.write_text(content, encoding="utf-8")
+        if path.suffix in {".sh", ".py"}:
+            path.chmod(0o755)
+        written.append(path)
+    return written

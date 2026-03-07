@@ -1,0 +1,124 @@
+# NetBox Deployment Factory
+
+This repository turns `ultimate_info_gather` JSON output into a reproducible NetBox deployment bundle that follows current NetBox Labs and official netbox-docker practices.
+
+All local CI/CD operations are Docker-localized. The host only needs Docker Compose; linting, type checking, tests, and bundle generation run inside the CI image defined in this repository.
+
+The generated bundle is opinionated in four ways:
+
+- NetBox is treated as the source of truth for topology, IPAM, and network automation data.
+- The deployment baseline follows the official netbox-docker plugin workflow rather than ad hoc container patterns.
+- Plugin enablement is strict: topology and BGP are enabled because they have visible NetBox 4.5 compatibility from official NetBox Community sources.
+- The bootstrap superuser is pseudonymous and secret-file backed so the initial administrative identity is not tied to a human username.
+- The community device-type library is included as a separate pinned import workflow that uses NetBox core bulk-import support instead of an external helper script.
+
+## Version Pins
+
+- NetBox: `4.5.4` as the highest current stable `4.5.x` core patch release
+- netbox-docker workflow baseline: `4.0.1`
+- Alpine lifecycle reference: `3.23.3`
+- Debian lifecycle reference: `13.3 (Trixie)`
+- Topology plugin: `netbox-topology-views==4.5.0`
+- BGP plugin: `netbox-bgp==0.18.0`
+- DNS plugin: not enabled by default until an official-community-backed, installable release path is validated
+- Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
+
+## Usage
+
+Generate a Debian bundle through the localized Docker workflow:
+
+```bash
+export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260305_212311.json \
+  --output-dir /workspace/generated/current-host-debian \
+  --track debian \
+  --deployment-name netbox-current-host
+```
+
+To generate the Alpine track instead:
+
+```bash
+export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260305_212311.json \
+  --output-dir /workspace/generated/current-host-alpine \
+  --track alpine \
+  --deployment-name netbox-current-host
+```
+
+## What Gets Generated
+
+- `docker-compose.yml`
+- `Dockerfile-Plugins`
+- `plugin_requirements.txt`
+- `configuration/plugins.py`
+- `env/netbox.env`
+- `env/postgres.env`
+- `env/device-type-library-import.env`
+- `secrets/*.example`
+- `scripts/run-device-type-library-import.sh`
+- `scripts/import-device-type-library.py`
+- `deployment-plan.json`
+- `README.md` summarizing the generated bundle
+
+## Standards
+
+- Official NetBox plugin pattern: install package, add it to `PLUGINS`, configure under `PLUGINS_CONFIG`, run migrations, run `collectstatic`
+- Official netbox-docker workflow: build a custom plugin image and keep plugin configuration additive
+- NetBox Labs operating model: NetBox remains the central source of truth for modeling, automation, and security-sensitive inventory workflows
+- CI/CD execution is Docker-localized: GitHub Actions and local validation both invoke Docker Compose services instead of running Python tooling directly on the host or runner
+- API token creation is enabled through a generated `api_token_pepper_1` secret so NetBox stays aligned with the current token model
+
+## Privacy Model
+
+The generated deployment uses a pseudonymous bootstrap admin identity:
+
+- Username is derived from the source report ID instead of a person name.
+- Email uses the reserved `.invalid` domain.
+- Credentials are expected only in local Docker secret files.
+- A dedicated `api_token_pepper_1` secret is generated so NetBox can issue v2 API tokens.
+- Database and bootstrap-admin secrets are separated into distinct files.
+- The import service runs as a separate one-shot workload, but the default generated wiring reuses the bootstrap secret set unless you override the import username.
+- The bootstrap account is intended only for first login, RBAC setup, and immediate rotation or disablement.
+
+## Least Privilege
+
+- NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
+- The device-type-library import runs as a separate one-shot profile inside the NetBox image.
+- The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.
+- By default it force-logs in as the pseudonymous bootstrap user inside Django via `NETBOX_IMPORT_USERNAME_FILE=/run/secrets/superuser_name`. If stricter RBAC is required, point the importer at a dedicated NetBox user with the documented DCIM import permissions.
+
+## Device-Type Library Import
+
+The generated bundle includes an optional `device-type-library-import` service. It is pinned to the NetBox community library repository and intended to be run only when you want to import or refresh device and rack types.
+
+```bash
+docker compose --profile device-type-library-import run --rm device-type-library-import
+```
+
+The one-shot importer downloads the pinned `devicetype-library` archive and submits manufacturer, rack type, device type, and module type YAML to NetBox's own bulk-import views. The default import identity comes from `secrets/superuser_name`.
+
+To use a dedicated NetBox user instead of the bootstrap account:
+
+```bash
+NETBOX_IMPORT_USERNAME=device-library-import \
+docker compose --profile device-type-library-import run --rm device-type-library-import
+```
+
+That user should be granted the DCIM add/view permissions documented in the generated bundle.
+
+## Validation
+
+```bash
+export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
+docker compose -f docker-compose.ci.yml build
+docker compose -f docker-compose.ci.yml run --rm lint
+docker compose -f docker-compose.ci.yml run --rm typecheck
+docker compose -f docker-compose.ci.yml run --rm test
+docker compose -f docker-compose.ci.yml run --rm bundle
+```
+
+Setting `LOCAL_UID` and `LOCAL_GID` keeps generated files, caches, and bundle artifacts owned by the invoking host user instead of container root. The generated sample bundle is localized under `.artifacts/ci-example` so the same Docker workflow works both locally and in GitHub Actions.
+
+When the input report lives outside this repository, use the `/host-root/...` path exposed by the CI Compose bind mount.
