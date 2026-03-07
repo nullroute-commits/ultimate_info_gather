@@ -47,7 +47,7 @@ The generated bundle includes an ORB sidecar service in the default Compose depl
 - Entrypoint script: `scripts/run-orb-agent.sh`
 - Metadata: `configuration/orb/orchestration.yml`
 
-The sidecar waits for NetBox API readiness (`/api/status/`) using the secret-backed token file, then enters polling mode against generated orchestration metadata. This keeps orchestration flow NetBox-gated without changing NetBox core behavior.
+The sidecar waits for NetBox API readiness (`/api/status/`) using the secret-backed token file, records the generated orchestration metadata path, and then stays alive as a readiness-gated placeholder sidecar. This keeps orchestration flow NetBox-gated without changing NetBox core behavior while leaving room for future ORB polling logic.
 
 ## Device-Type Library
 

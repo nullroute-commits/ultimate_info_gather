@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import py_compile
 import tempfile
 import unittest
 from pathlib import Path
@@ -111,8 +112,9 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(prometheus_plugin.package_name, "netbox-prometheus-sd")
         self.assertIn("extras.plugins", prometheus_plugin.rationale)
 
-        self.assertTrue(diode_plugin.enabled)
+        self.assertFalse(diode_plugin.enabled)
         self.assertEqual(diode_plugin.package_name, "netboxlabs-diode-netbox-plugin")
+        self.assertIn("companion Diode service", diode_plugin.rationale)
 
         self.assertTrue(config_diff_plugin.enabled)
         self.assertEqual(config_diff_plugin.package_name, "netbox-config-diff")
@@ -236,6 +238,7 @@ class PlannerTests(unittest.TestCase):
             importer_runner_text = importer_runner_file.read_text(
                 encoding="utf-8"
             )
+            generated_readme_text = (output_dir / "README.md").read_text(encoding="utf-8")
             superuser_sync_text = superuser_sync_script_file.read_text(encoding="utf-8")
             orb_agent_text = orb_agent_script_file.read_text(encoding="utf-8")
             self.assertIn("bootstrap", netbox_env)
@@ -253,6 +256,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)
+            self.assertNotIn("diode:", compose_text)
             self.assertNotIn('profiles: ["orb"]', compose_text)
             self.assertIn("443:443", compose_text)
             self.assertNotIn("8080:8080", compose_text)
@@ -273,6 +277,7 @@ class PlannerTests(unittest.TestCase):
                 'dcim:manufacturer_bulk_import',
                 importer_runner_text,
             )
+            py_compile.compile(str(importer_runner_file), doraise=True)
             self.assertIn('NB_SUPERUSER_NAME', superuser_sync_text)
             self.assertIn('get_or_create', superuser_sync_text)
             self.assertIn('orchestration:', orb_orchestration_text)
@@ -286,6 +291,9 @@ class PlannerTests(unittest.TestCase):
             )
             self.assertIn('/api/status/', orb_agent_text)
             self.assertIn('ORB_NETBOX_TOKEN_FILE', orb_agent_text)
+            self.assertIn(plan.host.hostname, cert_script_file.read_text(encoding="utf-8"))
+            self.assertIn("## First Start", generated_readme_text)
+            self.assertIn("copy each `secrets/*.example` file", generated_readme_text)
             self.assertNotIn("Dockerfile-DeviceTypeLibraryImport", compose_text)
             self.assertNotIn("device_type_library_token", compose_text)
             self.assertNotIn("HOUSEKEEPING_INTERVAL=", netbox_env)
