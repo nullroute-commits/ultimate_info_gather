@@ -512,7 +512,10 @@ def render_traefik_cert_script(plan: DeploymentPlan) -> str:
         "IP:127.0.0.1",
     ]
     hostname = plan.host.hostname.strip()
-    if hostname and re.fullmatch(r"[A-Za-z0-9.-]+", hostname):
+    if hostname and re.fullmatch(
+        r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*",
+        hostname,
+    ):
         san_entries.append(f"DNS:{hostname}")
 
     return """#!/bin/sh
