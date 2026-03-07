@@ -37,6 +37,7 @@ class PluginSpec:
     enabled: bool
     support_tier: str
     rationale: str
+    install_when_disabled: bool = False
     config: dict[str, Any] = field(default_factory=dict)
 
 

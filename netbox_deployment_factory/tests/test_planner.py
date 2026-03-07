@@ -45,7 +45,7 @@ class PlannerTests(unittest.TestCase):
         )
         self.assertEqual(plan.device_type_library.library_ref, "cf50cfe")
 
-    def test_dns_and_proxmox_plugins_are_integrated(self) -> None:
+    def test_requested_plugins_are_integrated_with_safe_defaults(self) -> None:
         plan = build_plan(
             self.report,
             track="debian",
@@ -66,6 +66,9 @@ class PlannerTests(unittest.TestCase):
         self.assertIn("netbox_reorder_rack", module_names)
         self.assertIn("netbox_prometheus_sd", module_names)
         self.assertIn("netbox_diode_plugin", module_names)
+        self.assertIn("netbox_config_diff", module_names)
+        self.assertIn("netbox_floorplan", module_names)
+        self.assertIn("netbox_inventory", module_names)
 
         dns_plugin = next(p for p in plan.plugins if p.module_name == "netbox_dns")
         proxbox_plugin = next(p for p in plan.plugins if p.module_name == "netbox_proxbox")
@@ -78,6 +81,15 @@ class PlannerTests(unittest.TestCase):
         )
         diode_plugin = next(
             p for p in plan.plugins if p.module_name == "netbox_diode_plugin"
+        )
+        config_diff_plugin = next(
+            p for p in plan.plugins if p.module_name == "netbox_config_diff"
+        )
+        floorplan_plugin = next(
+            p for p in plan.plugins if p.module_name == "netbox_floorplan"
+        )
+        inventory_plugin = next(
+            p for p in plan.plugins if p.module_name == "netbox_inventory"
         )
 
         self.assertTrue(dns_plugin.enabled)
@@ -101,6 +113,18 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(diode_plugin.enabled)
         self.assertEqual(diode_plugin.package_name, "netboxlabs-diode-netbox-plugin")
+
+        self.assertTrue(config_diff_plugin.enabled)
+        self.assertEqual(config_diff_plugin.package_name, "netbox-config-diff")
+        self.assertEqual(config_diff_plugin.version, "2.14.0")
+
+        self.assertTrue(floorplan_plugin.enabled)
+        self.assertEqual(floorplan_plugin.package_name, "netbox-floorplan-plugin")
+        self.assertEqual(floorplan_plugin.version, "0.9.0")
+
+        self.assertTrue(inventory_plugin.enabled)
+        self.assertEqual(inventory_plugin.package_name, "netbox-inventory")
+        self.assertEqual(inventory_plugin.version, "2.5.0")
 
     def test_dynamic_network_mode_allocates_subnets(self) -> None:
         plan = build_plan(
@@ -163,6 +187,7 @@ class PlannerTests(unittest.TestCase):
             traefik_dynamic_file = output_dir / "configuration" / "traefik" / "dynamic.yml"
             waf_conf_file = output_dir / "configuration" / "waf" / "default.conf"
             orb_orchestration_file = output_dir / "configuration" / "orb" / "orchestration.yml"
+            orb_env_file = output_dir / "env" / "orb.env"
             plan_file = output_dir / "deployment-plan.json"
             importer_file = output_dir / "scripts" / "run-device-type-library-import.sh"
             importer_runner_file = (
@@ -170,17 +195,20 @@ class PlannerTests(unittest.TestCase):
             )
             cert_script_file = output_dir / "scripts" / "generate-traefik-cert.sh"
             superuser_sync_script_file = output_dir / "scripts" / "sync-superuser.sh"
+            orb_agent_script_file = output_dir / "scripts" / "run-orb-agent.sh"
             api_token_pepper_file = output_dir / "secrets" / "api_token_pepper_1.example"
             self.assertTrue(compose_file.exists())
             self.assertTrue(plugins_file.exists())
             self.assertTrue(traefik_dynamic_file.exists())
             self.assertTrue(waf_conf_file.exists())
             self.assertTrue(orb_orchestration_file.exists())
+            self.assertTrue(orb_env_file.exists())
             self.assertTrue(plan_file.exists())
             self.assertTrue(importer_file.exists())
             self.assertTrue(importer_runner_file.exists())
             self.assertTrue(cert_script_file.exists())
             self.assertTrue(superuser_sync_script_file.exists())
+            self.assertTrue(orb_agent_script_file.exists())
             self.assertTrue(api_token_pepper_file.exists())
             rendered_plan = json.loads(plan_file.read_text(encoding="utf-8"))
             self.assertEqual(rendered_plan["images"]["track"], "debian")
@@ -191,11 +219,13 @@ class PlannerTests(unittest.TestCase):
             traefik_dynamic_text = traefik_dynamic_file.read_text(encoding="utf-8")
             waf_conf_text = waf_conf_file.read_text(encoding="utf-8")
             orb_orchestration_text = orb_orchestration_file.read_text(encoding="utf-8")
+            orb_env_text = orb_env_file.read_text(encoding="utf-8")
             importer_text = importer_file.read_text(encoding="utf-8")
             importer_runner_text = importer_runner_file.read_text(
                 encoding="utf-8"
             )
             superuser_sync_text = superuser_sync_script_file.read_text(encoding="utf-8")
+            orb_agent_text = orb_agent_script_file.read_text(encoding="utf-8")
             self.assertIn("bootstrap", netbox_env)
             self.assertIn("DB_PASSWORD_FILE=/run/secrets/db_password", netbox_env)
             self.assertIn(
@@ -210,6 +240,8 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("traefik:", compose_text)
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
+            self.assertIn("orb-agent:", compose_text)
+            self.assertNotIn('profiles: ["orb"]', compose_text)
             self.assertIn("443:443", compose_text)
             self.assertNotIn("8080:8080", compose_text)
             self.assertIn("netbox-compress", traefik_dynamic_text)
@@ -233,6 +265,15 @@ class PlannerTests(unittest.TestCase):
             self.assertIn('get_or_create', superuser_sync_text)
             self.assertIn('orchestration:', orb_orchestration_text)
             self.assertIn('worker_services:', orb_orchestration_text)
+            self.assertIn('netbox:', orb_orchestration_text)
+            self.assertIn('netbox_plugins:', orb_orchestration_text)
+            self.assertIn('ORB_NETBOX_URL=http://netbox:8080', orb_env_text)
+            self.assertIn(
+                'ORB_ORCHESTRATION_FILE=/etc/netbox/config/orb/orchestration.yml',
+                orb_env_text,
+            )
+            self.assertIn('/api/status/', orb_agent_text)
+            self.assertIn('ORB_NETBOX_TOKEN_FILE', orb_agent_text)
             self.assertNotIn("Dockerfile-DeviceTypeLibraryImport", compose_text)
             self.assertNotIn("device_type_library_token", compose_text)
             self.assertNotIn("HOUSEKEEPING_INTERVAL=", netbox_env)

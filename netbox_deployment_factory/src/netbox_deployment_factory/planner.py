@@ -307,6 +307,11 @@ def _collect_notes(track: str) -> list[str]:
             "because their declared max_version constraints do not include NetBox 4.5.x."
         ),
         (
+            "Requested plugins netbox-config-diff 2.14.0, "
+            "netbox-floorplan-plugin 0.9.0, and netbox-inventory 2.5.0 are "
+            "integrated by default using upstream compatibility metadata."
+        ),
+        (
             "netbox-reorder-rack 1.1.4 is enabled as a community integration; "
             "validate in staging before production because upstream metadata does "
             "not publish a strict NetBox 4.5 compatibility matrix."
@@ -315,6 +320,11 @@ def _collect_notes(track: str) -> list[str]:
             "Worker-container orchestration is generated explicitly so RQ workers "
             "can scale as independent containers while preserving a deterministic "
             "startup dependency on NetBox health."
+        ),
+        (
+            "ORB container orchestration metadata is generated under "
+            "configuration/orb/orchestration.yml and the orb-agent service is "
+            "started in the default compose deployment after NetBox health."
         ),
         (
             "DNS management is provided by netbox-plugin-dns 1.5.3, which "

@@ -27,7 +27,7 @@ def render_plugin_requirements(plan: DeploymentPlan) -> str:
     lines = [
         f"{plugin.package_name}=={plugin.version}"
         for plugin in plan.plugins
-        if plugin.enabled
+      if plugin.enabled or plugin.install_when_disabled
     ]
     return "\n".join(lines) + "\n"
 
@@ -343,6 +343,29 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - security
 
+  orb-agent:
+    image: {plan.deployment_name}:local
+    restart: unless-stopped
+    depends_on:
+      netbox:
+        condition: service_healthy
+      netbox-superuser-sync:
+        condition: service_completed_successfully
+    env_file:
+      - env/orb.env
+    secrets:
+      - superuser_api_token
+    command: ["/bin/sh", "/opt/netbox/bootstrap/run-orb-agent.sh"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./configuration/orb:/etc/netbox/config/orb:ro
+      - ./scripts:/opt/netbox/bootstrap:ro
+    networks:
+      - data
+
 secrets:
   db_password:
     file: secrets/db_password
@@ -561,10 +584,15 @@ def render_orb_orchestration_config(plan: DeploymentPlan) -> str:
         for idx in range(1, max(1, plan.sizing.netbox_worker_containers) + 1)
     ]
     worker_service_yaml = "\n".join(f"      - {name}" for name in worker_services)
+    enabled_plugins = [plugin.module_name for plugin in plan.plugins if plugin.enabled]
+    plugin_yaml = "\n".join(f"      - {name}" for name in enabled_plugins)
 
     return f"""orb:
   version: 1
   deployment_name: {plan.deployment_name}
+  netbox:
+    url: http://netbox:8080
+    api_token_file: /run/secrets/superuser_api_token
   orchestration:
     runtime: docker-compose
     worker_containers: {max(1, plan.sizing.netbox_worker_containers)}
@@ -578,6 +606,72 @@ def render_orb_orchestration_config(plan: DeploymentPlan) -> str:
       - traefik
     worker_services:
 {worker_service_yaml}
+  netbox_plugins:
+{plugin_yaml}
+"""
+
+
+def render_orb_env() -> str:
+    """Render ORB sidecar environment values."""
+
+    return """ORB_NETBOX_URL=http://netbox:8080
+ORB_NETBOX_TOKEN_FILE=/run/secrets/superuser_api_token
+ORB_ORCHESTRATION_FILE=/etc/netbox/config/orb/orchestration.yml
+ORB_POLL_INTERVAL_SECONDS=30
+"""
+
+
+def render_orb_agent_script() -> str:
+    """Render an ORB sidecar entrypoint that waits for NetBox API readiness."""
+
+    return """#!/bin/sh
+set -eu
+
+python - <<'PY'
+import os
+import time
+from urllib.error import URLError
+from urllib.request import Request, urlopen
+
+
+def wait_for_netbox() -> None:
+    base = os.environ["ORB_NETBOX_URL"].rstrip("/")
+    token_file = os.environ["ORB_NETBOX_TOKEN_FILE"]
+    with open(token_file, "r", encoding="utf-8") as handle:
+        token = handle.read().strip()
+
+    if not token:
+        raise RuntimeError(f"Token file is empty: {token_file}")
+
+    status_url = f"{base}/api/status/"
+    for attempt in range(1, 61):
+        request = Request(status_url, headers={"Authorization": f"Token {token}"})
+        try:
+            with urlopen(request, timeout=10) as response:  # nosec B310
+                if response.status == 200:
+                    return
+        except URLError:
+            pass
+
+        if attempt == 60:
+            raise RuntimeError("NetBox API did not become reachable in time")
+        time.sleep(2)
+
+
+def main() -> int:
+    wait_for_netbox()
+    poll_interval = int(os.environ.get("ORB_POLL_INTERVAL_SECONDS", "30"))
+    orchestration_file = os.environ["ORB_ORCHESTRATION_FILE"]
+    print("orb-agent: connected to NetBox API; starting orchestration polling")
+    print(f"orb-agent: orchestration file={orchestration_file}")
+
+    while True:
+        time.sleep(max(5, poll_interval))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+PY
 """
 
 
@@ -965,9 +1059,13 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
         output_dir / "configuration" / "traefik" / "dynamic.yml": render_traefik_dynamic_config(),
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
-        output_dir / "configuration" / "orb" / "orchestration.yml": render_orb_orchestration_config(plan),
+        output_dir
+        / "configuration"
+        / "orb"
+        / "orchestration.yml": render_orb_orchestration_config(plan),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
         output_dir / "env" / "postgres.env": render_postgres_env(plan),
+        output_dir / "env" / "orb.env": render_orb_env(),
         output_dir
         / "env"
         / "device-type-library-import.env": render_device_type_library_import_env(plan),
@@ -983,15 +1081,16 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         / "import-device-type-library.py": render_device_type_library_import_runner(),
         output_dir / "scripts" / "generate-traefik-cert.sh": render_traefik_cert_script(),
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
+        output_dir / "scripts" / "run-orb-agent.sh": render_orb_agent_script(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",
         output_dir / "secrets" / "db_password.example": (
             "replace-with-a-strong-database-password\n"
         ),
         output_dir / "secrets" / "api_token_pepper_1.example": (
-            "replace-with-a-strong-api-token-pepper\n"
+          "replace-with-a-64+-character-api-token-pepper-0123456789abcdef0123456789abcdef\n"
         ),
         output_dir / "secrets" / "secret_key.example": (
-            "replace-with-a-50+-character-random-secret\n"
+          "replace-with-a-64+-character-secret-key-0123456789abcdef0123456789abcdef\n"
         ),
         output_dir / "secrets" / "superuser_name.example": (
             f"{plan.admin_privacy.bootstrap_username}\n"

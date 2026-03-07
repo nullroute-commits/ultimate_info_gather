@@ -24,6 +24,31 @@ Two integration paths are available until a NetBox 4.5-compatible netbox-proxbox
 
 2. **NetBox Labs event-driven automation (webhook-based)**: The `netboxlabs/netbox-proxmox-automation` project provides event-driven Proxmox VM provisioning and management triggered by NetBox event rules and webhooks. This approach does not require a NetBox plugin and is compatible with current NetBox 4.x releases. See [https://github.com/netboxlabs/netbox-proxmox-automation](https://github.com/netboxlabs/netbox-proxmox-automation) for setup instructions.
 
+## Requested Plugin Integrations
+
+The generator enables the following user-requested plugins in `DEFAULT_PLUGIN_SPECS`:
+
+- `netbox-config-diff` (`netbox_config_diff`) from `miaow2/netbox-config-diff`
+- `netbox-floorplan-plugin` (`netbox_floorplan`) from `netbox-community/netbox-floorplan-plugin`
+- `netbox-inventory` (`netbox_inventory`) from `ArnesSI/netbox-inventory`
+
+Compatibility evidence used from upstream metadata:
+
+- `netbox-config-diff` 2.14.0 (`min_version='4.5.0'`, `max_version='4.5.99'`)
+- `netbox-floorplan-plugin` 0.9.0 (`min_version='4.5.0-beta1'`, `max_version='4.5.99'`)
+- `netbox-inventory` 2.5.0 (`min_version='4.5.0'`)
+
+## ORB Orchestration
+
+The generated bundle includes an ORB sidecar service in the default Compose deployment:
+
+- Compose service: `orb-agent`
+- Env file: `env/orb.env`
+- Entrypoint script: `scripts/run-orb-agent.sh`
+- Metadata: `configuration/orb/orchestration.yml`
+
+The sidecar waits for NetBox API readiness (`/api/status/`) using the secret-backed token file, then enters polling mode against generated orchestration metadata. This keeps orchestration flow NetBox-gated without changing NetBox core behavior.
+
 ## Device-Type Library
 
 The repository includes the NetBox community device-type library as a pinned external content source rather than an in-application plugin. The generated deployment bundle now uses NetBox core's own bulk-import views for manufacturers, rack types, device types, and module types instead of the older external `Device-Type-Library-Import` helper. The import runs as a dedicated one-shot service with dropped capabilities and `no-new-privileges`, downloads the pinned library archive into temporary storage, and submits YAML through first-party NetBox import paths. By default, the generated import identity is read from `superuser_name`, but operators can override `NETBOX_IMPORT_USERNAME` or `NETBOX_IMPORT_USERNAME_FILE` to use a dedicated user.

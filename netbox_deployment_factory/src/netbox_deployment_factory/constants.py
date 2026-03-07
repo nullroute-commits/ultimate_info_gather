@@ -147,4 +147,44 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
         ),
         config={},
     ),
+    PluginSpec(
+        package_name="netbox-config-diff",
+        module_name="netbox_config_diff",
+        version="2.14.0",
+        enabled=True,
+        support_tier="community",
+        rationale=(
+            "Requested integration from https://github.com/miaow2/netbox-config-diff. "
+            "Upstream PluginConfig declares min_version='4.5.0' and max_version='4.5.99'."
+        ),
+        config={
+            "USERNAME": "replace-me",
+            "PASSWORD": "replace-me",
+        },
+    ),
+    PluginSpec(
+        package_name="netbox-floorplan-plugin",
+        module_name="netbox_floorplan",
+        version="0.9.0",
+        enabled=True,
+        support_tier="community",
+        rationale=(
+            "Requested integration from "
+            "https://github.com/netbox-community/netbox-floorplan-plugin. "
+            "Upstream PluginConfig declares min_version='4.5.0-beta1' and max_version='4.5.99'."
+        ),
+        config={},
+    ),
+    PluginSpec(
+        package_name="netbox-inventory",
+        module_name="netbox_inventory",
+        version="2.5.0",
+        enabled=True,
+        support_tier="community",
+        rationale=(
+            "Requested integration from https://github.com/ArnesSI/netbox-inventory. "
+            "Upstream PluginConfig declares min_version='4.5.0'."
+        ),
+        config={},
+    ),
 )

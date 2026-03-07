@@ -4,13 +4,15 @@ This repository turns `ultimate_info_gather` JSON output into a reproducible Net
 
 All local CI/CD operations are Docker-localized. The host only needs Docker Compose; linting, type checking, tests, and bundle generation run inside the CI image defined in this repository.
 
-The generated bundle is opinionated in four ways:
+The generated bundle is opinionated in five ways:
 
 - NetBox is treated as the source of truth for topology, IPAM, and network automation data.
 - The deployment baseline follows the official netbox-docker plugin workflow rather than ad hoc container patterns.
 - Plugin enablement is strict: topology and BGP are enabled because they have visible NetBox 4.5 compatibility from official NetBox Community sources.
+- Requested plugins are enabled in the generated deployment using upstream compatibility metadata.
 - The bootstrap superuser is pseudonymous and secret-file backed so the initial administrative identity is not tied to a human username.
 - The community device-type library is included as a separate pinned import workflow that uses NetBox core bulk-import support instead of an external helper script.
+- ORB sidecar orchestration metadata and container wiring are generated and deployed by default with NetBox API readiness as the control gate.
 
 ## Version Pins
 
@@ -20,7 +22,10 @@ The generated bundle is opinionated in four ways:
 - Debian lifecycle reference: `13.3 (Trixie)`
 - Topology plugin: `netbox-topology-views==4.5.0`
 - BGP plugin: `netbox-bgp==0.18.0`
-- DNS plugin: not enabled by default until an official-community-backed, installable release path is validated
+- DNS plugin: `netbox-plugin-dns==1.5.3`
+- Config diff plugin: `netbox-config-diff==2.14.0`
+- Floorplan plugin: `netbox-floorplan-plugin==0.9.0`
+- Inventory plugin: `netbox-inventory==2.5.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 
 ## Usage
@@ -56,9 +61,11 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `env/netbox.env`
 - `env/postgres.env`
 - `env/device-type-library-import.env`
+- `env/orb.env`
 - `secrets/*.example`
 - `scripts/run-device-type-library-import.sh`
 - `scripts/import-device-type-library.py`
+- `scripts/run-orb-agent.sh`
 - `deployment-plan.json`
 - `README.md` summarizing the generated bundle
 
@@ -69,6 +76,8 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - NetBox Labs operating model: NetBox remains the central source of truth for modeling, automation, and security-sensitive inventory workflows
 - CI/CD execution is Docker-localized: GitHub Actions and local validation both invoke Docker Compose services instead of running Python tooling directly on the host or runner
 - API token creation is enabled through a generated `api_token_pepper_1` secret so NetBox stays aligned with the current token model
+
+All validation commands are expected to run via Docker Compose (`docker compose -f docker-compose.ci.yml ...`).
 
 ## Privacy Model
 
