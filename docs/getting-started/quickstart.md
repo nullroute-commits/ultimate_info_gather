@@ -84,6 +84,11 @@ async def main():
     if hw.cpu:
         print(f"CPU: {hw.cpu.model_name}")
     
+    # Access network info (Objective 3)
+    net = orchestrator.network_info
+    if net:
+        print(f"Network Interfaces: {len(net.interfaces)}")
+    
     # Access software info (Objective 3)
     sw = orchestrator.software_info
     print(f"Installed Packages: {len(sw.installed_packages)}")
@@ -119,6 +124,7 @@ from src.collectors import (
     EnvironmentCollector,
     PermissionsCollector,
     HardwareCollector,
+    NetworkCollector,
     SoftwareCollector,
 )
 
@@ -157,6 +163,7 @@ Structured data suitable for programmatic processing:
   "environment": { ... },
   "permissions": { ... },
   "hardware": { ... },
+  "network": { ... },
   "software": { ... }
 }
 ```
