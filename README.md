@@ -186,9 +186,14 @@ ultimate_info_gather/
 │       └── software_collector.py
 ├── docs/                         # MkDocs documentation
 ├── tests/                        # Test suite
+├── netbox_deployment_factory/    # NetBox deployment bundle generator
 ├── main.py                       # CLI entry point
 └── pyproject.toml               # Project configuration
 ```
+
+## NetBox Deployment Factory
+
+The [`netbox_deployment_factory/`](netbox_deployment_factory/README.md) subproject is a downstream consumer of `ultimate_info_gather` JSON report output. It generates reproducible NetBox deployment bundles — including Docker Compose configurations, plugin configs, secrets, and bootstrap scripts — from the system information collected by this agent. Refer to [netbox_deployment_factory/README.md](netbox_deployment_factory/README.md) for full usage and configuration details.
 
 ## Collection Phases
 

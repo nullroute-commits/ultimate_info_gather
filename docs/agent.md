@@ -285,6 +285,7 @@ class AgentPlugin:
 - [ ] **WebSocket Streaming**: Real-time data streaming
 - [ ] **Database Storage**: PostgreSQL/SQLite persistence
 - [ ] **Prometheus Metrics**: Monitoring system integration
+- [x] **NetBox Integration**: Already partially realized via [`netbox_deployment_factory/`](../netbox_deployment_factory/README.md), which consumes the agent's JSON output to generate reproducible NetBox deployment bundles
 
 ### Phase 3: Intelligence Features
 
@@ -326,6 +327,8 @@ response = llm.query(
     context=context,
 )
 ```
+
+> **Real-world downstream integration**: The [`netbox_deployment_factory/`](../netbox_deployment_factory/README.md) subproject already consumes this JSON output to generate reproducible NetBox deployment bundles, demonstrating how the agent's structured data can drive infrastructure automation.
 
 ### Structured Outputs
 
