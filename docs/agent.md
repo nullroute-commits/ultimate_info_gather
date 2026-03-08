@@ -232,6 +232,80 @@ class CustomCollector(BaseCollector[CustomData]):
         return CustomData(...)
 ```
 
+### BaseCollector Helper Methods
+
+`BaseCollector` provides several helper methods available to all subclasses:
+
+**`safe_collect() -> CollectionResult[T]`**
+
+The primary method callers use. Resets accumulated errors/warnings, runs `collect()`, tracks elapsed time, and returns a `CollectionResult` whether collection succeeds or raises an exception.
+
+```python
+result = await collector.safe_collect()
+# result.success, result.data, result.duration_ms, result.errors, result.warnings
+```
+
+**`run_command(cmd: list[str], timeout: float = 30.0, capture_stderr: bool = True) -> tuple[int, str, str]`**
+
+Async subprocess execution with timeout. Returns `(return_code, stdout, stderr)`. Automatically adds a warning on timeout or failure instead of raising.
+
+```python
+rc, stdout, stderr = await self.run_command(["uname", "-r"])
+```
+
+**`read_file_async(path: str, silent_if_missing: bool = False) -> str | None`**
+
+Non-blocking file read using `run_in_executor`. Returns `None` and adds a warning if the file cannot be read. Pass `silent_if_missing=True` to suppress warnings for optional files.
+
+```python
+content = await self.read_file_async("/proc/version")
+```
+
+**`gather_with_errors(*coros) -> list[Any]`**
+
+Runs multiple coroutines concurrently with `asyncio.gather`. Any coroutine that raises an exception has its result replaced with `None` and a warning is added, so a single failure does not abort the rest.
+
+```python
+results = await self.gather_with_errors(self._fetch_a(), self._fetch_b())
+```
+
+**`add_error(message: str)` / `add_warning(message: str)`**
+
+Accumulate error or warning strings during `collect()`. These are included in the `CollectionResult` returned by `safe_collect()`.
+
+```python
+self.add_warning("Optional sensor data unavailable")
+self.add_error("Required configuration missing")
+```
+
+#### Complete Example
+
+The following example combines `run_command()` and `read_file_async()` to show real-world helper usage:
+
+```python
+from dataclasses import dataclass
+from src.collectors.base import BaseCollector
+
+@dataclass
+class KernelInfo:
+    version: str
+    cmdline: str | None
+
+class KernelCollector(BaseCollector[KernelInfo]):
+    async def collect(self) -> KernelInfo:
+        rc, stdout, stderr = await self.run_command(["uname", "-r"])
+        if rc != 0:
+            self.add_error(f"uname failed: {stderr}")
+            version = "unknown"
+        else:
+            version = stdout.strip()
+
+        # Optional file — suppress warning if absent
+        cmdline = await self.read_file_async("/proc/cmdline", silent_if_missing=True)
+
+        return KernelInfo(version=version, cmdline=cmdline)
+```
+
 ### Custom Output Formats
 
 Add output formats by extending report generation:
