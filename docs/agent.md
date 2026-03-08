@@ -194,12 +194,28 @@ outputs = await agent.generate_outputs(report, ['json', 'markdown'])
 ### Command Line Interface
 
 ```bash
-# Basic execution
+# Basic execution (outputs to ./output in json, markdown, text)
 python main.py
 
-# With options
-python main.py -o ./reports -f json markdown -v
+# Specify output directory
+python main.py -o ./reports
+
+# Select output formats
+python main.py -f json markdown
+
+# Verbose output
+python main.py -v
+
+# Quiet mode (no progress)
+python main.py -q
 ```
+
+| Flag | Long Form | Default | Description |
+|------|-----------|---------|-------------|
+| `-o` | `--output` | `./output` | Output directory for reports |
+| `-f` | `--formats` | `json markdown text` | Output format(s) to generate |
+| `-v` | `--verbose` | off | Verbose output with full summary |
+| `-q` | `--quiet` | off | Quiet mode, suppresses progress output |
 
 ### Output Formats
 
