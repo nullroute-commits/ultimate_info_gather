@@ -26,6 +26,12 @@ Welcome to the Ultimate Info Gather documentation!
 
     Collects CPU, memory, storage, network, and GPU information
 
+-   :material-lan:{ .lg .middle } **Network Analysis**
+
+    ---
+
+    Intensive in-depth network interfaces, routing, DNS, firewall, and connections
+
 -   :material-package:{ .lg .middle } **Software Inventory**
 
     ---
@@ -67,8 +73,10 @@ Check out the [Installation Guide](getting-started/installation.md) to get start
 graph LR
     A[Environment<br/>Collection] --> B[Permissions<br/>Analysis]
     B --> C[Hardware<br/>Scan]
+    B --> F[Network<br/>Scan]
     B --> D[Software<br/>Scan]
     C --> E[System<br/>Report]
+    F --> E
     D --> E
 ```
 
