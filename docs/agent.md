@@ -397,6 +397,7 @@ suggestions = await agent.get_suggestions()
     "environment": {"$ref": "#/definitions/EnvironmentState"},
     "permissions": {"$ref": "#/definitions/PermissionsInfo"},
     "hardware": {"$ref": "#/definitions/HardwareInfo"},
+    "network": {"$ref": "#/definitions/NetworkInfo"},
     "software": {"$ref": "#/definitions/SoftwareInfo"}
   }
 }
@@ -485,9 +486,10 @@ async def collect_basic():
 
 ### Schema Versioning
 
-Reports include schema version for compatibility:
+Schema versioning is a **planned future feature** and is not yet implemented. The `schema_version` field does not currently exist in generated reports. Once implemented, it will be included in `report_metadata` for compatibility tracking:
 
 ```json
+// (Future / Planned — not yet implemented)
 {
   "report_metadata": {
     "schema_version": "1.0.0",
