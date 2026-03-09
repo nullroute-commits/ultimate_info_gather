@@ -173,6 +173,26 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(proxbox_plugin.version, "0.0.6b2")
         self.assertIn("4.2.99", proxbox_plugin.rationale)
 
+    def test_geo_foss_profile_is_present(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        self.assertEqual(
+            plan.geo_foss.repository,
+            "https://github.com/nullroute-commits/netbox-geo-foss.git",
+        )
+        self.assertEqual(plan.geo_foss.ref, "50c3c16")
+        self.assertEqual(
+            plan.geo_foss.image,
+            "ghcr.io/nullroute-commits/netbox-geo-foss:latest",
+        )
+        self.assertEqual(plan.geo_foss.service_name, "netbox-geo-foss")
+        self.assertIn("geographic", plan.geo_foss.rationale.lower())
+
     def test_admin_identity_is_pseudonymous(self) -> None:
         plan = build_plan(
             self.report,
@@ -307,6 +327,16 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("## First Start", generated_readme_text)
             self.assertIn("docker compose build", generated_readme_text)
             self.assertIn("copy each `secrets/*.example` file", generated_readme_text)
+            # geo-foss assertions
+            geo_foss_env_file = output_dir / "env" / "geo-foss.env"
+            self.assertTrue(geo_foss_env_file.exists())
+            geo_foss_env_text = geo_foss_env_file.read_text(encoding="utf-8")
+            self.assertIn("GEONAMES_USERNAME=", geo_foss_env_text)
+            self.assertIn("NETBOX_URL=", geo_foss_env_text)
+            self.assertIn("netbox-geo-foss:", compose_text)
+            self.assertIn('profiles: ["geo-foss-import"]', compose_text)
+            self.assertIn("geo-foss-cache:", compose_text)
+            self.assertIn("## Geographic Data", generated_readme_text)
             self.assertNotIn("Dockerfile-DeviceTypeLibraryImport", compose_text)
             self.assertNotIn("device_type_library_token", compose_text)
             self.assertNotIn("HOUSEKEEPING_INTERVAL=", netbox_env)

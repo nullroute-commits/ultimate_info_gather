@@ -63,6 +63,20 @@ Key features of the REST API importer:
 
 The repository generates an `api_token_pepper_1` secret alongside the bootstrap secrets so NetBox can mint and validate v2 API tokens. The superuser sync script creates a v2 token from the `superuser_api_token` secret file using Token.validate() for idempotent re-runs. The device-type importer authenticates with `Authorization: Bearer nbt_<key>.<plaintext>` format, where the key (HMAC digest) is read from the Token ORM and the plaintext comes from the mounted secret file.
 
+## Geographic Data (netbox-geo-foss)
+
+The repository includes the `netbox-geo-foss` sidecar as a profiled one-shot Compose service (`netbox-geo-foss`) that imports geographic data — GeoNames cities, Natural Earth boundaries, and OpenStreetMap administrative regions — into NetBox via the pynetbox REST API. This is a standalone Python application, not a NetBox plugin; it connects to a running NetBox instance externally.
+
+Key integration details:
+
+- Image: `ghcr.io/nullroute-commits/netbox-geo-foss:latest`
+- Repository: `https://github.com/nullroute-commits/netbox-geo-foss.git` pinned at `50c3c16`
+- Compose profile: `geo-foss-import`
+- Env file: `env/geo-foss.env` (requires `GEONAMES_USERNAME` to be set by the operator)
+- Authenticates using the secret-backed superuser API token
+- Persists downloaded geographic data in a `geo-foss-cache` volume to avoid re-downloading across runs
+- Runs with dropped capabilities and `no-new-privileges`
+
 ## CI/CD Localization
 
 The repository localizes CI/CD into Docker. Local validation and GitHub Actions both use `docker compose -f docker-compose.ci.yml` so linting, type checking, tests, and sample bundle generation run inside the repository's CI image rather than relying on host Python tooling. Bundle artifacts are written back into the workspace under `.artifacts/` so the same containerized flow works locally and in CI.

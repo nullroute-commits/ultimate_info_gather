@@ -27,6 +27,7 @@ The generated bundle is opinionated in five ways:
 - Floorplan plugin: `netbox-floorplan-plugin==0.9.0`
 - Inventory plugin: `netbox-inventory==2.5.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
+- Geographic data sidecar: `ghcr.io/nullroute-commits/netbox-geo-foss:latest` pinned by commit `50c3c16`
 
 ## Usage
 
@@ -62,6 +63,7 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `env/postgres.env`
 - `env/device-type-library-import.env`
 - `env/orb.env`
+- `env/geo-foss.env`
 - `secrets/*.example`
 - `scripts/run-device-type-library-import.sh`
 - `scripts/import-device-type-library.py`
@@ -122,6 +124,16 @@ docker compose --profile device-type-library-import run \
   -e DEVICE_TYPE_LIBRARY_VENDORS=cisco,juniper \
   device-type-library-import
 ```
+
+## Geographic Data Import
+
+The generated bundle includes an optional `netbox-geo-foss` service that imports geographic data (GeoNames cities, Natural Earth boundaries, OSM regions) into NetBox via the REST API.
+
+```bash
+docker compose --profile geo-foss-import run --rm netbox-geo-foss
+```
+
+Before running, set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account username. Downloaded geographic datasets are cached in the `geo-foss-cache` volume.
 
 ## Validation
 

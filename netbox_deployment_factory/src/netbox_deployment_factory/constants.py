@@ -12,6 +12,10 @@ NETBOX_IMAGE = f"netboxcommunity/netbox:v{NETBOX_VERSION}"
 DEVICE_TYPE_LIBRARY_REPOSITORY = "https://github.com/netbox-community/devicetype-library.git"
 DEVICE_TYPE_LIBRARY_REF = "cf50cfe"
 
+GEO_FOSS_REPOSITORY = "https://github.com/nullroute-commits/netbox-geo-foss.git"
+GEO_FOSS_REF = "50c3c16"
+GEO_FOSS_IMAGE = "ghcr.io/nullroute-commits/netbox-geo-foss:latest"
+
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {
         "postgres_image": "postgres:18-alpine",

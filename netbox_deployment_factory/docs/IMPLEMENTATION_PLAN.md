@@ -26,6 +26,8 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 8. Generate a deployment bundle from the current host report to prove end-to-end functionality.
 9. Generate ORB sidecar configuration and compose profile wiring that is gated by NetBox API readiness.
 
+10. Generate netbox-geo-foss sidecar wiring as a profiled one-shot import service for geographic data (GeoNames, Natural Earth, OSM) via the NetBox REST API.
+
 ## Current Host Findings
 
 - Platform: Ubuntu 24.04.4 on WSL2
@@ -45,3 +47,4 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Inventory: enable `netbox-inventory` 2.5.0 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
 - ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks
+- Geographic data: include `netbox-geo-foss` as a profiled one-shot sidecar service pinned at commit `50c3c16` for GeoNames/Natural Earth/OSM import via REST API

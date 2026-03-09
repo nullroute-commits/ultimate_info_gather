@@ -13,6 +13,9 @@ from .constants import (
     DEFAULT_PLUGIN_SPECS,
     DEVICE_TYPE_LIBRARY_REF,
     DEVICE_TYPE_LIBRARY_REPOSITORY,
+    GEO_FOSS_IMAGE,
+    GEO_FOSS_REF,
+    GEO_FOSS_REPOSITORY,
     NETBOX_DOCKER_WORKFLOW_VERSION,
     NETBOX_IMAGE,
     TRACK_IMAGE_DEFAULTS,
@@ -21,6 +24,7 @@ from .models import (
     AdminPrivacyProfile,
     DeploymentPlan,
     DeviceTypeLibraryProfile,
+    GeoFossProfile,
     HostProfile,
     ImageSelection,
     NetworkProfile,
@@ -155,6 +159,20 @@ def _derive_device_type_library_profile() -> DeviceTypeLibraryProfile:
             "dcim.add_devicebaytemplate",
             "dcim.add_inventoryitemtemplate",
         ],
+    )
+
+
+def _derive_geo_foss_profile() -> GeoFossProfile:
+    return GeoFossProfile(
+        repository=GEO_FOSS_REPOSITORY,
+        ref=GEO_FOSS_REF,
+        image=GEO_FOSS_IMAGE,
+        service_name="netbox-geo-foss",
+        rationale=(
+            "Standalone geographic data integration sidecar that imports "
+            "GeoNames, Natural Earth, and OpenStreetMap data into NetBox "
+            "via the REST API using pynetbox."
+        ),
     )
 
 
@@ -353,6 +371,13 @@ def _collect_notes(track: str) -> list[str]:
             "separated database/bootstrap secret files; the default importer "
             "workflow can be overridden to use a dedicated NetBox user."
         ),
+        (
+            "The netbox-geo-foss companion service integrates open-source "
+            "geographic data (GeoNames, Natural Earth, OpenStreetMap) into "
+            "NetBox via the REST API. It runs as a profiled one-shot service "
+            "after the device-type-library import and requires a GeoNames "
+            "username and the bootstrap API token."
+        ),
     ]
 
 
@@ -394,6 +419,7 @@ def build_plan(
         networks=_derive_network_profile(cidr_mode=cidr_mode, required_hosts=required_hosts),
         admin_privacy=_derive_admin_privacy(report),
         device_type_library=_derive_device_type_library_profile(),
+        geo_foss=_derive_geo_foss_profile(),
         warnings=_collect_warnings(host),
         notes=_collect_notes(track),
     )

@@ -343,6 +343,26 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
+  {plan.geo_foss.service_name}:
+    profiles: ["geo-foss-import"]
+    image: {plan.geo_foss.image}
+    restart: "no"
+    depends_on:
+      netbox:
+        condition: service_healthy
+    env_file:
+      - env/geo-foss.env
+    secrets:
+      - superuser_api_token
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    volumes:
+      - geo-foss-cache:/app/cache
+    networks:
+      - data
+
   wazuh-agent:
     image: wazuh/wazuh-agent:4.14.3
     profiles: ["security-observability"]
@@ -397,6 +417,7 @@ volumes:
   netbox-media:
   netbox-reports:
   netbox-scripts:
+  geo-foss-cache:
 
 networks:
   edge:
@@ -722,6 +743,21 @@ DEVICE_TYPE_LIBRARY_REPOSITORY={plan.device_type_library.library_repository}
 DEVICE_TYPE_LIBRARY_REF={plan.device_type_library.library_ref}
 DEVICE_TYPE_LIBRARY_ARCHIVE_URL={_render_library_archive_url(plan)}
 NETBOX_IMPORT_USERNAME_FILE=/run/secrets/superuser_name
+"""
+
+
+def render_geo_foss_env(plan: DeploymentPlan) -> str:
+    """Render the env file for the netbox-geo-foss companion service."""
+
+    return f"""NETBOX_URL=http://netbox:8080
+NETBOX_TOKEN_FILE=/run/secrets/superuser_api_token
+NETBOX_VERIFY_SSL=false
+GEONAMES_USERNAME=demo
+DATA_CACHE_DIR=/app/cache
+DATA_BATCH_SIZE=1000
+DATA_MIN_CITY_POPULATION=15000
+APP_ENV=production
+APP_DEBUG=false
 """
 
 
@@ -1269,6 +1305,14 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 {chr(10).join(permission_lines)}
 
+## Geographic Data (netbox-geo-foss)
+
+- Image: {plan.geo_foss.image}
+- Repository: {plan.geo_foss.repository}
+- Ref: {plan.geo_foss.ref}
+- Import service: {plan.geo_foss.service_name}
+- Rationale: {plan.geo_foss.rationale}
+
 ## Privacy Controls
 
 - Bootstrap username: {plan.admin_privacy.bootstrap_username}
@@ -1336,6 +1380,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir
         / "env"
         / "device-type-library-import.env": render_device_type_library_import_env(plan),
+        output_dir / "env" / "geo-foss.env": render_geo_foss_env(plan),
         output_dir / "deployment-plan.json": render_plan_json(plan),
         output_dir / "README.md": render_summary_markdown(plan),
         output_dir
