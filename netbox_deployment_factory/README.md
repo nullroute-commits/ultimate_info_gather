@@ -27,7 +27,7 @@ The generated bundle is opinionated in five ways:
 - Floorplan plugin: `netbox-floorplan-plugin==0.9.0`
 - Inventory plugin: `netbox-inventory==2.5.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
-- Geographic data sidecar: `ghcr.io/nullroute-commits/netbox-geo-foss:latest` pinned by commit `50c3c16`
+- Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
 
 ## Usage
 
@@ -63,6 +63,7 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `env/postgres.env`
 - `env/device-type-library-import.env`
 - `env/orb.env`
+- `Dockerfile-GeoFoss`
 - `env/geo-foss.env`
 - `secrets/*.example`
 - `scripts/run-device-type-library-import.sh`
@@ -127,9 +128,10 @@ docker compose --profile device-type-library-import run \
 
 ## Geographic Data Import
 
-The generated bundle includes an optional `netbox-geo-foss` service that imports geographic data (GeoNames cities, Natural Earth boundaries, OSM regions) into NetBox via the REST API.
+The generated bundle includes an optional `netbox-geo-foss` service that imports geographic data (GeoNames cities, Natural Earth boundaries, OSM regions) into NetBox via the REST API. The image is built locally from a pinned commit of the upstream repository.
 
 ```bash
+docker compose build netbox-geo-foss
 docker compose --profile geo-foss-import run --rm netbox-geo-foss
 ```
 

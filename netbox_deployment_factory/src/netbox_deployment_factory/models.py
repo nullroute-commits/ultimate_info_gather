@@ -93,7 +93,6 @@ class GeoFossProfile:
 
     repository: str
     ref: str
-    image: str
     service_name: str
     rationale: str
 

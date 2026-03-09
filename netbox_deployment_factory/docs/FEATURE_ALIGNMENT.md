@@ -69,7 +69,7 @@ The repository includes the `netbox-geo-foss` sidecar as a profiled one-shot Com
 
 Key integration details:
 
-- Image: `ghcr.io/nullroute-commits/netbox-geo-foss:latest`
+- Image: built locally via `Dockerfile-GeoFoss` (clones pinned commit from upstream)
 - Repository: `https://github.com/nullroute-commits/netbox-geo-foss.git` pinned at `50c3c16`
 - Compose profile: `geo-foss-import`
 - Env file: `env/geo-foss.env` (requires `GEONAMES_USERNAME` to be set by the operator)

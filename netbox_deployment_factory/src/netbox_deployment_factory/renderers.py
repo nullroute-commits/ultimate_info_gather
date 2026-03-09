@@ -345,7 +345,10 @@ def render_compose(plan: DeploymentPlan) -> str:
 
   {plan.geo_foss.service_name}:
     profiles: ["geo-foss-import"]
-    image: {plan.geo_foss.image}
+    build:
+      context: .
+      dockerfile: Dockerfile-GeoFoss
+    image: {plan.deployment_name}-geo-foss:local
     restart: "no"
     depends_on:
       netbox:
@@ -758,6 +761,65 @@ DATA_BATCH_SIZE=1000
 DATA_MIN_CITY_POPULATION=15000
 APP_ENV=production
 APP_DEBUG=false
+"""
+
+
+def render_geo_foss_dockerfile(plan: DeploymentPlan) -> str:
+    """Render the Dockerfile that builds netbox-geo-foss from its pinned source."""
+
+    return f"""# Auto-generated — builds netbox-geo-foss from source
+# Repository: {plan.geo_foss.repository}
+# Ref: {plan.geo_foss.ref}
+FROM python:3.12-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \\
+    PYTHONUNBUFFERED=1 \\
+    PIP_NO_CACHE_DIR=1 \\
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \\
+    PIP_DEFAULT_TIMEOUT=100
+
+RUN apt-get update && apt-get install -y --no-install-recommends \\
+    build-essential curl git \\
+    libgeos-dev libproj-dev libgdal-dev \\
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN git clone --depth 1 {plan.geo_foss.repository} . \\
+    && git fetch --depth 1 origin {plan.geo_foss.ref} \\
+    && git checkout {plan.geo_foss.ref}
+
+RUN python -m venv /build/.venv \\
+    && /build/.venv/bin/pip install --upgrade pip setuptools wheel \\
+    && /build/.venv/bin/pip install -r requirements/base.txt \\
+    && /build/.venv/bin/pip install .
+
+# --- runtime ---
+FROM python:3.12-slim
+
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+ENV PYTHONDONTWRITEBYTECODE=1 \\
+    PYTHONUNBUFFERED=1 \\
+    PATH="/app/.venv/bin:$PATH" \\
+    PYTHONPATH="/app/src:$PYTHONPATH"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \\
+    curl libgeos-c1v5 libproj25 gdal-bin libgdal36 \\
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+RUN mkdir -p /app/cache /app/logs /app/tmp && chown -R appuser:appuser /app
+
+COPY --from=builder /build/.venv /app/.venv
+COPY --from=builder /build/src /app/src
+COPY --from=builder /build/pyproject.toml /app/
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \\
+    CMD python -c "import netbox_geo; print(netbox_geo.__version__)" || exit 1
+
+CMD ["netbox-geo", "--help"]
 """
 
 
@@ -1307,7 +1369,7 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 ## Geographic Data (netbox-geo-foss)
 
-- Image: {plan.geo_foss.image}
+- Build: local (Dockerfile-GeoFoss)
 - Repository: {plan.geo_foss.repository}
 - Ref: {plan.geo_foss.ref}
 - Import service: {plan.geo_foss.service_name}
@@ -1366,6 +1428,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
     files: dict[Path, str] = {
         output_dir / "docker-compose.yml": render_compose(plan),
         output_dir / "Dockerfile-Plugins": render_dockerfile_plugins(plan),
+        output_dir / "Dockerfile-GeoFoss": render_geo_foss_dockerfile(plan),
         output_dir / "plugin_requirements.txt": render_plugin_requirements(plan),
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
         output_dir / "configuration" / "traefik" / "dynamic.yml": render_traefik_dynamic_config(),

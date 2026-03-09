@@ -13,7 +13,6 @@ from .constants import (
     DEFAULT_PLUGIN_SPECS,
     DEVICE_TYPE_LIBRARY_REF,
     DEVICE_TYPE_LIBRARY_REPOSITORY,
-    GEO_FOSS_IMAGE,
     GEO_FOSS_REF,
     GEO_FOSS_REPOSITORY,
     NETBOX_DOCKER_WORKFLOW_VERSION,
@@ -166,7 +165,6 @@ def _derive_geo_foss_profile() -> GeoFossProfile:
     return GeoFossProfile(
         repository=GEO_FOSS_REPOSITORY,
         ref=GEO_FOSS_REF,
-        image=GEO_FOSS_IMAGE,
         service_name="netbox-geo-foss",
         rationale=(
             "Standalone geographic data integration sidecar that imports "
