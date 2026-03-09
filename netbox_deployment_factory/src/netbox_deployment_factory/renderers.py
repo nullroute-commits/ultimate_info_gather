@@ -885,24 +885,6 @@ def _get_or_create_region(nb, name: str, slug: str, parent_id=None):
     return nb.dcim.regions.create(data)
 
 
-def _get_or_create_site(nb, name: str, slug: str, region_id, latitude=None, longitude=None):
-    """Get an existing site by slug or create a new one."""
-    existing = nb.dcim.sites.get(slug=slug)
-    if existing:
-        return existing
-    data = {
-        "name": name,
-        "slug": slug,
-        "region": region_id,
-        "status": "planned",
-    }
-    if latitude is not None:
-        data["latitude"] = round(latitude, 6)
-    if longitude is not None:
-        data["longitude"] = round(longitude, 6)
-    return nb.dcim.sites.create(data)
-
-
 # ---------------------------------------------------------------------------
 # Cache helpers
 # ---------------------------------------------------------------------------
@@ -1019,8 +1001,76 @@ def fetch_countries() -> list[dict]:
     return countries
 
 
+# Major cities per country (fallback when GeoNames is unavailable)
+FALLBACK_CITIES: dict[str, list[dict]] = {
+    "US": [{"name": "New York"}, {"name": "Los Angeles"}, {"name": "Chicago"}, {"name": "Houston"}, {"name": "Phoenix"}, {"name": "San Francisco"}, {"name": "Seattle"}, {"name": "Dallas"}, {"name": "Miami"}, {"name": "Atlanta"}, {"name": "Denver"}, {"name": "Boston"}, {"name": "Washington"}],
+    "GB": [{"name": "London"}, {"name": "Manchester"}, {"name": "Birmingham"}, {"name": "Edinburgh"}, {"name": "Glasgow"}, {"name": "Bristol"}, {"name": "Leeds"}],
+    "DE": [{"name": "Berlin"}, {"name": "Munich"}, {"name": "Frankfurt"}, {"name": "Hamburg"}, {"name": "Cologne"}, {"name": "Stuttgart"}, {"name": "Dusseldorf"}],
+    "FR": [{"name": "Paris"}, {"name": "Marseille"}, {"name": "Lyon"}, {"name": "Toulouse"}, {"name": "Nice"}, {"name": "Strasbourg"}],
+    "JP": [{"name": "Tokyo"}, {"name": "Osaka"}, {"name": "Yokohama"}, {"name": "Nagoya"}, {"name": "Fukuoka"}, {"name": "Sapporo"}],
+    "CN": [{"name": "Shanghai"}, {"name": "Beijing"}, {"name": "Shenzhen"}, {"name": "Guangzhou"}, {"name": "Chengdu"}, {"name": "Hangzhou"}, {"name": "Wuhan"}],
+    "IN": [{"name": "Mumbai"}, {"name": "Delhi"}, {"name": "Bangalore"}, {"name": "Hyderabad"}, {"name": "Chennai"}, {"name": "Kolkata"}, {"name": "Pune"}],
+    "BR": [{"name": "Sao Paulo"}, {"name": "Rio de Janeiro"}, {"name": "Brasilia"}, {"name": "Salvador"}, {"name": "Fortaleza"}, {"name": "Belo Horizonte"}],
+    "AU": [{"name": "Sydney"}, {"name": "Melbourne"}, {"name": "Brisbane"}, {"name": "Perth"}, {"name": "Adelaide"}],
+    "CA": [{"name": "Toronto"}, {"name": "Montreal"}, {"name": "Vancouver"}, {"name": "Calgary"}, {"name": "Ottawa"}, {"name": "Edmonton"}],
+    "KR": [{"name": "Seoul"}, {"name": "Busan"}, {"name": "Incheon"}, {"name": "Daegu"}],
+    "MX": [{"name": "Mexico City"}, {"name": "Guadalajara"}, {"name": "Monterrey"}, {"name": "Puebla"}, {"name": "Tijuana"}],
+    "IT": [{"name": "Rome"}, {"name": "Milan"}, {"name": "Naples"}, {"name": "Turin"}, {"name": "Florence"}],
+    "ES": [{"name": "Madrid"}, {"name": "Barcelona"}, {"name": "Valencia"}, {"name": "Seville"}, {"name": "Bilbao"}],
+    "NL": [{"name": "Amsterdam"}, {"name": "Rotterdam"}, {"name": "The Hague"}, {"name": "Utrecht"}],
+    "SE": [{"name": "Stockholm"}, {"name": "Gothenburg"}, {"name": "Malmo"}],
+    "CH": [{"name": "Zurich"}, {"name": "Geneva"}, {"name": "Basel"}, {"name": "Bern"}],
+    "SG": [{"name": "Singapore"}],
+    "IE": [{"name": "Dublin"}, {"name": "Cork"}],
+    "IL": [{"name": "Tel Aviv"}, {"name": "Jerusalem"}, {"name": "Haifa"}],
+    "AE": [{"name": "Dubai"}, {"name": "Abu Dhabi"}],
+    "ZA": [{"name": "Johannesburg"}, {"name": "Cape Town"}, {"name": "Durban"}, {"name": "Pretoria"}],
+    "NG": [{"name": "Lagos"}, {"name": "Abuja"}, {"name": "Kano"}],
+    "EG": [{"name": "Cairo"}, {"name": "Alexandria"}, {"name": "Giza"}],
+    "KE": [{"name": "Nairobi"}, {"name": "Mombasa"}],
+    "PL": [{"name": "Warsaw"}, {"name": "Krakow"}, {"name": "Wroclaw"}, {"name": "Gdansk"}],
+    "RU": [{"name": "Moscow"}, {"name": "Saint Petersburg"}, {"name": "Novosibirsk"}],
+    "TR": [{"name": "Istanbul"}, {"name": "Ankara"}, {"name": "Izmir"}],
+    "SA": [{"name": "Riyadh"}, {"name": "Jeddah"}, {"name": "Mecca"}],
+    "ID": [{"name": "Jakarta"}, {"name": "Surabaya"}, {"name": "Bandung"}],
+    "TH": [{"name": "Bangkok"}, {"name": "Chiang Mai"}],
+    "VN": [{"name": "Ho Chi Minh City"}, {"name": "Hanoi"}],
+    "PH": [{"name": "Manila"}, {"name": "Quezon City"}, {"name": "Cebu City"}],
+    "MY": [{"name": "Kuala Lumpur"}, {"name": "Penang"}],
+    "PK": [{"name": "Karachi"}, {"name": "Lahore"}, {"name": "Islamabad"}],
+    "BD": [{"name": "Dhaka"}, {"name": "Chittagong"}],
+    "AR": [{"name": "Buenos Aires"}, {"name": "Cordoba"}, {"name": "Rosario"}],
+    "CL": [{"name": "Santiago"}, {"name": "Valparaiso"}],
+    "CO": [{"name": "Bogota"}, {"name": "Medellin"}, {"name": "Cali"}],
+    "PE": [{"name": "Lima"}, {"name": "Arequipa"}],
+    "AT": [{"name": "Vienna"}, {"name": "Graz"}, {"name": "Salzburg"}],
+    "BE": [{"name": "Brussels"}, {"name": "Antwerp"}, {"name": "Ghent"}],
+    "DK": [{"name": "Copenhagen"}, {"name": "Aarhus"}],
+    "FI": [{"name": "Helsinki"}, {"name": "Espoo"}, {"name": "Tampere"}],
+    "NO": [{"name": "Oslo"}, {"name": "Bergen"}],
+    "PT": [{"name": "Lisbon"}, {"name": "Porto"}],
+    "GR": [{"name": "Athens"}, {"name": "Thessaloniki"}],
+    "CZ": [{"name": "Prague"}, {"name": "Brno"}],
+    "RO": [{"name": "Bucharest"}, {"name": "Cluj-Napoca"}],
+    "HU": [{"name": "Budapest"}, {"name": "Debrecen"}],
+    "BG": [{"name": "Sofia"}, {"name": "Plovdiv"}],
+    "HR": [{"name": "Zagreb"}, {"name": "Split"}],
+    "UA": [{"name": "Kyiv"}, {"name": "Kharkiv"}, {"name": "Odesa"}, {"name": "Lviv"}],
+    "NZ": [{"name": "Auckland"}, {"name": "Wellington"}, {"name": "Christchurch"}],
+    "HK": [{"name": "Hong Kong"}],
+    "TW": [{"name": "Taipei"}, {"name": "Kaohsiung"}, {"name": "Taichung"}],
+    "IR": [{"name": "Tehran"}, {"name": "Isfahan"}, {"name": "Mashhad"}],
+    "IQ": [{"name": "Baghdad"}, {"name": "Basra"}, {"name": "Erbil"}],
+    "GH": [{"name": "Accra"}, {"name": "Kumasi"}],
+    "MA": [{"name": "Casablanca"}, {"name": "Rabat"}, {"name": "Marrakech"}],
+    "ET": [{"name": "Addis Ababa"}, {"name": "Dire Dawa"}],
+    "DZ": [{"name": "Algiers"}, {"name": "Oran"}],
+    "AF": [{"name": "Kabul"}, {"name": "Kandahar"}],
+}
+
+
 def fetch_cities(country_code: str, max_rows: int = 50) -> list[dict]:
-    """Fetch major cities for a country from GeoNames (cached)."""
+    """Fetch major cities for a country from GeoNames (cached), with fallback."""
     cache_key = f"cities_{country_code}"
     cached = _load_cache(cache_key)
     if cached is not None:
@@ -1037,6 +1087,8 @@ def fetch_cities(country_code: str, max_rows: int = 50) -> list[dict]:
         c for c in data.get("geonames", [])
         if int(c.get("population", 0)) >= MIN_CITY_POP
     ]
+    if not cities:
+        cities = FALLBACK_CITIES.get(country_code, [])
     _save_cache(cache_key, cities)
     return cities
 
@@ -1079,8 +1131,8 @@ def import_countries(nb, continent_map: dict[str, int], countries: list[dict]) -
 
 
 def import_cities(nb, country_map: dict[str, int], countries: list[dict]):
-    """Create sites for major cities in each country."""
-    print(f"\\n=== Importing cities (pop >= {MIN_CITY_POP}) ===")
+    """Create city-level regions under each country region."""
+    print(f"\\n=== Importing cities as regions (pop >= {MIN_CITY_POP}) ===")
     total = 0
     for i, c in enumerate(countries):
         iso = c.get("countryCode", "")
@@ -1091,15 +1143,9 @@ def import_cities(nb, country_map: dict[str, int], countries: list[dict]):
         cities = fetch_cities(iso)
         for city in cities:
             name = city.get("name", city.get("toponymName", ""))
-            lat = city.get("lat")
-            lng = city.get("lng")
             slug = _slug(f"{iso}-{name}")
             try:
-                _get_or_create_site(
-                    nb, name, slug, region_id,
-                    latitude=float(lat) if lat else None,
-                    longitude=float(lng) if lng else None,
-                )
+                _get_or_create_region(nb, name, slug, parent_id=region_id)
                 total += 1
             except Exception as exc:
                 print(f"  WARN: {name} ({iso}): {exc}")
@@ -1109,7 +1155,7 @@ def import_cities(nb, country_map: dict[str, int], countries: list[dict]):
             time.sleep(1)
             print(f"  ... processed {i + 1}/{len(countries)} countries, {total} cities so far")
 
-    print(f"  Total cities imported: {total}")
+    print(f"  Total city regions imported: {total}")
 
 
 # ---------------------------------------------------------------------------
@@ -1135,7 +1181,6 @@ def main():
     # Summary
     print("\\n=== Import complete ===")
     print(f"  Regions: {nb.dcim.regions.count()}")
-    print(f"  Sites:   {nb.dcim.sites.count()}")
 
 
 if __name__ == "__main__":
