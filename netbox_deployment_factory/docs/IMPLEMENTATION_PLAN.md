@@ -21,7 +21,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 3. Pin NetBox, plugin, and service image versions for Debian and Alpine lifecycle tracks.
 4. Render a compose bundle patterned after netbox-docker with a custom plugin image.
 5. Generate additive plugin configuration only for plugins that can be pinned to official NetBox Community sources and installable release artifacts.
-6. Add a pinned device-type-library import workflow using the NetBox community library and NetBox core bulk-import views.
+6. Add a pinned device-type-library import workflow using the NetBox community library and REST API endpoints with v2 token authentication.
 7. Create a Docker-localized CI/CD pipeline so linting, typing, tests, and example bundle generation all run in containers.
 8. Generate a deployment bundle from the current host report to prove end-to-end functionality.
 9. Generate ORB sidecar configuration and compose profile wiring that is gated by NetBox API readiness.
@@ -43,5 +43,5 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Config drift: enable `netbox-config-diff` 2.14.0 (`min_version=4.5.0`, `max_version=4.5.99`)
 - Floorplan: enable `netbox-floorplan-plugin` 0.9.0 (`min_version=4.5.0-beta1`, `max_version=4.5.99`)
 - Inventory: enable `netbox-inventory` 2.5.0 (`min_version=4.5.0`)
-- Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses NetBox core bulk import
+- Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
 - ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks

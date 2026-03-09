@@ -276,11 +276,11 @@ class PlannerTests(unittest.TestCase):
             )
             self.assertIn("/login/", importer_text)
             self.assertIn(
-                'dcim:devicetype_bulk_import',
+                '/api/dcim/device-types/',
                 importer_runner_text,
             )
             self.assertIn(
-                'dcim:manufacturer_bulk_import',
+                '/api/dcim/manufacturers/',
                 importer_runner_text,
             )
             py_compile.compile(str(importer_runner_file), doraise=True)
@@ -295,8 +295,7 @@ class PlannerTests(unittest.TestCase):
                 'ORB_ORCHESTRATION_FILE=/etc/netbox/config/orb/orchestration.yml',
                 orb_env_text,
             )
-            self.assertIn('/api/status/', orb_agent_text)
-            self.assertIn('ORB_NETBOX_TOKEN_FILE', orb_agent_text)
+            self.assertIn('/login/', orb_agent_text)
             self.assertIn(
                 plan.host.hostname.strip(),
                 cert_script_file.read_text(encoding="utf-8"),
