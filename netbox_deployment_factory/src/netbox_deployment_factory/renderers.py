@@ -357,12 +357,14 @@ def render_compose(plan: DeploymentPlan) -> str:
       - env/geo-foss.env
     secrets:
       - superuser_api_token
+    command: ["/bin/sh", "/opt/geo-foss/run-geo-foss-import.sh"]
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
     tmpfs:
       - /tmp
     volumes:
       - geo-foss-cache:/app/cache
+      - ./scripts:/opt/geo-foss:ro
     networks:
       - data
 
@@ -753,7 +755,6 @@ def render_geo_foss_env(plan: DeploymentPlan) -> str:
     """Render the env file for the netbox-geo-foss companion service."""
 
     return f"""NETBOX_URL=http://netbox:8080
-NETBOX_TOKEN_FILE=/run/secrets/superuser_api_token
 NETBOX_VERIFY_SSL=false
 GEONAMES_USERNAME=demo
 DATA_CACHE_DIR=/app/cache
@@ -761,6 +762,25 @@ DATA_BATCH_SIZE=1000
 DATA_MIN_CITY_POPULATION=15000
 APP_ENV=production
 APP_DEBUG=false
+"""
+
+
+def render_geo_foss_import_script() -> str:
+    """Render the entrypoint wrapper that reads the API token secret and runs the import."""
+
+    return """#!/bin/sh
+set -eu
+
+# Read the API token from the mounted secret file.
+if [ -f /run/secrets/superuser_api_token ]; then
+  export NETBOX_TOKEN="$(cat /run/secrets/superuser_api_token)"
+else
+  echo "ERROR: /run/secrets/superuser_api_token not found" >&2
+  exit 1
+fi
+
+echo "Starting netbox-geo-foss import..."
+exec netbox-geo import-data --source all "$@"
 """
 
 
@@ -784,14 +804,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
-RUN git clone --depth 1 {plan.geo_foss.repository} . \\
-    && git fetch --depth 1 origin {plan.geo_foss.ref} \\
+RUN git clone {plan.geo_foss.repository} . \\
     && git checkout {plan.geo_foss.ref}
 
-RUN python -m venv /build/.venv \\
-    && /build/.venv/bin/pip install --upgrade pip setuptools wheel \\
-    && /build/.venv/bin/pip install -r requirements/base.txt \\
-    && /build/.venv/bin/pip install .
+RUN python -m venv /app/.venv \\
+    && /app/.venv/bin/pip install --upgrade pip setuptools wheel \\
+    && /app/.venv/bin/pip install -r requirements/base.txt \\
+    && /app/.venv/bin/pip install .
 
 # --- runtime ---
 FROM python:3.12-slim
@@ -810,7 +829,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
 WORKDIR /app
 RUN mkdir -p /app/cache /app/logs /app/tmp && chown -R appuser:appuser /app
 
-COPY --from=builder /build/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /build/src /app/src
 COPY --from=builder /build/pyproject.toml /app/
 
@@ -1457,6 +1476,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "scripts" / "generate-traefik-cert.sh": render_traefik_cert_script(plan),
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "run-orb-agent.sh": render_orb_agent_script(),
+        output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",
         output_dir / "secrets" / "db_password.example": (
             "replace-with-a-strong-database-password\n"
