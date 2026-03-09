@@ -768,7 +768,7 @@ NETBOX_IMPORT_USERNAME_FILE=/run/secrets/superuser_name
 def render_geo_foss_env(plan: DeploymentPlan) -> str:
     """Render the env file for the netbox-geo-foss companion service."""
 
-    return f"""NETBOX_URL=http://netbox:8080
+    return """NETBOX_URL=http://netbox:8080
 NETBOX_VERIFY_SSL=false
 GEONAMES_USERNAME=demo
 DATA_CACHE_DIR=/app/cache
@@ -1001,71 +1001,103 @@ def fetch_countries() -> list[dict]:
     return countries
 
 
-# Major cities per country (fallback when GeoNames is unavailable)
-FALLBACK_CITIES: dict[str, list[dict]] = {
-    "US": [{"name": "New York"}, {"name": "Los Angeles"}, {"name": "Chicago"}, {"name": "Houston"}, {"name": "Phoenix"}, {"name": "San Francisco"}, {"name": "Seattle"}, {"name": "Dallas"}, {"name": "Miami"}, {"name": "Atlanta"}, {"name": "Denver"}, {"name": "Boston"}, {"name": "Washington"}],
-    "GB": [{"name": "London"}, {"name": "Manchester"}, {"name": "Birmingham"}, {"name": "Edinburgh"}, {"name": "Glasgow"}, {"name": "Bristol"}, {"name": "Leeds"}],
-    "DE": [{"name": "Berlin"}, {"name": "Munich"}, {"name": "Frankfurt"}, {"name": "Hamburg"}, {"name": "Cologne"}, {"name": "Stuttgart"}, {"name": "Dusseldorf"}],
-    "FR": [{"name": "Paris"}, {"name": "Marseille"}, {"name": "Lyon"}, {"name": "Toulouse"}, {"name": "Nice"}, {"name": "Strasbourg"}],
-    "JP": [{"name": "Tokyo"}, {"name": "Osaka"}, {"name": "Yokohama"}, {"name": "Nagoya"}, {"name": "Fukuoka"}, {"name": "Sapporo"}],
-    "CN": [{"name": "Shanghai"}, {"name": "Beijing"}, {"name": "Shenzhen"}, {"name": "Guangzhou"}, {"name": "Chengdu"}, {"name": "Hangzhou"}, {"name": "Wuhan"}],
-    "IN": [{"name": "Mumbai"}, {"name": "Delhi"}, {"name": "Bangalore"}, {"name": "Hyderabad"}, {"name": "Chennai"}, {"name": "Kolkata"}, {"name": "Pune"}],
-    "BR": [{"name": "Sao Paulo"}, {"name": "Rio de Janeiro"}, {"name": "Brasilia"}, {"name": "Salvador"}, {"name": "Fortaleza"}, {"name": "Belo Horizonte"}],
-    "AU": [{"name": "Sydney"}, {"name": "Melbourne"}, {"name": "Brisbane"}, {"name": "Perth"}, {"name": "Adelaide"}],
-    "CA": [{"name": "Toronto"}, {"name": "Montreal"}, {"name": "Vancouver"}, {"name": "Calgary"}, {"name": "Ottawa"}, {"name": "Edmonton"}],
-    "KR": [{"name": "Seoul"}, {"name": "Busan"}, {"name": "Incheon"}, {"name": "Daegu"}],
-    "MX": [{"name": "Mexico City"}, {"name": "Guadalajara"}, {"name": "Monterrey"}, {"name": "Puebla"}, {"name": "Tijuana"}],
-    "IT": [{"name": "Rome"}, {"name": "Milan"}, {"name": "Naples"}, {"name": "Turin"}, {"name": "Florence"}],
-    "ES": [{"name": "Madrid"}, {"name": "Barcelona"}, {"name": "Valencia"}, {"name": "Seville"}, {"name": "Bilbao"}],
-    "NL": [{"name": "Amsterdam"}, {"name": "Rotterdam"}, {"name": "The Hague"}, {"name": "Utrecht"}],
-    "SE": [{"name": "Stockholm"}, {"name": "Gothenburg"}, {"name": "Malmo"}],
-    "CH": [{"name": "Zurich"}, {"name": "Geneva"}, {"name": "Basel"}, {"name": "Bern"}],
-    "SG": [{"name": "Singapore"}],
-    "IE": [{"name": "Dublin"}, {"name": "Cork"}],
-    "IL": [{"name": "Tel Aviv"}, {"name": "Jerusalem"}, {"name": "Haifa"}],
-    "AE": [{"name": "Dubai"}, {"name": "Abu Dhabi"}],
-    "ZA": [{"name": "Johannesburg"}, {"name": "Cape Town"}, {"name": "Durban"}, {"name": "Pretoria"}],
-    "NG": [{"name": "Lagos"}, {"name": "Abuja"}, {"name": "Kano"}],
-    "EG": [{"name": "Cairo"}, {"name": "Alexandria"}, {"name": "Giza"}],
-    "KE": [{"name": "Nairobi"}, {"name": "Mombasa"}],
-    "PL": [{"name": "Warsaw"}, {"name": "Krakow"}, {"name": "Wroclaw"}, {"name": "Gdansk"}],
-    "RU": [{"name": "Moscow"}, {"name": "Saint Petersburg"}, {"name": "Novosibirsk"}],
-    "TR": [{"name": "Istanbul"}, {"name": "Ankara"}, {"name": "Izmir"}],
-    "SA": [{"name": "Riyadh"}, {"name": "Jeddah"}, {"name": "Mecca"}],
-    "ID": [{"name": "Jakarta"}, {"name": "Surabaya"}, {"name": "Bandung"}],
-    "TH": [{"name": "Bangkok"}, {"name": "Chiang Mai"}],
-    "VN": [{"name": "Ho Chi Minh City"}, {"name": "Hanoi"}],
-    "PH": [{"name": "Manila"}, {"name": "Quezon City"}, {"name": "Cebu City"}],
-    "MY": [{"name": "Kuala Lumpur"}, {"name": "Penang"}],
-    "PK": [{"name": "Karachi"}, {"name": "Lahore"}, {"name": "Islamabad"}],
-    "BD": [{"name": "Dhaka"}, {"name": "Chittagong"}],
-    "AR": [{"name": "Buenos Aires"}, {"name": "Cordoba"}, {"name": "Rosario"}],
-    "CL": [{"name": "Santiago"}, {"name": "Valparaiso"}],
-    "CO": [{"name": "Bogota"}, {"name": "Medellin"}, {"name": "Cali"}],
-    "PE": [{"name": "Lima"}, {"name": "Arequipa"}],
-    "AT": [{"name": "Vienna"}, {"name": "Graz"}, {"name": "Salzburg"}],
-    "BE": [{"name": "Brussels"}, {"name": "Antwerp"}, {"name": "Ghent"}],
-    "DK": [{"name": "Copenhagen"}, {"name": "Aarhus"}],
-    "FI": [{"name": "Helsinki"}, {"name": "Espoo"}, {"name": "Tampere"}],
-    "NO": [{"name": "Oslo"}, {"name": "Bergen"}],
-    "PT": [{"name": "Lisbon"}, {"name": "Porto"}],
-    "GR": [{"name": "Athens"}, {"name": "Thessaloniki"}],
-    "CZ": [{"name": "Prague"}, {"name": "Brno"}],
-    "RO": [{"name": "Bucharest"}, {"name": "Cluj-Napoca"}],
-    "HU": [{"name": "Budapest"}, {"name": "Debrecen"}],
-    "BG": [{"name": "Sofia"}, {"name": "Plovdiv"}],
-    "HR": [{"name": "Zagreb"}, {"name": "Split"}],
-    "UA": [{"name": "Kyiv"}, {"name": "Kharkiv"}, {"name": "Odesa"}, {"name": "Lviv"}],
-    "NZ": [{"name": "Auckland"}, {"name": "Wellington"}, {"name": "Christchurch"}],
-    "HK": [{"name": "Hong Kong"}],
-    "TW": [{"name": "Taipei"}, {"name": "Kaohsiung"}, {"name": "Taichung"}],
-    "IR": [{"name": "Tehran"}, {"name": "Isfahan"}, {"name": "Mashhad"}],
-    "IQ": [{"name": "Baghdad"}, {"name": "Basra"}, {"name": "Erbil"}],
-    "GH": [{"name": "Accra"}, {"name": "Kumasi"}],
-    "MA": [{"name": "Casablanca"}, {"name": "Rabat"}, {"name": "Marrakech"}],
-    "ET": [{"name": "Addis Ababa"}, {"name": "Dire Dawa"}],
-    "DZ": [{"name": "Algiers"}, {"name": "Oran"}],
-    "AF": [{"name": "Kabul"}, {"name": "Kandahar"}],
+# Major cities per country (fallback when GeoNames is unavailable).
+# Values are plain city name lists; fetch_cities() wraps them as dicts.
+FALLBACK_CITIES: dict[str, list[str]] = {
+    "US": [
+        "New York", "Los Angeles", "Chicago", "Houston",
+        "Phoenix", "San Francisco", "Seattle", "Dallas",
+        "Miami", "Atlanta", "Denver", "Boston", "Washington",
+    ],
+    "GB": [
+        "London", "Manchester", "Birmingham",
+        "Edinburgh", "Glasgow", "Bristol", "Leeds",
+    ],
+    "DE": [
+        "Berlin", "Munich", "Frankfurt", "Hamburg",
+        "Cologne", "Stuttgart", "Dusseldorf",
+    ],
+    "FR": [
+        "Paris", "Marseille", "Lyon",
+        "Toulouse", "Nice", "Strasbourg",
+    ],
+    "JP": [
+        "Tokyo", "Osaka", "Yokohama",
+        "Nagoya", "Fukuoka", "Sapporo",
+    ],
+    "CN": [
+        "Shanghai", "Beijing", "Shenzhen", "Guangzhou",
+        "Chengdu", "Hangzhou", "Wuhan",
+    ],
+    "IN": [
+        "Mumbai", "Delhi", "Bangalore", "Hyderabad",
+        "Chennai", "Kolkata", "Pune",
+    ],
+    "BR": [
+        "Sao Paulo", "Rio de Janeiro", "Brasilia",
+        "Salvador", "Fortaleza", "Belo Horizonte",
+    ],
+    "AU": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"],
+    "CA": [
+        "Toronto", "Montreal", "Vancouver",
+        "Calgary", "Ottawa", "Edmonton",
+    ],
+    "KR": ["Seoul", "Busan", "Incheon", "Daegu"],
+    "MX": [
+        "Mexico City", "Guadalajara", "Monterrey",
+        "Puebla", "Tijuana",
+    ],
+    "IT": ["Rome", "Milan", "Naples", "Turin", "Florence"],
+    "ES": ["Madrid", "Barcelona", "Valencia", "Seville", "Bilbao"],
+    "NL": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht"],
+    "SE": ["Stockholm", "Gothenburg", "Malmo"],
+    "CH": ["Zurich", "Geneva", "Basel", "Bern"],
+    "SG": ["Singapore"],
+    "IE": ["Dublin", "Cork"],
+    "IL": ["Tel Aviv", "Jerusalem", "Haifa"],
+    "AE": ["Dubai", "Abu Dhabi"],
+    "ZA": ["Johannesburg", "Cape Town", "Durban", "Pretoria"],
+    "NG": ["Lagos", "Abuja", "Kano"],
+    "EG": ["Cairo", "Alexandria", "Giza"],
+    "KE": ["Nairobi", "Mombasa"],
+    "PL": ["Warsaw", "Krakow", "Wroclaw", "Gdansk"],
+    "RU": ["Moscow", "Saint Petersburg", "Novosibirsk"],
+    "TR": ["Istanbul", "Ankara", "Izmir"],
+    "SA": ["Riyadh", "Jeddah", "Mecca"],
+    "ID": ["Jakarta", "Surabaya", "Bandung"],
+    "TH": ["Bangkok", "Chiang Mai"],
+    "VN": ["Ho Chi Minh City", "Hanoi"],
+    "PH": ["Manila", "Quezon City", "Cebu City"],
+    "MY": ["Kuala Lumpur", "Penang"],
+    "PK": ["Karachi", "Lahore", "Islamabad"],
+    "BD": ["Dhaka", "Chittagong"],
+    "AR": ["Buenos Aires", "Cordoba", "Rosario"],
+    "CL": ["Santiago", "Valparaiso"],
+    "CO": ["Bogota", "Medellin", "Cali"],
+    "PE": ["Lima", "Arequipa"],
+    "AT": ["Vienna", "Graz", "Salzburg"],
+    "BE": ["Brussels", "Antwerp", "Ghent"],
+    "DK": ["Copenhagen", "Aarhus"],
+    "FI": ["Helsinki", "Espoo", "Tampere"],
+    "NO": ["Oslo", "Bergen"],
+    "PT": ["Lisbon", "Porto"],
+    "GR": ["Athens", "Thessaloniki"],
+    "CZ": ["Prague", "Brno"],
+    "RO": ["Bucharest", "Cluj-Napoca"],
+    "HU": ["Budapest", "Debrecen"],
+    "BG": ["Sofia", "Plovdiv"],
+    "HR": ["Zagreb", "Split"],
+    "UA": ["Kyiv", "Kharkiv", "Odesa", "Lviv"],
+    "NZ": ["Auckland", "Wellington", "Christchurch"],
+    "HK": ["Hong Kong"],
+    "TW": ["Taipei", "Kaohsiung", "Taichung"],
+    "IR": ["Tehran", "Isfahan", "Mashhad"],
+    "IQ": ["Baghdad", "Basra", "Erbil"],
+    "GH": ["Accra", "Kumasi"],
+    "MA": ["Casablanca", "Rabat", "Marrakech"],
+    "ET": ["Addis Ababa", "Dire Dawa"],
+    "DZ": ["Algiers", "Oran"],
+    "AF": ["Kabul", "Kandahar"],
 }
 
 
@@ -1088,7 +1120,8 @@ def fetch_cities(country_code: str, max_rows: int = 50) -> list[dict]:
         if int(c.get("population", 0)) >= MIN_CITY_POP
     ]
     if not cities:
-        cities = FALLBACK_CITIES.get(country_code, [])
+        fallback = FALLBACK_CITIES.get(country_code, [])
+        cities = [{"name": c} for c in fallback]
     _save_cache(cache_key, cities)
     return cities
 
