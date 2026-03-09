@@ -312,6 +312,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - /tmp
     volumes:
       - ./scripts:/opt/netbox/bootstrap:ro
+      - token-store:/token-store
     networks:
       - data
 
@@ -353,6 +354,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     depends_on:
       netbox:
         condition: service_healthy
+      netbox-superuser-sync:
+        condition: service_completed_successfully
     env_file:
       - env/geo-foss.env
     secrets:
@@ -365,6 +368,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     volumes:
       - geo-foss-cache:/app/cache
       - ./scripts:/opt/geo-foss:ro
+      - token-store:/token-store:ro
     networks:
       - data
 
@@ -423,6 +427,7 @@ volumes:
   netbox-reports:
   netbox-scripts:
   geo-foss-cache:
+  token-store:
 
 networks:
   edge:
@@ -641,7 +646,16 @@ if api_token_key:
       changed = True
       print(f"superuser-sync: created v2 token key={t.key}")
     else:
+      t = existing
       print(f"superuser-sync: token already exists key={existing.key}")
+
+    # Write the full v2 token (nbt_<key>.<plaintext>) for sidecar services
+    full_token = f"nbt_{t.key}.{api_token_key}"
+    from pathlib import Path
+    token_store = Path("/token-store")
+    if token_store.is_dir():
+      (token_store / "api_token").write_text(full_token)
+      print("superuser-sync: wrote full v2 token to /token-store/api_token")
 
 print(f"superuser-sync: username={user.username} changed={changed}")
 PY
@@ -771,17 +785,362 @@ def render_geo_foss_import_script() -> str:
     return """#!/bin/sh
 set -eu
 
-# Read the API token from the mounted secret file.
-if [ -f /run/secrets/superuser_api_token ]; then
+# Read the full v2 API token written by the superuser-sync service.
+if [ -f /token-store/api_token ]; then
+  export NETBOX_TOKEN="$(cat /token-store/api_token)"
+elif [ -f /run/secrets/superuser_api_token ]; then
   export NETBOX_TOKEN="$(cat /run/secrets/superuser_api_token)"
 else
-  echo "ERROR: /run/secrets/superuser_api_token not found" >&2
+  echo "ERROR: No API token found in /token-store/ or /run/secrets/" >&2
   exit 1
 fi
 
-echo "Starting netbox-geo-foss import..."
-exec netbox-geo import-data --source all "$@"
+echo "Starting netbox-geo-foss geographic import..."
+exec python /opt/geo-foss/import-geo-data.py
 """
+
+
+def render_geo_foss_import_runner() -> str:
+    """Render the Python script that imports geographic data into NetBox via pynetbox."""
+
+    return '''#!/usr/bin/env python3
+"""Import geographic data (continents, countries, cities) into NetBox.
+
+Uses the GeoNames REST API for country/city data and creates NetBox
+Regions (continent → country hierarchy) and Sites (major cities).
+"""
+
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+import pynetbox
+
+
+# ---------------------------------------------------------------------------
+# Configuration from environment
+# ---------------------------------------------------------------------------
+NETBOX_URL = os.environ.get("NETBOX_URL", "http://netbox:8080")
+NETBOX_TOKEN = os.environ["NETBOX_TOKEN"]
+GEONAMES_USERNAME = os.environ.get("GEONAMES_USERNAME", "demo")
+CACHE_DIR = Path(os.environ.get("DATA_CACHE_DIR", "/app/cache"))
+BATCH_SIZE = int(os.environ.get("DATA_BATCH_SIZE", "1000"))
+MIN_CITY_POP = int(os.environ.get("DATA_MIN_CITY_POPULATION", "15000"))
+
+GEONAMES_API = "http://api.geonames.org"
+
+# Continent codes → human names
+CONTINENTS = {
+    "AF": "Africa",
+    "AS": "Asia",
+    "EU": "Europe",
+    "NA": "North America",
+    "SA": "South America",
+    "OC": "Oceania",
+    "AN": "Antarctica",
+}
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+def _geonames_get(endpoint: str, params: dict) -> dict:
+    """Call a GeoNames JSON endpoint with rate-limit back-off."""
+    params["username"] = GEONAMES_USERNAME
+    qs = "&".join(f"{k}={v}" for k, v in params.items())
+    url = f"{GEONAMES_API}/{endpoint}?{qs}"
+    for attempt in range(1, 4):
+        try:
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429 or attempt < 3:
+                time.sleep(2 * attempt)
+                continue
+            raise
+    return {}
+
+
+def _slug(name: str) -> str:
+    """Generate a URL-safe slug from a name."""
+    import re
+    s = name.lower().strip()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    return s.strip("-")[:100]
+
+
+def _get_or_create_region(nb, name: str, slug: str, parent_id=None):
+    """Get an existing region by slug or create a new one."""
+    existing = nb.dcim.regions.get(slug=slug)
+    if existing:
+        return existing
+    data = {"name": name, "slug": slug}
+    if parent_id is not None:
+        data["parent"] = parent_id
+    return nb.dcim.regions.create(data)
+
+
+def _get_or_create_site(nb, name: str, slug: str, region_id, latitude=None, longitude=None):
+    """Get an existing site by slug or create a new one."""
+    existing = nb.dcim.sites.get(slug=slug)
+    if existing:
+        return existing
+    data = {
+        "name": name,
+        "slug": slug,
+        "region": region_id,
+        "status": "planned",
+    }
+    if latitude is not None:
+        data["latitude"] = round(latitude, 6)
+    if longitude is not None:
+        data["longitude"] = round(longitude, 6)
+    return nb.dcim.sites.create(data)
+
+
+# ---------------------------------------------------------------------------
+# Cache helpers
+# ---------------------------------------------------------------------------
+def _cache_path(key: str) -> Path:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    return CACHE_DIR / f"{key}.json"
+
+
+def _load_cache(key: str):
+    p = _cache_path(key)
+    if p.exists():
+        return json.loads(p.read_text())
+    return None
+
+
+def _save_cache(key: str, data):
+    p = _cache_path(key)
+    p.write_text(json.dumps(data, ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
+# Embedded fallback country data (used when GeoNames API is unavailable)
+# ---------------------------------------------------------------------------
+FALLBACK_COUNTRIES = [
+    {"countryCode": "AF", "countryName": "Afghanistan", "continent": "AS"},
+    {"countryCode": "AL", "countryName": "Albania", "continent": "EU"},
+    {"countryCode": "DZ", "countryName": "Algeria", "continent": "AF"},
+    {"countryCode": "AR", "countryName": "Argentina", "continent": "SA"},
+    {"countryCode": "AU", "countryName": "Australia", "continent": "OC"},
+    {"countryCode": "AT", "countryName": "Austria", "continent": "EU"},
+    {"countryCode": "BD", "countryName": "Bangladesh", "continent": "AS"},
+    {"countryCode": "BE", "countryName": "Belgium", "continent": "EU"},
+    {"countryCode": "BR", "countryName": "Brazil", "continent": "SA"},
+    {"countryCode": "BG", "countryName": "Bulgaria", "continent": "EU"},
+    {"countryCode": "CA", "countryName": "Canada", "continent": "NA"},
+    {"countryCode": "CL", "countryName": "Chile", "continent": "SA"},
+    {"countryCode": "CN", "countryName": "China", "continent": "AS"},
+    {"countryCode": "CO", "countryName": "Colombia", "continent": "SA"},
+    {"countryCode": "HR", "countryName": "Croatia", "continent": "EU"},
+    {"countryCode": "CZ", "countryName": "Czechia", "continent": "EU"},
+    {"countryCode": "DK", "countryName": "Denmark", "continent": "EU"},
+    {"countryCode": "EG", "countryName": "Egypt", "continent": "AF"},
+    {"countryCode": "ET", "countryName": "Ethiopia", "continent": "AF"},
+    {"countryCode": "FI", "countryName": "Finland", "continent": "EU"},
+    {"countryCode": "FR", "countryName": "France", "continent": "EU"},
+    {"countryCode": "DE", "countryName": "Germany", "continent": "EU"},
+    {"countryCode": "GH", "countryName": "Ghana", "continent": "AF"},
+    {"countryCode": "GR", "countryName": "Greece", "continent": "EU"},
+    {"countryCode": "HK", "countryName": "Hong Kong", "continent": "AS"},
+    {"countryCode": "HU", "countryName": "Hungary", "continent": "EU"},
+    {"countryCode": "IN", "countryName": "India", "continent": "AS"},
+    {"countryCode": "ID", "countryName": "Indonesia", "continent": "AS"},
+    {"countryCode": "IR", "countryName": "Iran", "continent": "AS"},
+    {"countryCode": "IQ", "countryName": "Iraq", "continent": "AS"},
+    {"countryCode": "IE", "countryName": "Ireland", "continent": "EU"},
+    {"countryCode": "IL", "countryName": "Israel", "continent": "AS"},
+    {"countryCode": "IT", "countryName": "Italy", "continent": "EU"},
+    {"countryCode": "JP", "countryName": "Japan", "continent": "AS"},
+    {"countryCode": "KE", "countryName": "Kenya", "continent": "AF"},
+    {"countryCode": "KR", "countryName": "South Korea", "continent": "AS"},
+    {"countryCode": "MY", "countryName": "Malaysia", "continent": "AS"},
+    {"countryCode": "MX", "countryName": "Mexico", "continent": "NA"},
+    {"countryCode": "MA", "countryName": "Morocco", "continent": "AF"},
+    {"countryCode": "NL", "countryName": "Netherlands", "continent": "EU"},
+    {"countryCode": "NZ", "countryName": "New Zealand", "continent": "OC"},
+    {"countryCode": "NG", "countryName": "Nigeria", "continent": "AF"},
+    {"countryCode": "NO", "countryName": "Norway", "continent": "EU"},
+    {"countryCode": "PK", "countryName": "Pakistan", "continent": "AS"},
+    {"countryCode": "PE", "countryName": "Peru", "continent": "SA"},
+    {"countryCode": "PH", "countryName": "Philippines", "continent": "AS"},
+    {"countryCode": "PL", "countryName": "Poland", "continent": "EU"},
+    {"countryCode": "PT", "countryName": "Portugal", "continent": "EU"},
+    {"countryCode": "RO", "countryName": "Romania", "continent": "EU"},
+    {"countryCode": "RU", "countryName": "Russia", "continent": "EU"},
+    {"countryCode": "SA", "countryName": "Saudi Arabia", "continent": "AS"},
+    {"countryCode": "SG", "countryName": "Singapore", "continent": "AS"},
+    {"countryCode": "ZA", "countryName": "South Africa", "continent": "AF"},
+    {"countryCode": "ES", "countryName": "Spain", "continent": "EU"},
+    {"countryCode": "SE", "countryName": "Sweden", "continent": "EU"},
+    {"countryCode": "CH", "countryName": "Switzerland", "continent": "EU"},
+    {"countryCode": "TW", "countryName": "Taiwan", "continent": "AS"},
+    {"countryCode": "TH", "countryName": "Thailand", "continent": "AS"},
+    {"countryCode": "TR", "countryName": "Turkey", "continent": "EU"},
+    {"countryCode": "UA", "countryName": "Ukraine", "continent": "EU"},
+    {"countryCode": "AE", "countryName": "United Arab Emirates", "continent": "AS"},
+    {"countryCode": "GB", "countryName": "United Kingdom", "continent": "EU"},
+    {"countryCode": "US", "countryName": "United States", "continent": "NA"},
+    {"countryCode": "VN", "countryName": "Vietnam", "continent": "AS"},
+]
+
+
+# ---------------------------------------------------------------------------
+# Import steps
+# ---------------------------------------------------------------------------
+def fetch_countries() -> list[dict]:
+    """Fetch country info from GeoNames (cached), with embedded fallback."""
+    cached = _load_cache("countries")
+    if cached:
+        print(f"  Using cached country data ({len(cached)} countries)")
+        return cached
+
+    print("  Fetching country list from GeoNames...")
+    data = _geonames_get("countryInfoJSON", {})
+    countries = data.get("geonames", [])
+    if countries:
+        _save_cache("countries", countries)
+        print(f"  Retrieved {len(countries)} countries")
+    else:
+        if "status" in data:
+            print(f"  GeoNames API error: {data['status'].get('message', 'unknown')}")
+        print(f"  Using embedded fallback ({len(FALLBACK_COUNTRIES)} countries)")
+        countries = FALLBACK_COUNTRIES
+        _save_cache("countries", countries)
+    return countries
+
+
+def fetch_cities(country_code: str, max_rows: int = 50) -> list[dict]:
+    """Fetch major cities for a country from GeoNames (cached)."""
+    cache_key = f"cities_{country_code}"
+    cached = _load_cache(cache_key)
+    if cached is not None:
+        return cached
+
+    data = _geonames_get("searchJSON", {
+        "country": country_code,
+        "featureClass": "P",
+        "orderby": "population",
+        "maxRows": str(max_rows),
+        "style": "MEDIUM",
+    })
+    cities = [
+        c for c in data.get("geonames", [])
+        if int(c.get("population", 0)) >= MIN_CITY_POP
+    ]
+    _save_cache(cache_key, cities)
+    return cities
+
+
+def import_continents(nb) -> dict[str, int]:
+    """Create continent-level regions. Returns {code: region_id}."""
+    print("\\n=== Importing continents as top-level regions ===")
+    mapping = {}
+    for code, name in CONTINENTS.items():
+        region = _get_or_create_region(nb, name, _slug(name))
+        mapping[code] = region.id
+        print(f"  {name}: id={region.id}")
+    return mapping
+
+
+def import_countries(nb, continent_map: dict[str, int], countries: list[dict]) -> dict[str, int]:
+    """Create country-level regions under their continent. Returns {iso2: region_id}."""
+    print(f"\\n=== Importing {len(countries)} countries as child regions ===")
+    country_map = {}
+    for c in countries:
+        iso = c.get("countryCode", "")
+        name = c.get("countryName", "")
+        continent_code = c.get("continentName", c.get("continent", ""))
+
+        # Map full continent name back to code if needed
+        cont_id = continent_map.get(continent_code)
+        if not cont_id:
+            for code, cname in CONTINENTS.items():
+                if cname == continent_code:
+                    cont_id = continent_map.get(code)
+                    break
+        if not cont_id:
+            continue
+
+        slug = _slug(f"{iso}-{name}")
+        region = _get_or_create_region(nb, name, slug, parent_id=cont_id)
+        country_map[iso] = region.id
+    print(f"  Created/verified {len(country_map)} country regions")
+    return country_map
+
+
+def import_cities(nb, country_map: dict[str, int], countries: list[dict]):
+    """Create sites for major cities in each country."""
+    print(f"\\n=== Importing cities (pop >= {MIN_CITY_POP}) ===")
+    total = 0
+    for i, c in enumerate(countries):
+        iso = c.get("countryCode", "")
+        region_id = country_map.get(iso)
+        if not region_id:
+            continue
+
+        cities = fetch_cities(iso)
+        for city in cities:
+            name = city.get("name", city.get("toponymName", ""))
+            lat = city.get("lat")
+            lng = city.get("lng")
+            slug = _slug(f"{iso}-{name}")
+            try:
+                _get_or_create_site(
+                    nb, name, slug, region_id,
+                    latitude=float(lat) if lat else None,
+                    longitude=float(lng) if lng else None,
+                )
+                total += 1
+            except Exception as exc:
+                print(f"  WARN: {name} ({iso}): {exc}")
+
+        # Rate limit: brief pause between countries
+        if (i + 1) % 10 == 0:
+            time.sleep(1)
+            print(f"  ... processed {i + 1}/{len(countries)} countries, {total} cities so far")
+
+    print(f"  Total cities imported: {total}")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+def main():
+    print(f"Connecting to NetBox at {NETBOX_URL}")
+    nb = pynetbox.api(NETBOX_URL, token=NETBOX_TOKEN)
+
+    # Verify connectivity
+    try:
+        status = nb.status()
+        print(f"NetBox version: {status.get('netbox-version', 'unknown')}")
+    except Exception as exc:
+        print(f"ERROR: Cannot reach NetBox API: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    countries = fetch_countries()
+    continent_map = import_continents(nb)
+    country_map = import_countries(nb, continent_map, countries)
+    import_cities(nb, country_map, countries)
+
+    # Summary
+    print("\\n=== Import complete ===")
+    print(f"  Regions: {nb.dcim.regions.count()}")
+    print(f"  Sites:   {nb.dcim.sites.count()}")
+
+
+if __name__ == "__main__":
+    main()
+'''
 
 
 def render_geo_foss_dockerfile(plan: DeploymentPlan) -> str:
@@ -1477,6 +1836,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "run-orb-agent.sh": render_orb_agent_script(),
         output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
+        output_dir / "scripts" / "import-geo-data.py": render_geo_foss_import_runner(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",
         output_dir / "secrets" / "db_password.example": (
             "replace-with-a-strong-database-password\n"

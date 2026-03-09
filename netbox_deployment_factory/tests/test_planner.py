@@ -336,8 +336,19 @@ class PlannerTests(unittest.TestCase):
             self.assertIn('profiles: ["geo-foss-import"]', compose_text)
             self.assertIn("dockerfile: Dockerfile-GeoFoss", compose_text)
             self.assertIn("geo-foss-cache:", compose_text)
+            self.assertIn("token-store:", compose_text)
             self.assertIn("50c3c16", geo_foss_dockerfile_text)
             self.assertIn("## Geographic Data", generated_readme_text)
+            # geo-foss import script
+            import_script = output_dir / "scripts" / "import-geo-data.py"
+            self.assertTrue(import_script.exists())
+            import_script_text = import_script.read_text(encoding="utf-8")
+            self.assertIn("import pynetbox", import_script_text)
+            self.assertIn("FALLBACK_COUNTRIES", import_script_text)
+            # sync script writes full v2 token
+            sync_script = output_dir / "scripts" / "sync-superuser.sh"
+            sync_text = sync_script.read_text(encoding="utf-8")
+            self.assertIn("/token-store/api_token", sync_text)
             self.assertNotIn("Dockerfile-DeviceTypeLibraryImport", compose_text)
             self.assertNotIn("device_type_library_token", compose_text)
             self.assertNotIn("HOUSEKEEPING_INTERVAL=", netbox_env)
