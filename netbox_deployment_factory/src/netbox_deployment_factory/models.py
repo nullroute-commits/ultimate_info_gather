@@ -88,6 +88,16 @@ class DeviceTypeLibraryProfile:
 
 
 @dataclass(slots=True)
+class GeoFossProfile:
+    """NetBox geographic data integration companion service."""
+
+    repository: str
+    ref: str
+    service_name: str
+    rationale: str
+
+
+@dataclass(slots=True)
 class NetworkSegment:
     """A single scoped Docker network segment."""
 
@@ -118,6 +128,7 @@ class DeploymentPlan:
     networks: NetworkProfile
     admin_privacy: AdminPrivacyProfile
     device_type_library: DeviceTypeLibraryProfile
+    geo_foss: GeoFossProfile
     warnings: list[str]
     notes: list[str]
 

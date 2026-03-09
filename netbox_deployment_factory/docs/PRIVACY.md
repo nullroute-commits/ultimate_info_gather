@@ -8,6 +8,7 @@ The deployment bundle intentionally avoids binding the initial superuser to a re
 - The generated email uses the `.invalid` reserved namespace.
 - The compose bundle expects Docker secret files instead of plain-text committed credentials.
 - The database password secret is separate from the bootstrap admin password.
+- The superuser-sync service writes the full v2 API token (`nbt_<key>.<plaintext>`) to a `token-store` volume so sidecar services (geo-foss, ORB) can authenticate without direct access to the raw secret file.
 - The device-type-library import runs with its own service boundary; by default it reads the username from `superuser_name`, and it can be switched to a dedicated NetBox user via `NETBOX_IMPORT_USERNAME` or `NETBOX_IMPORT_USERNAME_FILE`.
 - The bootstrap account is documented as temporary and should be rotated or disabled immediately after first-run configuration.
 
