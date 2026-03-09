@@ -51,11 +51,17 @@ The sidecar waits for NetBox API readiness (`/api/status/`) using the secret-bac
 
 ## Device-Type Library
 
-The repository includes the NetBox community device-type library as a pinned external content source rather than an in-application plugin. The generated deployment bundle now uses NetBox core's own bulk-import views for manufacturers, rack types, device types, and module types instead of the older external `Device-Type-Library-Import` helper. The import runs as a dedicated one-shot service with dropped capabilities and `no-new-privileges`, downloads the pinned library archive into temporary storage, and submits YAML through first-party NetBox import paths. By default, the generated import identity is read from `superuser_name`, but operators can override `NETBOX_IMPORT_USERNAME` or `NETBOX_IMPORT_USERNAME_FILE` to use a dedicated user.
+The repository includes the NetBox community device-type library as a pinned external content source rather than an in-application plugin. The generated deployment bundle uses the **NetBox REST API** to create manufacturers, device types (with full component templates), module types, and rack types. The import runs as a dedicated one-shot Compose profile service (`device-type-library-import`) with dropped capabilities and `no-new-privileges`, downloads the library archive into temporary storage, parses YAML definitions, and creates objects through `/api/dcim/` endpoints with v2 Bearer token authentication.
+
+Key features of the REST API importer:
+- **Component templates**: Creates interface, console-port, power-port, power-outlet, rear-port, front-port, device-bay, module-bay, and inventory-item templates for each device/module type.
+- **Idempotent**: Existing objects are looked up by slug (or model+manufacturer for module types) and skipped. Re-running the import produces no duplicates.
+- **Vendor filtering**: Set `DEVICE_TYPE_LIBRARY_VENDORS` to a comma-separated list of vendor directory names (e.g., `cisco,juniper`) to import only specific vendors.
+- **Bulk creation**: Component templates are POSTed in batches for efficiency.
 
 ## API Tokens
 
-The repository now generates an `api_token_pepper_1` secret alongside the bootstrap secrets so NetBox can mint and validate current v2 API tokens. Because the generated device-type importer now runs inside Django and uses NetBox's native bulk-import views, the bundle no longer needs to mint a legacy v1 API token just to support an older external importer.
+The repository generates an `api_token_pepper_1` secret alongside the bootstrap secrets so NetBox can mint and validate v2 API tokens. The superuser sync script creates a v2 token from the `superuser_api_token` secret file using Token.validate() for idempotent re-runs. The device-type importer authenticates with `Authorization: Bearer nbt_<key>.<plaintext>` format, where the key (HMAC digest) is read from the Token ORM and the plaintext comes from the mounted secret file.
 
 ## CI/CD Localization
 

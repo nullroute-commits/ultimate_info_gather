@@ -11,7 +11,7 @@ The generated bundle is opinionated in five ways:
 - Plugin enablement is strict: topology and BGP are enabled because they have visible NetBox 4.5 compatibility from official NetBox Community sources.
 - Requested plugins are enabled in the generated deployment using upstream compatibility metadata.
 - The bootstrap superuser is pseudonymous and secret-file backed so the initial administrative identity is not tied to a human username.
-- The community device-type library is included as a separate pinned import workflow that uses NetBox core bulk-import support instead of an external helper script.
+- The community device-type library is included as a separate pinned import workflow that uses the NetBox REST API for idempotent creation of manufacturers, device types (with component templates), module types, and rack types.
 - ORB sidecar orchestration metadata and readiness-gated container wiring are generated and deployed by default.
 
 ## Version Pins
@@ -103,7 +103,7 @@ Before the first `docker compose up -d`:
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
 - The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.
-- By default it force-logs in as the pseudonymous bootstrap user inside Django via `NETBOX_IMPORT_USERNAME_FILE=/run/secrets/superuser_name`. If stricter RBAC is required, point the importer at a dedicated NetBox user with the documented DCIM import permissions.
+- The importer authenticates against the NetBox REST API using the v2 token from `secrets/superuser_api_token`. If stricter RBAC is required, create a dedicated NetBox user with DCIM add/view permissions and configure a separate token.
 
 ## Device-Type Library Import
 
@@ -113,16 +113,15 @@ The generated bundle includes an optional `device-type-library-import` service. 
 docker compose --profile device-type-library-import run --rm device-type-library-import
 ```
 
-The one-shot importer downloads the pinned `devicetype-library` archive and submits manufacturer, rack type, device type, and module type YAML to NetBox's own bulk-import views. The default import identity comes from `secrets/superuser_name`.
+The one-shot importer downloads the pinned `devicetype-library` archive, parses YAML definitions, and creates objects through `/api/dcim/` REST endpoints using v2 Bearer token authentication. The import is idempotent — existing objects are skipped.
 
-To use a dedicated NetBox user instead of the bootstrap account:
+To import only specific vendors:
 
 ```bash
-NETBOX_IMPORT_USERNAME=device-library-import \
-docker compose --profile device-type-library-import run --rm device-type-library-import
+docker compose --profile device-type-library-import run \
+  -e DEVICE_TYPE_LIBRARY_VENDORS=cisco,juniper \
+  device-type-library-import
 ```
-
-That user should be granted the DCIM add/view permissions documented in the generated bundle.
 
 ## Validation
 
