@@ -1840,14 +1840,81 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 ## First Start
 
-- Build the local NetBox plugin image first: `docker compose build`.
-- Before running `docker compose up -d`, copy each `secrets/*.example` file to the
-  same path without the `.example` suffix.
-- Replace the placeholder values in `secrets/db_password`, `secrets/secret_key`,
-  `secrets/superuser_password`, `secrets/superuser_api_token`, and
-  `secrets/api_token_pepper_1`.
-- Keep `secrets/superuser_name` aligned with the pseudonymous bootstrap account unless
-  you intentionally rotate it before first start.
+### 1. Populate secrets
+
+Generate real secret values from the examples:
+
+```bash
+cd secrets
+openssl rand -hex 32 > api_token_pepper_1
+openssl rand -base64 24 | tr -d '\\n' > db_password
+openssl rand -hex 32 > secret_key
+openssl rand -base64 24 | tr -d '\\n' > superuser_api_token
+cp superuser_name.example superuser_name
+openssl rand -base64 18 | tr -d '\\n' > superuser_password
+cd ..
+```
+
+Keep `secrets/superuser_name` aligned with the pseudonymous bootstrap account unless
+you intentionally rotate it before first start.
+
+### 2. Build images
+
+```bash
+docker compose build
+```
+
+This builds the custom NetBox plugin image used by `netbox`, `netbox-worker`, and
+`orb-agent`, and the geo-foss import sidecar image.
+
+### 3. Start the stack
+
+```bash
+docker compose up -d
+```
+
+On first boot, NetBox runs database migrations before becoming healthy. Dependent
+services (workers, WAF, Traefik, superuser sync) wait for the NetBox health check.
+This typically takes 2\u20135 minutes. Monitor progress with:
+
+```bash
+docker compose ps
+docker logs {plan.deployment_name}-netbox-1 --tail 20
+```
+
+Once NetBox shows `(healthy)`, all dependent containers start automatically. If any
+remain in `Created` state, re-run `docker compose up -d`.
+
+### 4. Access NetBox
+
+NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
+
+- **Username**: `{plan.admin_privacy.bootstrap_username}`
+- **Password**: the value in `secrets/superuser_password`
+
+The bootstrap account is intended only for first login and RBAC setup \u2014 rotate or
+disable it after creating named operator accounts.
+
+### 5. Import device-type library (optional)
+
+```bash
+docker compose --profile device-type-library-import run --rm device-type-library-import
+```
+
+The one-shot importer downloads the pinned `devicetype-library` archive, parses YAML
+definitions, and creates objects through `/api/dcim/` REST endpoints. The import is
+idempotent \u2014 existing objects are skipped.
+
+### 6. Import geographic data (optional)
+
+```bash
+docker compose build netbox-geo-foss
+docker compose --profile geo-foss-import run --rm netbox-geo-foss
+```
+
+Set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account for live
+API data. Without it, the import falls back to an embedded dataset of 64 countries
+and ~215 cities.
 
 ## Native Import Workflow
 

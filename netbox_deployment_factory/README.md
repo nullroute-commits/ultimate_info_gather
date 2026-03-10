@@ -38,17 +38,136 @@ The generated bundle is opinionated:
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
 
-## Usage
+## Full Deployment Walkthrough
+
+This section covers every step from a clean checkout to a running NetBox instance with imported device types and geographic data.
+
+### Step 1 — Generate a host report
+
+Run `ultimate_info_gather` from the repository root to produce a JSON report describing the target host:
+
+```bash
+python3 main.py -o ./generated-report -f json
+```
+
+The report path (e.g. `generated-report/report_20260309_154959.json`) is used as input to the factory.
+
+### Step 2 — Build the factory CI image
+
+```bash
+cd netbox_deployment_factory
+export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
+docker compose -f docker-compose.ci.yml build factory
+```
+
+### Step 3 — Generate the deployment bundle
+
+Debian track (default):
+
+```bash
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
+  --track debian \
+  --deployment-name netbox-deploy
+```
+
+Alpine track:
+
+```bash
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
+  --track alpine \
+  --deployment-name netbox-deploy
+```
+
+The `/host-root/` prefix maps to the parent of `netbox_deployment_factory/` via the CI Compose bind mount.
+
+### Step 4 — Populate secrets
+
+Enter the generated bundle directory and create real secret files from the examples:
+
+```bash
+cd generated/netbox-deploy/secrets
+openssl rand -hex 32 > api_token_pepper_1
+openssl rand -base64 24 | tr -d '\n' > db_password
+openssl rand -hex 32 > secret_key
+openssl rand -base64 24 | tr -d '\n' > superuser_api_token
+cp superuser_name.example superuser_name
+openssl rand -base64 18 | tr -d '\n' > superuser_password
+cd ..
+```
+
+Keep `superuser_name` aligned with the pseudonymous bootstrap account unless you intentionally change it before first start.
+
+### Step 5 — Build images
+
+Build the custom NetBox plugin image and the geo-foss sidecar:
+
+```bash
+docker compose build
+```
+
+### Step 6 — Start the stack
+
+```bash
+docker compose up -d
+```
+
+On first boot, NetBox runs database migrations before it becomes healthy. Dependent services (workers, WAF, Traefik, superuser sync) wait for the NetBox health check to pass. This typically takes 2–5 minutes depending on the host.
+
+Check progress:
+
+```bash
+docker compose ps
+docker logs netbox-deploy-netbox-1 --tail 20
+```
+
+Once NetBox shows `(healthy)`, all dependent containers should start automatically. If any remain in `Created` state, re-run:
+
+```bash
+docker compose up -d
+```
+
+### Step 7 — Access NetBox
+
+NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
+
+Log in with:
+- **Username**: the value in `secrets/superuser_name` (e.g. `bootstrap-10f19331c8`)
+- **Password**: the value in `secrets/superuser_password`
+
+The bootstrap account is intended only for first login and RBAC setup — rotate or disable it after creating named operator accounts.
+
+### Step 8 — Import device-type library (optional)
+
+```bash
+docker compose --profile device-type-library-import run --rm device-type-library-import
+```
+
+### Step 9 — Import geographic data (optional)
+
+```bash
+docker compose build netbox-geo-foss
+docker compose --profile geo-foss-import run --rm netbox-geo-foss
+```
+
+Set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account for live API data. Without it, the import falls back to an embedded dataset of 64 countries and ~215 cities.
+
+## Usage (Factory Only)
+
+The commands below are equivalent to Steps 2–3 above and are included for quick reference.
 
 Generate a Debian bundle through the localized Docker workflow:
 
 ```bash
 export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
 docker compose -f docker-compose.ci.yml run --rm factory \
-  --report /host-root/generated-report/report_20260305_212311.json \
-  --output-dir /workspace/generated/current-host-debian \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
   --track debian \
-  --deployment-name netbox-current-host
+  --deployment-name netbox-deploy
 ```
 
 To generate the Alpine track instead:
@@ -56,10 +175,10 @@ To generate the Alpine track instead:
 ```bash
 export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
 docker compose -f docker-compose.ci.yml run --rm factory \
-  --report /host-root/generated-report/report_20260305_212311.json \
-  --output-dir /workspace/generated/current-host-alpine \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
   --track alpine \
-  --deployment-name netbox-current-host
+  --deployment-name netbox-deploy
 ```
 
 ## What Gets Generated
@@ -116,8 +235,15 @@ Before the first `docker compose up -d`:
 1. Run `docker compose build` to build the local NetBox plugin image used by
    `netbox`, `netbox-worker`, and `orb-agent`, and the geo-foss import image.
 2. Copy each file in `secrets/*.example` to the same path without the `.example`
-   suffix and replace placeholder values with real secrets.
+   suffix and replace placeholder values with real secrets (see Step 4 in the
+   Full Deployment Walkthrough above for concrete `openssl` commands).
 3. TLS certificates are auto-generated by the `traefik-certgen` init container on first start. To supply your own, place `tls.crt` and `tls.key` in the `traefik-certs` volume.
+4. Run `docker compose up -d`. On first boot, NetBox runs migrations before
+   becoming healthy (2–5 minutes). Dependent services start automatically
+   once the health check passes.
+5. Access NetBox at **https://localhost** (port 443, self-signed TLS certificate).
+   Log in with the pseudonymous bootstrap credentials from `secrets/superuser_name`
+   and `secrets/superuser_password`.
 
 ## Least Privilege
 

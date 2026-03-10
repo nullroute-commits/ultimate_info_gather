@@ -322,7 +322,8 @@ class PlannerTests(unittest.TestCase):
             )
             self.assertIn("## First Start", generated_readme_text)
             self.assertIn("docker compose build", generated_readme_text)
-            self.assertIn("copy each `secrets/*.example` file", generated_readme_text)
+            self.assertIn("Populate secrets", generated_readme_text)
+            self.assertIn("openssl rand", generated_readme_text)
             # geo-foss assertions
             geo_foss_env_file = output_dir / "env" / "geo-foss.env"
             geo_foss_dockerfile = output_dir / "Dockerfile-GeoFoss"
