@@ -40,6 +40,41 @@ def load_report(report_path: Path | str) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
+_RFC1918_NETWORKS = [
+    ipaddress.IPv4Network("10.0.0.0/8"),
+    ipaddress.IPv4Network("172.16.0.0/12"),
+    ipaddress.IPv4Network("192.168.0.0/16"),
+]
+
+
+def _is_rfc1918(addr: str) -> bool:
+    try:
+        return any(ipaddress.IPv4Address(addr) in net for net in _RFC1918_NETWORKS)
+    except ValueError:
+        return False
+
+
+def _select_service_ip(interfaces: list[dict[str, Any]]) -> str:
+    """Return the IPv4 of the highest-bandwidth active RFC1918 interface."""
+    candidates: list[tuple[int, str]] = []
+    for iface in interfaces:
+        if not iface.get("is_up"):
+            continue
+        if iface.get("is_loopback"):
+            continue
+        rfc1918_ips = [
+            addr for addr in iface.get("ipv4_addresses", []) if _is_rfc1918(addr)
+        ]
+        if not rfc1918_ips:
+            continue
+        speed = iface.get("speed_mbps") or 0
+        candidates.append((speed, rfc1918_ips[0]))
+    if not candidates:
+        return "127.0.0.1"
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
+
+
 def _build_host_profile(report: dict[str, Any]) -> HostProfile:
     environment = report["environment"]
     software = report["software"]
@@ -68,6 +103,7 @@ def _build_host_profile(report: dict[str, Any]) -> HostProfile:
         logical_cores=hardware["cpu"]["logical_cores"],
         default_gateway=network.get("default_gateway"),
         nameservers=network.get("dns_config", {}).get("nameservers", []),
+        service_ip=_select_service_ip(network.get("interfaces", [])),
     )
 
 
@@ -314,8 +350,9 @@ def _collect_notes(track: str) -> list[str]:
         ),
         (
             "The Diode plugin (netboxlabs-diode-netbox-plugin 1.7.1) is "
-            "enabled by default and paired with a generated companion Diode "
-            "service so the plugin target resolves in the composed deployment."
+            "enabled by default and paired with generated diode-auth, "
+            "diode-ingester, and diode-reconciler services so plugin and "
+            "reconciler endpoints resolve in the composed deployment."
         ),
         (
             "netbox-acls 1.9.1, netbox-proxbox 0.0.6b2, "
@@ -339,9 +376,10 @@ def _collect_notes(track: str) -> list[str]:
             "startup dependency on NetBox health."
         ),
         (
-            "ORB container orchestration metadata is generated under "
-            "configuration/orb/orchestration.yml and the orb-agent service is "
-            "started in the default compose deployment after NetBox health."
+            "ORB is generated as an optional discovery profile using the "
+            "official netboxlabs/orb-agent image and an agent.yaml config, "
+            "with host networking, RFC1918 targets, and diode client "
+            "credential placeholders in configuration/orb/agent.yaml."
         ),
         (
             "DNS management is provided by netbox-plugin-dns 1.5.3, which "

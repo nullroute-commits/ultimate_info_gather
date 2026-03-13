@@ -26,7 +26,36 @@
     "default_gateway": "10.0.0.1",
     "dns_config": {
       "nameservers": ["1.1.1.1", "8.8.8.8"]
-    }
+    },
+    "interfaces": [
+      {
+        "name": "lo",
+        "is_up": true,
+        "is_loopback": true,
+        "is_virtual": true,
+        "ipv4_addresses": ["127.0.0.1"],
+        "ipv6_addresses": [],
+        "speed_mbps": null
+      },
+      {
+        "name": "eth0",
+        "is_up": true,
+        "is_loopback": false,
+        "is_virtual": false,
+        "ipv4_addresses": ["10.0.0.50"],
+        "ipv6_addresses": [],
+        "speed_mbps": 1000
+      },
+      {
+        "name": "eth1",
+        "is_up": true,
+        "is_loopback": false,
+        "is_virtual": false,
+        "ipv4_addresses": ["10.0.0.51"],
+        "ipv6_addresses": [],
+        "speed_mbps": 100
+      }
+    ]
   },
   "software": {
     "os_info": {

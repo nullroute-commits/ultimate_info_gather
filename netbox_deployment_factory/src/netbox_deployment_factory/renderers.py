@@ -7,6 +7,12 @@ import pprint
 import re
 from pathlib import Path
 
+from .constants import (
+  DIODE_AUTH_IMAGE,
+  DIODE_INGESTER_IMAGE,
+  DIODE_RECONCILER_IMAGE,
+  ORB_AGENT_IMAGE,
+)
 from .models import DeploymentPlan
 
 
@@ -167,7 +173,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - --entrypoints.websecure.address=:443
       - --log.level=INFO
     ports:
-      - "443:443"
+      - "{plan.host.service_ip}:443:443"
     volumes:
       - traefik-certs:/certs:ro
       - ./configuration/traefik:/etc/traefik/dynamic:ro
@@ -235,9 +241,45 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
-  diode:
-    image: netboxlabs/diode-auth:latest
+  diode-auth:
+    image: {DIODE_AUTH_IMAGE}
     restart: unless-stopped
+    env_file:
+      - env/diode.env
+    ports:
+      - "127.0.0.1:18080:8080"
+    networks:
+      - data
+
+  diode-ingester:
+    image: {DIODE_INGESTER_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      valkey:
+        condition: service_healthy
+    env_file:
+      - env/diode.env
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - data
+
+  diode-reconciler:
+    image: {DIODE_RECONCILER_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      netbox:
+        condition: service_healthy
+      diode-auth:
+        condition: service_started
+      valkey:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - env/diode.env
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
     networks:
       - data
 
@@ -254,7 +296,7 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      diode:
+      diode-auth:
         condition: service_started
     env_file:
       - env/netbox.env
@@ -262,6 +304,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - db_password
       - api_token_pepper_1
       - secret_key
+      - netbox_to_diode
       - superuser_name
       - superuser_password
       - superuser_api_token
@@ -302,6 +345,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - db_password
       - api_token_pepper_1
       - secret_key
+      - netbox_to_diode
       - superuser_name
       - superuser_password
       - superuser_api_token
@@ -330,6 +374,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - db_password
       - api_token_pepper_1
       - secret_key
+      - netbox_to_diode
       - superuser_name
       - superuser_password
       - superuser_api_token
@@ -383,27 +428,22 @@ def render_compose(plan: DeploymentPlan) -> str:
       - security
 
   orb-agent:
-    image: {plan.deployment_name}:local
+    image: {ORB_AGENT_IMAGE}
+    profiles: ["orb-discovery"]
     restart: unless-stopped
     depends_on:
-      netbox:
-        condition: service_healthy
-      netbox-superuser-sync:
-        condition: service_completed_successfully
+      diode-auth:
+        condition: service_started
     env_file:
       - env/orb.env
-    secrets:
-      - superuser_api_token
-    command: ["/bin/sh", "/opt/netbox/bootstrap/run-orb-agent.sh"]
-    cap_drop: ["ALL"]
-    security_opt: ["no-new-privileges:true"]
-    tmpfs:
-      - /tmp
+    command: ["run", "-c", "/opt/orb/agent.yaml"]
+    user: "0:0"
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
-      - ./configuration/orb:/etc/netbox/config/orb:ro
-      - ./scripts:/opt/netbox/bootstrap:ro
-    networks:
-      - data
+      - ./configuration/orb:/opt/orb:ro
 
 secrets:
   db_password:
@@ -418,6 +458,14 @@ secrets:
     file: secrets/superuser_password
   superuser_api_token:
     file: secrets/superuser_api_token
+  diode_redis_password:
+    file: secrets/diode_redis_password
+  netbox_to_diode:
+    file: secrets/netbox_to_diode
+  diode_client_id:
+    file: secrets/diode_client_id
+  diode_client_secret:
+    file: secrets/diode_client_secret
 
 volumes:
   traefik-certs:
@@ -456,8 +504,14 @@ networks:
 def render_netbox_env(plan: DeploymentPlan) -> str:
     """Render the NetBox application environment."""
 
-    return f"""ALLOWED_HOSTS=localhost 127.0.0.1 netbox traefik waf {plan.host.hostname}
-CSRF_TRUSTED_ORIGINS=https://localhost https://{plan.host.hostname}
+    allowed_hosts = f"localhost 127.0.0.1 netbox traefik waf {plan.host.hostname}"
+    csrf_origins = f"https://localhost https://{plan.host.hostname}"
+    if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
+        allowed_hosts = f"{allowed_hosts} {plan.host.service_ip}"
+        csrf_origins = f"{csrf_origins} https://{plan.host.service_ip}"
+
+    return f"""ALLOWED_HOSTS={allowed_hosts}
+CSRF_TRUSTED_ORIGINS={csrf_origins}
 DB_HOST=postgres
 DB_NAME=netbox
 DB_PORT=5432
@@ -549,6 +603,11 @@ def render_traefik_cert_script(plan: DeploymentPlan) -> str:
         "DNS:netbox",
         "IP:127.0.0.1",
     ]
+    service_ip = plan.host.service_ip
+    if service_ip and service_ip != "127.0.0.1":
+        ip_entry = f"IP:{service_ip}"
+        if ip_entry not in san_entries:
+            san_entries.append(ip_entry)
     hostname = plan.host.hostname.strip()
     if hostname and re.fullmatch(
         r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*",
@@ -662,94 +721,91 @@ PY
 """
 
 
-def render_orb_orchestration_config(plan: DeploymentPlan) -> str:
-    """Render container orchestration metadata for worker deployment."""
+def render_orb_agent_config() -> str:
+    """Render an ORB agent.yaml aligned to upstream orb-agent docs."""
 
-    worker_services = [
-        "netbox-worker" if idx == 1 else f"netbox-worker-{idx}"
-        for idx in range(1, max(1, plan.sizing.netbox_worker_containers) + 1)
-    ]
-    worker_service_yaml = "\n".join(f"      - {name}" for name in worker_services)
-    enabled_plugins = [plugin.module_name for plugin in plan.plugins if plugin.enabled]
-    plugin_yaml = "\n".join(f"      - {name}" for name in enabled_plugins)
-
-    return f"""orb:
-  version: 1
-  deployment_name: {plan.deployment_name}
-  netbox:
-    url: http://netbox:8080
-    api_token_file: /run/secrets/superuser_api_token
-  orchestration:
-    runtime: docker-compose
-    worker_containers: {max(1, plan.sizing.netbox_worker_containers)}
-    rollout_order:
-      - postgres
-      - valkey
-      - netbox
-      - netbox-superuser-sync
-      - workers
-      - waf
-      - traefik
-    worker_services:
-{worker_service_yaml}
-  netbox_plugins:
-{plugin_yaml}
+    return """orb:
+  config_manager:
+    active: local
+  secrets_manager:
+    active: none
+  backends:
+    network_discovery: {}
+    common:
+      diode:
+        target: grpc://127.0.0.1:18080
+        client_id: netbox-to-diode
+        client_secret: replace-me
+        agent_name: generated-orb-agent
+        dry_run: true
+  policies:
+    network_discovery:
+      default:
+        config:
+          schedule: "@every 5m"
+        scope:
+          targets:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
 """
 
 
 def render_orb_env() -> str:
     """Render ORB sidecar environment values."""
 
-    return """ORB_NETBOX_URL=http://netbox:8080
-ORB_NETBOX_TOKEN_FILE=/run/secrets/superuser_api_token
-ORB_ORCHESTRATION_FILE=/etc/netbox/config/orb/orchestration.yml
-ORB_POLL_INTERVAL_SECONDS=30
+    return """DIODE_TARGET=grpc://127.0.0.1:18080
+ORB_AGENT_CONFIG=/opt/orb/agent.yaml
 """
 
 
-def render_orb_agent_script() -> str:
-    """Render an ORB sidecar entrypoint that waits for NetBox API readiness."""
+def render_diode_env() -> str:
+    """Render shared Diode service environment defaults."""
+
+    return """ENVIRONMENT=development
+LOGGING_LEVEL=info
+LOGGING_FORMAT=text
+SERVICE_NAME=diode
+REDIS_HOST=valkey
+REDIS_PORT=6379
+REDIS_TLS=false
+REDIS_PASSWORD=replace-me
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB_NAME=netbox
+POSTGRES_USER=netbox
+POSTGRES_PASSWORD=replace-me
+POSTGRES_SSL_MODE=disable
+DIODE_AUTH_TOKEN_URL=http://diode-auth:8080/token
+DIODE_TO_NETBOX_CLIENT_ID=netbox-to-diode
+DIODE_TO_NETBOX_CLIENT_SECRET=replace-me
+NETBOX_DIODE_PLUGIN_API_BASE_URL=http://netbox:8080/api/plugins/netbox_diode_plugin
+NETBOX_DIODE_PLUGIN_SKIP_TLS_VERIFY=true
+"""
+
+
+def render_diode_ingester_script() -> str:
+    """Render a Diode ingester entrypoint that loads secrets into env vars."""
 
     return """#!/bin/sh
 set -eu
 
-python -u - <<'PY'
-import os
-import time
-from urllib.error import URLError
-from urllib.request import urlopen
+export REDIS_PASSWORD="$(cat /run/secrets/diode_redis_password)"
+exec /usr/local/bin/diode-server
+"""
 
 
-def wait_for_netbox() -> None:
-    base = os.environ["ORB_NETBOX_URL"].rstrip("/")
-    login_url = f"{base}/login/"
-    for attempt in range(1, 61):
-        try:
-            with urlopen(login_url, timeout=10) as response:  # nosec B310
-                if response.status == 200:
-                    return
-        except URLError:
-            pass
+def render_diode_reconciler_script() -> str:
+    """Render a Diode reconciler entrypoint that loads required secrets."""
 
-        if attempt == 60:
-            raise RuntimeError("NetBox did not become reachable in time")
-        time.sleep(2)
+    return """#!/bin/sh
+set -eu
 
-
-def main() -> int:
-    wait_for_netbox()
-    poll_interval = int(os.environ.get("ORB_POLL_INTERVAL_SECONDS", "30"))
-    orchestration_file = os.environ["ORB_ORCHESTRATION_FILE"]
-    print("orb-agent: connected to NetBox API; starting orchestration polling")
-    print(f"orb-agent: orchestration file={orchestration_file}")
-
-    while True:
-        time.sleep(max(5, poll_interval))
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-PY
+export REDIS_PASSWORD="$(cat /run/secrets/diode_redis_password)"
+export POSTGRES_PASSWORD="$(cat /run/secrets/db_password)"
+export DIODE_TO_NETBOX_CLIENT_ID="netbox-to-diode"
+export DIODE_TO_NETBOX_CLIENT_SECRET="$(cat /run/secrets/netbox_to_diode)"
+exec /usr/local/bin/diode-server
 """
 
 
@@ -1809,8 +1865,9 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 ## Container Orchestration
 
 - Worker containers: {max(1, plan.sizing.netbox_worker_containers)}
-- Orchestration metadata: `configuration/orb/orchestration.yml`
-- ORB sidecar: readiness-gated placeholder that records the generated orchestration file path.
+- ORB config: `configuration/orb/agent.yaml`
+- ORB agent: optional `orb-discovery` profile using `netboxlabs/orb-agent` in host networking mode.
+- Diode stack: `diode-auth`, `diode-ingester`, and `diode-reconciler` services.
 
 ## Device-Type Library
 
@@ -1865,7 +1922,7 @@ docker compose build
 ```
 
 This builds the custom NetBox plugin image used by `netbox`, `netbox-worker`, and
-`orb-agent`, and the geo-foss import sidecar image.
+the geo-foss import sidecar image.
 
 ### 3. Start the stack
 
@@ -1956,12 +2013,10 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
         output_dir / "configuration" / "traefik" / "dynamic.yml": render_traefik_dynamic_config(),
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
-        output_dir
-        / "configuration"
-        / "orb"
-        / "orchestration.yml": render_orb_orchestration_config(plan),
+        output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
         output_dir / "env" / "postgres.env": render_postgres_env(plan),
+        output_dir / "env" / "diode.env": render_diode_env(),
         output_dir / "env" / "orb.env": render_orb_env(),
         output_dir
         / "env"
@@ -1979,7 +2034,8 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         / "import-device-type-library.py": render_device_type_library_import_runner(),
         output_dir / "scripts" / "generate-traefik-cert.sh": render_traefik_cert_script(plan),
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
-        output_dir / "scripts" / "run-orb-agent.sh": render_orb_agent_script(),
+        output_dir / "scripts" / "run-diode-ingester.sh": render_diode_ingester_script(),
+        output_dir / "scripts" / "run-diode-reconciler.sh": render_diode_reconciler_script(),
         output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
         output_dir / "scripts" / "import-geo-data.py": render_geo_foss_import_runner(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",
@@ -2000,6 +2056,18 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         ),
         output_dir / "secrets" / "superuser_api_token.example": (
             "replace-with-a-bootstrap-api-token\n"
+        ),
+        output_dir / "secrets" / "diode_redis_password.example": (
+          "replace-with-a-strong-diode-redis-password\n"
+        ),
+        output_dir / "secrets" / "netbox_to_diode.example": (
+          "replace-with-the-netbox-to-diode-client-secret\n"
+        ),
+        output_dir / "secrets" / "diode_client_id.example": (
+          "netbox-to-diode\n"
+        ),
+        output_dir / "secrets" / "diode_client_secret.example": (
+          "replace-with-the-diode-client-secret-for-orb\n"
         ),
     }
 

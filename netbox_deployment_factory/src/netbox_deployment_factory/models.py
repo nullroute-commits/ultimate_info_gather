@@ -25,6 +25,7 @@ class HostProfile:
     logical_cores: int
     default_gateway: str | None
     nameservers: list[str]
+    service_ip: str = "127.0.0.1"
 
 
 @dataclass(slots=True)

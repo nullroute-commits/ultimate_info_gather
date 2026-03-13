@@ -114,7 +114,7 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(diode_plugin.enabled)
         self.assertEqual(diode_plugin.package_name, "netboxlabs-diode-netbox-plugin")
-        self.assertIn("companion Diode service", diode_plugin.rationale)
+        self.assertIn("Diode auth/ingester/reconciler", diode_plugin.rationale)
 
         self.assertTrue(config_diff_plugin.enabled)
         self.assertEqual(config_diff_plugin.package_name, "netbox-config-diff")
@@ -217,8 +217,9 @@ class PlannerTests(unittest.TestCase):
             plugins_file = output_dir / "configuration" / "plugins.py"
             traefik_dynamic_file = output_dir / "configuration" / "traefik" / "dynamic.yml"
             waf_conf_file = output_dir / "configuration" / "waf" / "default.conf"
-            orb_orchestration_file = output_dir / "configuration" / "orb" / "orchestration.yml"
+            orb_agent_config_file = output_dir / "configuration" / "orb" / "agent.yaml"
             orb_env_file = output_dir / "env" / "orb.env"
+            diode_env_file = output_dir / "env" / "diode.env"
             plan_file = output_dir / "deployment-plan.json"
             importer_file = output_dir / "scripts" / "run-device-type-library-import.sh"
             importer_runner_file = (
@@ -226,20 +227,23 @@ class PlannerTests(unittest.TestCase):
             )
             cert_script_file = output_dir / "scripts" / "generate-traefik-cert.sh"
             superuser_sync_script_file = output_dir / "scripts" / "sync-superuser.sh"
-            orb_agent_script_file = output_dir / "scripts" / "run-orb-agent.sh"
+            diode_ingester_script_file = output_dir / "scripts" / "run-diode-ingester.sh"
+            diode_reconciler_script_file = output_dir / "scripts" / "run-diode-reconciler.sh"
             api_token_pepper_file = output_dir / "secrets" / "api_token_pepper_1.example"
             self.assertTrue(compose_file.exists())
             self.assertTrue(plugins_file.exists())
             self.assertTrue(traefik_dynamic_file.exists())
             self.assertTrue(waf_conf_file.exists())
-            self.assertTrue(orb_orchestration_file.exists())
+            self.assertTrue(orb_agent_config_file.exists())
             self.assertTrue(orb_env_file.exists())
+            self.assertTrue(diode_env_file.exists())
             self.assertTrue(plan_file.exists())
             self.assertTrue(importer_file.exists())
             self.assertTrue(importer_runner_file.exists())
             self.assertTrue(cert_script_file.exists())
             self.assertTrue(superuser_sync_script_file.exists())
-            self.assertTrue(orb_agent_script_file.exists())
+            self.assertTrue(diode_ingester_script_file.exists())
+            self.assertTrue(diode_reconciler_script_file.exists())
             self.assertTrue(api_token_pepper_file.exists())
             rendered_plan = json.loads(plan_file.read_text(encoding="utf-8"))
             self.assertEqual(rendered_plan["images"]["track"], "debian")
@@ -250,15 +254,17 @@ class PlannerTests(unittest.TestCase):
             )
             traefik_dynamic_text = traefik_dynamic_file.read_text(encoding="utf-8")
             waf_conf_text = waf_conf_file.read_text(encoding="utf-8")
-            orb_orchestration_text = orb_orchestration_file.read_text(encoding="utf-8")
+            orb_agent_config_text = orb_agent_config_file.read_text(encoding="utf-8")
             orb_env_text = orb_env_file.read_text(encoding="utf-8")
+            diode_env_text = diode_env_file.read_text(encoding="utf-8")
             importer_text = importer_file.read_text(encoding="utf-8")
             importer_runner_text = importer_runner_file.read_text(
                 encoding="utf-8"
             )
             generated_readme_text = (output_dir / "README.md").read_text(encoding="utf-8")
             superuser_sync_text = superuser_sync_script_file.read_text(encoding="utf-8")
-            orb_agent_text = orb_agent_script_file.read_text(encoding="utf-8")
+            diode_ingester_text = diode_ingester_script_file.read_text(encoding="utf-8")
+            diode_reconciler_text = diode_reconciler_script_file.read_text(encoding="utf-8")
             self.assertIn("bootstrap", netbox_env)
             self.assertIn("DB_PASSWORD_FILE=/run/secrets/db_password", netbox_env)
             self.assertIn(
@@ -275,13 +281,22 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)
-            self.assertIn("diode:", compose_text)
-            self.assertIn("image: netboxlabs/diode-auth:latest", compose_text)
+            self.assertIn("diode-auth:", compose_text)
+            self.assertIn("diode-ingester:", compose_text)
+            self.assertIn("diode-reconciler:", compose_text)
+            self.assertIn("image: netboxlabs/diode-auth:1.12.0", compose_text)
+            self.assertIn('"127.0.0.1:18080:8080"', compose_text)
             self.assertIn("diode_target_override", plugins_text)
-            self.assertIn("grpc://diode:8080/diode", plugins_text)
-            self.assertNotIn('profiles: ["orb"]', compose_text)
-            self.assertIn("443:443", compose_text)
-            self.assertNotIn("8080:8080", compose_text)
+            self.assertIn("grpc://diode-auth:8080/diode", plugins_text)
+            self.assertIn('profiles: ["orb-discovery"]', compose_text)
+            self.assertIn('command: ["run", "-c", "/opt/orb/agent.yaml"]', compose_text)
+            # service_ip from fixture: eth0 (1000 Mbps) wins over eth1 (100 Mbps)
+            self.assertEqual(plan.host.service_ip, "10.0.0.50")
+            self.assertIn("10.0.0.50:443:443", compose_text)
+            self.assertIn("IP:10.0.0.50", cert_script_file.read_text(encoding="utf-8"))
+            self.assertIn("10.0.0.50", netbox_env)  # ALLOWED_HOSTS
+            self.assertIn("https://10.0.0.50", netbox_env)  # CSRF_TRUSTED_ORIGINS
+            self.assertNotIn('"8080:8080"', compose_text)
             self.assertIn("netbox-compress", traefik_dynamic_text)
             self.assertIn("proxy_pass http://netbox:8080", waf_conf_text)
             self.assertIn("CSRF_TRUSTED_ORIGINS=", netbox_env)
@@ -302,16 +317,28 @@ class PlannerTests(unittest.TestCase):
             py_compile.compile(str(importer_runner_file), doraise=True)
             self.assertIn('NB_SUPERUSER_NAME', superuser_sync_text)
             self.assertIn('get_or_create', superuser_sync_text)
-            self.assertIn('orchestration:', orb_orchestration_text)
-            self.assertIn('worker_services:', orb_orchestration_text)
-            self.assertIn('netbox:', orb_orchestration_text)
-            self.assertIn('netbox_plugins:', orb_orchestration_text)
-            self.assertIn('ORB_NETBOX_URL=http://netbox:8080', orb_env_text)
+            self.assertIn('config_manager:', orb_agent_config_text)
+            self.assertIn('network_discovery:', orb_agent_config_text)
+            self.assertIn('grpc://127.0.0.1:18080', orb_agent_config_text)
+            self.assertIn('client_id: netbox-to-diode', orb_agent_config_text)
+            self.assertIn('client_secret: replace-me', orb_agent_config_text)
+            self.assertIn('dry_run: true', orb_agent_config_text)
+            self.assertIn('scope:', orb_agent_config_text)
+            self.assertIn('targets:', orb_agent_config_text)
+            self.assertIn('10.0.0.0/8', orb_agent_config_text)
+            self.assertIn('172.16.0.0/12', orb_agent_config_text)
+            self.assertIn('192.168.0.0/16', orb_agent_config_text)
+            self.assertIn('DIODE_TARGET=grpc://127.0.0.1:18080', orb_env_text)
+            self.assertIn('REDIS_HOST=valkey', diode_env_text)
+            self.assertIn('REDIS_PASSWORD=replace-me', diode_env_text)
+            self.assertIn('POSTGRES_PASSWORD=replace-me', diode_env_text)
+            self.assertIn('DIODE_AUTH_TOKEN_URL=http://diode-auth:8080/token', diode_env_text)
+            self.assertIn('NETBOX_DIODE_PLUGIN_API_BASE_URL=', diode_env_text)
             self.assertIn(
-                'ORB_ORCHESTRATION_FILE=/etc/netbox/config/orb/orchestration.yml',
-                orb_env_text,
+                'REDIS_PASSWORD="$(cat /run/secrets/diode_redis_password)"',
+                diode_ingester_text,
             )
-            self.assertIn('/login/', orb_agent_text)
+            self.assertIn('DIODE_TO_NETBOX_CLIENT_SECRET', diode_reconciler_text)
             self.assertIn(
                 plan.host.hostname.strip(),
                 cert_script_file.read_text(encoding="utf-8"),
