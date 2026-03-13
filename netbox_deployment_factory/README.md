@@ -12,11 +12,11 @@ The generated bundle is opinionated:
 - Requested plugins are enabled in the generated deployment using upstream compatibility metadata.
 - The bootstrap superuser is pseudonymous and secret-file backed so the initial administrative identity is not tied to a human username.
 - The community device-type library is included as a separate pinned import workflow that uses the NetBox REST API for idempotent creation of manufacturers, device types (with component templates), module types, and rack types.
-- ORB sidecar orchestration metadata and readiness-gated container wiring are generated and deployed by default.
+- ORB Discovery is generated as an optional profile using the official `netboxlabs/orb-agent` image and an `agent.yaml` config.
 - A Traefik v3.2 reverse proxy terminates TLS at the edge and routes traffic through an OWASP ModSecurity CRS WAF sidecar before reaching NetBox.
 - Docker networks are scoped into isolated segments (edge, app, data, security) with explicit CIDR allocations sized for the required host counts.
 - Valkey replaces Redis as the cache and task-queue backend.
-- The Diode auth service (`netboxlabs/diode-auth`) is included in the data network.
+- Diode is deployed as `diode-auth`, `diode-ingester`, and `diode-reconciler` companion services.
 - Geographic data is imported as a three-tier Region hierarchy (continent → country → city) via a one-shot sidecar using the pynetbox REST API.
 
 ## Version Pins
@@ -28,7 +28,10 @@ The generated bundle is opinionated:
 - Traefik: `v3.2`
 - WAF: `owasp/modsecurity-crs:nginx` (OWASP Core Rule Set with nginx)
 - Valkey: pinned per lifecycle track (replaces Redis)
-- Diode auth: `netboxlabs/diode-auth:latest`
+- Diode auth: `netboxlabs/diode-auth:1.12.0`
+- Diode ingester: `netboxlabs/diode-ingester:1.13.0`
+- Diode reconciler: `netboxlabs/diode-reconciler:1.13.0`
+- ORB agent: `netboxlabs/orb-agent:2.7.0`
 - Topology plugin: `netbox-topology-views==4.5.0`
 - BGP plugin: `netbox-bgp==0.18.0`
 - DNS plugin: `netbox-plugin-dns==1.5.3`
@@ -183,16 +186,17 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 
 ## What Gets Generated
 
-- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode, workers, superuser sync, ORB agent, Wazuh agent, and profiled import sidecars
+- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, Wazuh agent, and profiled sidecars (ORB, imports)
 - `Dockerfile-Plugins` — custom NetBox image with plugin requirements and migrations
 - `Dockerfile-GeoFoss` — local build of the netbox-geo-foss import sidecar
 - `plugin_requirements.txt`
 - `configuration/plugins.py`
 - `configuration/traefik/dynamic.yml` — Traefik TLS certs and routes through the WAF
 - `configuration/waf/default.conf` — OWASP ModSecurity CRS nginx reverse proxy to NetBox
-- `configuration/orb/orchestration.yml` — ORB sidecar metadata and rollout order
+- `configuration/orb/agent.yaml` — ORB agent configuration
 - `env/netbox.env`
 - `env/postgres.env`
+- `env/diode.env`
 - `env/orb.env`
 - `env/device-type-library-import.env`
 - `env/geo-foss.env`
@@ -200,7 +204,8 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `scripts/sync-superuser.sh` — creates the pseudonymous superuser and writes the full v2 API token to `token-store`
 - `scripts/run-device-type-library-import.sh`
 - `scripts/import-device-type-library.py`
-- `scripts/run-orb-agent.sh`
+- `scripts/run-diode-ingester.sh`
+- `scripts/run-diode-reconciler.sh`
 - `scripts/run-geo-foss-import.sh` — reads the v2 token from `token-store` and launches the import
 - `scripts/import-geo-data.py` — pynetbox-based import of continents, countries, and cities as NetBox Regions
 - `secrets/*.example`
@@ -226,14 +231,14 @@ The generated deployment uses a pseudonymous bootstrap admin identity:
 - Credentials are expected only in local Docker secret files.
 - A dedicated `api_token_pepper_1` secret is generated so NetBox can issue v2 API tokens.
 - Database and bootstrap-admin secrets are separated into distinct files.
-- The superuser-sync service writes the full v2 token (`nbt_<key>.<plaintext>`) to a `token-store` volume so sidecar services (geo-foss, ORB) can authenticate without direct access to the raw secret.
+- The superuser-sync service writes the full v2 token (`nbt_<key>.<plaintext>`) to a `token-store` volume so sidecar services (geo-foss) can authenticate without direct access to the raw secret.
 - The import service runs as a separate one-shot workload, but the default generated wiring reuses the bootstrap secret set unless you override the import username.
 - The bootstrap account is intended only for first login, RBAC setup, and immediate rotation or disablement.
 
 Before the first `docker compose up -d`:
 
 1. Run `docker compose build` to build the local NetBox plugin image used by
-   `netbox`, `netbox-worker`, and `orb-agent`, and the geo-foss import image.
+  `netbox` and `netbox-worker`, and the geo-foss import image.
 2. Copy each file in `secrets/*.example` to the same path without the `.example`
    suffix and replace placeholder values with real secrets (see Step 4 in the
    Full Deployment Walkthrough above for concrete `openssl` commands).
@@ -252,8 +257,27 @@ Before the first `docker compose up -d`:
 - Docker networks are scoped into four isolated segments:
   - **edge**: Traefik and WAF only
   - **app**: WAF and NetBox only
-  - **data**: NetBox, Postgres, Valkey, Diode, workers, superuser sync, imports, ORB
+  - **data**: NetBox, Postgres, Valkey, diode-auth, diode-ingester, diode-reconciler, workers, superuser sync, imports, geo-foss
   - **security**: Wazuh agent
+
+## ORB Discovery Profile
+
+The generated ORB service is intentionally profile-gated because upstream Orb discovery requires host networking and elevated packet capabilities.
+
+Run ORB when needed:
+
+```bash
+docker compose --profile orb-discovery up -d orb-agent
+```
+
+Before running ORB, set Diode client credentials in `configuration/orb/agent.yaml` and keep ORB in dry-run mode unless your Diode auth path is verified:
+
+```bash
+client_id: netbox-to-diode
+client_secret: replace-me
+```
+
+The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`) and use `dry_run: true` in `configuration/orb/agent.yaml` to keep discovery stable when Diode auth endpoints are unavailable.
 - Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.96/28`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.

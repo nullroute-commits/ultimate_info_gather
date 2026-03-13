@@ -40,14 +40,14 @@ Compatibility evidence used from upstream metadata:
 
 ## ORB Orchestration
 
-The generated bundle includes an ORB sidecar service in the default Compose deployment:
+The generated bundle includes an ORB discovery profile using the official NetBox Labs Orb agent image:
 
 - Compose service: `orb-agent`
 - Env file: `env/orb.env`
-- Entrypoint script: `scripts/run-orb-agent.sh`
-- Metadata: `configuration/orb/orchestration.yml`
+- Config: `configuration/orb/agent.yaml`
+- Image: `netboxlabs/orb-agent:2.7.0`
 
-The sidecar waits for NetBox API readiness (`/api/status/`) using the secret-backed token file, records the generated orchestration metadata path, and then stays alive as a readiness-gated placeholder sidecar. This keeps orchestration flow NetBox-gated without changing NetBox core behavior while leaving room for future ORB polling logic.
+This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The generated default policy targets RFC1918 ranges and starts with `dry_run: true` for safer first boot behavior.
 
 ## Device-Type Library
 
@@ -63,7 +63,7 @@ Key features of the REST API importer:
 
 The repository generates an `api_token_pepper_1` secret alongside the bootstrap secrets so NetBox can mint and validate v2 API tokens. The superuser sync script creates a v2 token from the `superuser_api_token` secret file using Token.validate() for idempotent re-runs. The device-type importer authenticates with `Authorization: Bearer nbt_<key>.<plaintext>` format, where the key (HMAC digest) is read from the Token ORM and the plaintext comes from the mounted secret file.
 
-The superuser-sync service writes the full v2 token (`nbt_<key>.<plaintext>`) to a shared `token-store` volume so sidecar services (geo-foss, ORB) that depend on `netbox-superuser-sync` completion can read the assembled token without needing direct secret file access or knowledge of the v2 token format.
+The superuser-sync service writes the full v2 token (`nbt_<key>.<plaintext>`) to a shared `token-store` volume so sidecar services (geo-foss) that depend on `netbox-superuser-sync` completion can read the assembled token without needing direct secret file access or knowledge of the v2 token format.
 
 ## Geographic Data (netbox-geo-foss)
 
@@ -126,7 +126,8 @@ In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28`
 Services are placed on the minimum set of networks needed:
 - Traefik: `edge` + `app`
 - WAF: `app` + `data`
-- NetBox, workers, Postgres, Valkey, Diode, imports, ORB: `data`
+- NetBox, workers, Postgres, Valkey, Diode, imports: `data`
+- ORB: host networking mode (`network_mode: host`)
 - Wazuh agent: `security`
 
 ## Valkey
@@ -135,7 +136,15 @@ Valkey replaces Redis as the cache and task-queue backend. The generated compose
 
 ## Diode Auth
 
-The `diode` service runs `netboxlabs/diode-auth:latest` in the `data` network. It provides the Diode authentication layer for NetBox Labs integrations.
+Diode is deployed as three companion services in the `data` network:
+
+- `diode-auth` (`netboxlabs/diode-auth:1.12.0`)
+- `diode-ingester` (`netboxlabs/diode-ingester:1.13.0`)
+- `diode-reconciler` (`netboxlabs/diode-reconciler:1.13.0`)
+
+The generated bundle includes `env/diode.env` with runtime values used by `diode-auth`, `diode-ingester`, and `diode-reconciler`, including Redis/Postgres/Diode client settings required by shellless container images.
+
+Plugin configuration keeps `diode_target_override` pointed at `grpc://diode-auth:8080/diode` and sets `netbox_to_diode_client_secret_name` to `netbox_to_diode`, aligning with the upstream plugin's default secret lookup model.
 
 ## CI/CD Localization
 

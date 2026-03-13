@@ -9,6 +9,10 @@ NETBOX_DOCKER_WORKFLOW_VERSION = "4.0.1"
 ALPINE_RELEASE = "3.23.3"
 DEBIAN_RELEASE = "13.3 (Trixie)"
 NETBOX_IMAGE = f"netboxcommunity/netbox:v{NETBOX_VERSION}"
+ORB_AGENT_IMAGE = "netboxlabs/orb-agent:2.7.0"
+DIODE_AUTH_IMAGE = "netboxlabs/diode-auth:1.12.0"
+DIODE_INGESTER_IMAGE = "netboxlabs/diode-ingester:1.13.0"
+DIODE_RECONCILER_IMAGE = "netboxlabs/diode-reconciler:1.13.0"
 DEVICE_TYPE_LIBRARY_REPOSITORY = "https://github.com/netbox-community/devicetype-library.git"
 DEVICE_TYPE_LIBRARY_REF = "cf50cfe"
 
@@ -125,13 +129,16 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
         rationale=(
             "Official NetBox Labs Diode plugin. Upstream declares "
             "min_version='4.4.10' and max_version='4.5.99'. The generated "
-            "bundle includes a companion Diode service by default so the plugin "
-            "target can resolve on first start."
+            "bundle includes Diode auth/ingester/reconciler services by default "
+            "so the plugin target resolves and reconciliation APIs are available "
+            "on first start."
         ),
         config={
             "diode_username": "diode",
-            "diode_target_override": "grpc://diode:8080/diode",
+            "diode_target_override": "grpc://diode-auth:8080/diode",
             "secrets_path": "/run/secrets/",
+            "netbox_to_diode_client_id": "netbox-to-diode",
+            "netbox_to_diode_client_secret_name": "netbox_to_diode",
         },
     ),
     PluginSpec(
