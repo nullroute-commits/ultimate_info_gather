@@ -259,13 +259,8 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_healthy
     env_file:
       - env/diode.env
-    entrypoint: ["/bin/sh", "/opt/diode-scripts/run-diode-ingester.sh"]
-    secrets:
-      - diode_redis_password
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
-    volumes:
-      - ./scripts:/opt/diode-scripts:ro
     networks:
       - data
 
@@ -283,15 +278,8 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_healthy
     env_file:
       - env/diode.env
-    entrypoint: ["/bin/sh", "/opt/diode-scripts/run-diode-reconciler.sh"]
-    secrets:
-      - db_password
-      - diode_redis_password
-      - netbox_to_diode
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
-    volumes:
-      - ./scripts:/opt/diode-scripts:ro
     networks:
       - data
 
