@@ -20,6 +20,8 @@ The deployment bundle intentionally avoids binding the initial superuser to a re
 4. Rotate the bootstrap password and API token, or disable the account entirely.
 5. If the device-type library importer should not use the bootstrap account, point `NETBOX_IMPORT_USERNAME` or `NETBOX_IMPORT_USERNAME_FILE` at a dedicated NetBox user.
 
+For adjacent services, prefer a dedicated FOSS identity provider such as Authentik (or Keycloak/ZITADEL when those fit better), keep long-lived credentials in a password service such as Vaultwarden, and publish operator bookmarks or documents through a link/cloud layer such as Linkding and Nextcloud instead of overloading the bootstrap account with those duties.
+
 ## Why This Matches NetBox Labs Practice
 
 NetBox is meant to be an authoritative operational system. That makes change tracking, role separation, and secret hygiene important. A pseudonymous bootstrap admin reduces identity leakage during installation while still allowing the platform to be brought online safely.

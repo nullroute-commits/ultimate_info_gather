@@ -99,6 +99,18 @@ class GeoFossProfile:
 
 
 @dataclass(slots=True)
+class AdjacentServiceRecommendation:
+    """Recommended adjacent FOSS service for operator workflows."""
+
+    category: str
+    primary_solution: str
+    primary_url: str
+    rationale: str
+    alternatives: list[str]
+    integration_notes: str
+
+
+@dataclass(slots=True)
 class NetworkSegment:
     """A single scoped Docker network segment."""
 
@@ -130,6 +142,7 @@ class DeploymentPlan:
     admin_privacy: AdminPrivacyProfile
     device_type_library: DeviceTypeLibraryProfile
     geo_foss: GeoFossProfile
+    adjacent_services: list[AdjacentServiceRecommendation]
     warnings: list[str]
     notes: list[str]
 
