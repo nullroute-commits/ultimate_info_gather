@@ -63,8 +63,10 @@ class HardwareInfo:
 | `is_removable` | Removable media |
 | `partitions` | Partition list |
 | `mount_points` | Where mounted |
+| `filesystem` | Detected filesystem for mounted media |
 | `access_level` | R/W access |
 | `is_system_disk` | Contains OS |
+| `smart_status` | SMART health status when available |
 
 ## Network Interfaces
 
@@ -79,6 +81,8 @@ class HardwareInfo:
 | `is_virtual` | Virtual interface |
 | `speed_mbps` | Link speed |
 | `mtu` | MTU size |
+| `driver` | Kernel driver in use |
+| `access_level` | Access level for the interface device |
 
 ## GPU Information
 
@@ -94,6 +98,8 @@ Supports NVIDIA, AMD, and Intel GPUs:
 | `memory_used_bytes` | VRAM used |
 | `pci_bus_id` | PCI bus address |
 | `is_integrated` | Integrated GPU |
+| `compute_capability` | CUDA/compute capability when available |
+| `access_level` | Access level for the GPU device |
 
 ## Virtualization Detection
 
@@ -106,6 +112,15 @@ Detects virtual machine environments:
 | KVM/QEMU | DMI, cpuid |
 | Hyper-V | DMI, hypervisor flag |
 | Xen | DMI, xenfs |
+
+## System Board and Host Identity
+
+When the host exposes DMI data, the collector also records:
+
+- `system_board.manufacturer`, `product_name`, `version`, and `serial`
+- BIOS vendor, version, and release date
+- `machine_id` and `product_uuid`
+- `vm_type` in addition to the higher-level `is_virtual_machine` and `hypervisor`
 
 ## Usage Example
 

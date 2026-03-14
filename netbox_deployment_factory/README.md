@@ -32,6 +32,7 @@ The generated bundle is opinionated:
 - Diode ingester: `netboxlabs/diode-ingester:1.13.0`
 - Diode reconciler: `netboxlabs/diode-reconciler:1.13.0`
 - ORB agent: `netboxlabs/orb-agent:2.7.0`
+- Wazuh agent: `wazuh/wazuh-agent:4.14.3`
 - Topology plugin: `netbox-topology-views==4.5.0`
 - BGP plugin: `netbox-bgp==0.18.0`
 - DNS plugin: `netbox-plugin-dns==1.5.3`
@@ -184,9 +185,27 @@ docker compose -f docker-compose.ci.yml run --rm factory \
   --deployment-name netbox-deploy
 ```
 
+Additional planning flags exposed by the current CLI:
+
+```bash
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
+  --cidr-mode dynamic \
+  --edge-hosts 60 \
+  --app-hosts 30 \
+  --data-hosts 12 \
+  --security-hosts 8 \
+  --worker-containers 3
+```
+
+- `--cidr-mode {deterministic,dynamic}` selects fixed or host-capacity-based Docker subnet allocation.
+- `--edge-hosts`, `--app-hosts`, `--data-hosts`, and `--security-hosts` size each network segment when `--cidr-mode dynamic` is used.
+- `--worker-containers` overrides the host-derived number of NetBox worker containers.
+
 ## What Gets Generated
 
-- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, Wazuh agent, and profiled sidecars (ORB, imports)
+- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`)
 - `Dockerfile-Plugins` — custom NetBox image with plugin requirements and migrations
 - `Dockerfile-GeoFoss` — local build of the netbox-geo-foss import sidecar
 - `plugin_requirements.txt`

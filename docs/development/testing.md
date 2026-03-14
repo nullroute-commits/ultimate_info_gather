@@ -17,10 +17,14 @@ tests/
 
 ```bash
 # All tests
-pytest
+pytest --tb=short -q
 
 # With coverage
 pytest --cov=src --cov-report=html
+
+# Lint and type-check the root package
+ruff check src/ tests/ main.py
+mypy src/
 
 # Specific file
 pytest tests/test_environment.py
@@ -33,6 +37,20 @@ pytest -v
 
 # Show print output
 pytest -s
+```
+
+## Factory Validation
+
+The `netbox_deployment_factory/` package has its own localized validation flow:
+
+```bash
+cd netbox_deployment_factory
+export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
+
+docker compose -f docker-compose.ci.yml run --rm lint
+docker compose -f docker-compose.ci.yml run --rm typecheck
+docker compose -f docker-compose.ci.yml run --rm test
+docker compose -f docker-compose.ci.yml run --rm bundle
 ```
 
 ## Writing Tests

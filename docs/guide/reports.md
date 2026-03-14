@@ -20,6 +20,10 @@ class SystemReport:
     warnings: list[str]
 ```
 
+`SystemReport.to_dict()` always serializes the same top-level keys:
+`report_metadata`, `environment`, `permissions`, `hardware`, `network`, and
+`software`.
+
 ## Output Formats
 
 ### JSON Format
@@ -90,9 +94,9 @@ text_str = report.get_full_summary()
 ```
 
 Features:
-- ASCII formatting
-- Box drawing characters
-- Indented sections
+- ASCII banner separators
+- Per-section summaries from the collected models
+- Report metadata, errors, and warnings
 - Summary statistics
 
 ## Custom Report Generation

@@ -23,6 +23,9 @@ class NetworkInfo:
     listening_ports_count: int
 ```
 
+The serialized report also includes `collection_duration_ms`, `errors`, and
+`warnings` for the network collection phase.
+
 ## Network Interfaces
 
 Each interface includes extended information:
@@ -177,5 +180,6 @@ On embedded systems (e.g., OpenWrt), the network collector handles:
 - **Virtual interfaces**: Speed reading returns `null` for bridge (`br-*`), VPN (`wg*`, `tun*`), and VLAN interfaces — this is expected behavior
 - **Many interfaces**: Routers often have 10+ interfaces (eth, br-lan, wlan, wg)
 - **OpenWrt-specific**: UCI configuration is not parsed, but IP/route info from kernel is available
+- **Optional sysfs statistics**: missing or unsupported per-interface files are treated as non-fatal, so collection still succeeds on constrained or unusual kernels
 
 See [Embedded Systems Guide](embedded-systems.md) for more details.
