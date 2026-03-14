@@ -255,19 +255,19 @@ mkdocs serve
 ## Testing
 
 ```bash
-# Run tests
-pytest
+# Run the full root test suite
+pytest --tb=short -q
 
-# With coverage
+# With coverage details
 pytest --cov=src --cov-report=html
 
 # Type checking
 mypy src/
 
 # Linting
-ruff check src/
+ruff check src/ tests/ main.py
 ```
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+MIT License (declared in `pyproject.toml`).

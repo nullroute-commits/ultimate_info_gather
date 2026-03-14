@@ -213,7 +213,7 @@ python main.py -q
 | Flag | Long Form | Default | Description |
 |------|-----------|---------|-------------|
 | `-o` | `--output` | `./output` | Output directory for reports |
-| `-f` | `--formats` | `json markdown text` | Output format(s) to generate |
+| `-f` | `--format` | `json markdown text` | Output format(s) to generate |
 | `-v` | `--verbose` | off | Verbose output with full summary |
 | `-q` | `--quiet` | off | Quiet mode, suppresses progress output |
 
