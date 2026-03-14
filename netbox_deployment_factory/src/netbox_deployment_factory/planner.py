@@ -20,6 +20,7 @@ from .constants import (
     TRACK_IMAGE_DEFAULTS,
 )
 from .models import (
+    AdjacentServiceRecommendation,
     AdminPrivacyProfile,
     DeploymentPlan,
     DeviceTypeLibraryProfile,
@@ -210,6 +211,78 @@ def _derive_geo_foss_profile() -> GeoFossProfile:
     )
 
 
+def _derive_adjacent_services() -> list[AdjacentServiceRecommendation]:
+    return [
+        AdjacentServiceRecommendation(
+            category="identity provider",
+            primary_solution="Authentik",
+            primary_url="https://goauthentik.io/",
+            rationale=(
+                "Modern self-hosted OIDC/SAML identity provider with flexible "
+                "authentication flows that fits NetBox RBAC and reverse-proxy "
+                "fronted deployments."
+            ),
+            alternatives=[
+                "Keycloak for mature enterprise federation",
+                "ZITADEL for cloud-native and passwordless-first deployments",
+                "Authelia when forward-auth MFA is enough and a full IdP is not required",
+            ],
+            integration_notes=(
+                "Deploy externally and map directory or group claims into NetBox "
+                "RBAC after first-run bootstrap access is rotated."
+            ),
+        ),
+        AdjacentServiceRecommendation(
+            category="password service",
+            primary_solution="Vaultwarden",
+            primary_url="https://github.com/dani-garcia/vaultwarden",
+            rationale=(
+                "Lightweight Bitwarden-compatible password vault for operator, "
+                "service, and bootstrap secret management."
+            ),
+            alternatives=[
+                "Passbolt for browser-centric team password sharing",
+            ],
+            integration_notes=(
+                "Store NetBox bootstrap, database, Diode, and import credentials "
+                "there after initial secret-file generation."
+            ),
+        ),
+        AdjacentServiceRecommendation(
+            category="link service",
+            primary_solution="Linkding",
+            primary_url="https://github.com/sissbruecker/linkding",
+            rationale=(
+                "Simple self-hosted bookmark catalog for runbooks, vendor "
+                "documentation, and environment-specific NetBox references."
+            ),
+            alternatives=[
+                "Shlink when internal short URLs and click analytics are needed",
+            ],
+            integration_notes=(
+                "Publish operator URLs, change records, and site-specific "
+                "NetBox entry points behind the same reverse proxy."
+            ),
+        ),
+        AdjacentServiceRecommendation(
+            category="cloud service",
+            primary_solution="Nextcloud",
+            primary_url="https://nextcloud.com/",
+            rationale=(
+                "Self-hosted collaboration hub for files, notes, calendars, and "
+                "operator attachments that commonly accompany infrastructure data."
+            ),
+            alternatives=[
+                "Seafile when fast file sync matters more than broader groupware",
+            ],
+            integration_notes=(
+                "Keep large documents, diagrams, and evidence external to NetBox "
+                "while linking back to NetBox objects and exports."
+            ),
+        ),
+    ]
+
+
 def _select_plugins() -> list[PluginSpec]:
     return [copy.deepcopy(spec) for spec in DEFAULT_PLUGIN_SPECS]
 
@@ -378,8 +451,9 @@ def _collect_notes(track: str) -> list[str]:
         (
             "ORB is generated as an optional discovery profile using the "
             "official netboxlabs/orb-agent image and an agent.yaml config, "
-            "with host networking, RFC1918 targets, and diode client "
-            "credential placeholders in configuration/orb/agent.yaml."
+            "with host networking, a default @every 60m scan cadence, RFC1918 "
+            "targets, and diode client credential placeholders in "
+            "configuration/orb/agent.yaml."
         ),
         (
             "DNS management is provided by netbox-plugin-dns 1.5.3, which "
@@ -413,6 +487,12 @@ def _collect_notes(track: str) -> list[str]:
             "NetBox via the REST API. It runs as a profiled one-shot service "
             "after the device-type-library import and requires a GeoNames "
             "username and the bootstrap API token."
+        ),
+        (
+            "The generated plan now includes adjacent FOSS service "
+            "recommendations for identity, password, link, and cloud "
+            "workflows; deploy them beside the core stack rather than inside "
+            "the generated NetBox Compose bundle."
         ),
     ]
 
@@ -456,6 +536,7 @@ def build_plan(
         admin_privacy=_derive_admin_privacy(report),
         device_type_library=_derive_device_type_library_profile(),
         geo_foss=_derive_geo_foss_profile(),
+        adjacent_services=_derive_adjacent_services(),
         warnings=_collect_warnings(host),
         notes=_collect_notes(track),
     )

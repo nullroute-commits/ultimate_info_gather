@@ -271,6 +271,12 @@ class PlannerTests(unittest.TestCase):
                 "api_token_pepper_1",
                 rendered_plan["admin_privacy"]["bootstrap_secret_files"],
             )
+            self.assertEqual(
+                rendered_plan["adjacent_services"][0]["primary_solution"], "Authentik"
+            )
+            self.assertEqual(
+                rendered_plan["adjacent_services"][1]["primary_solution"], "Vaultwarden"
+            )
             self.assertIn("api_token_pepper_1:", compose_text)
             self.assertIn("condition: service_healthy", compose_text)
             self.assertIn("netbox-worker:", compose_text)
@@ -323,6 +329,8 @@ class PlannerTests(unittest.TestCase):
             self.assertIn('client_id: netbox-to-diode', orb_agent_config_text)
             self.assertIn('client_secret: replace-me', orb_agent_config_text)
             self.assertIn('dry_run: true', orb_agent_config_text)
+            self.assertIn('schedule: "@every 60m"', orb_agent_config_text)
+            self.assertNotIn('schedule: "@every 5m"', orb_agent_config_text)
             self.assertIn('scope:', orb_agent_config_text)
             self.assertIn('targets:', orb_agent_config_text)
             self.assertIn('10.0.0.0/8', orb_agent_config_text)
@@ -348,6 +356,12 @@ class PlannerTests(unittest.TestCase):
                 1,
             )
             self.assertIn("## First Start", generated_readme_text)
+            self.assertIn("## Recommended Adjacent FOSS Services", generated_readme_text)
+            self.assertIn("Authentik", generated_readme_text)
+            self.assertIn("Vaultwarden", generated_readme_text)
+            self.assertIn("Linkding", generated_readme_text)
+            self.assertIn("Nextcloud", generated_readme_text)
+            self.assertIn("@every 60m", generated_readme_text)
             self.assertIn("docker compose build", generated_readme_text)
             self.assertIn("Populate secrets", generated_readme_text)
             self.assertIn("openssl rand", generated_readme_text)

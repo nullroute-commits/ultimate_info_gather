@@ -47,7 +47,18 @@ The generated bundle includes an ORB discovery profile using the official NetBox
 - Config: `configuration/orb/agent.yaml`
 - Image: `netboxlabs/orb-agent:2.7.0`
 
-This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The generated default policy targets RFC1918 ranges and starts with `dry_run: true` for safer first boot behavior.
+This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The generated default policy targets RFC1918 ranges, uses `schedule: "@every 60m"` to reduce default scan churn, and starts with `dry_run: true` for safer first boot behavior.
+
+## Adjacent FOSS Services
+
+The deployment generator now records recommended adjacent services in the generated README and `deployment-plan.json` so operators can standardize the rest of the platform stack without bloating the core NetBox bundle:
+
+- **Identity provider**: Authentik preferred; Keycloak, ZITADEL, and Authelia called out as fit-specific alternatives.
+- **Password service**: Vaultwarden preferred; Passbolt as a collaborative alternative.
+- **Link service**: Linkding preferred; Shlink as the short-link alternative.
+- **Cloud service**: Nextcloud preferred; Seafile as the performance-oriented file-sync alternative.
+
+These are intentionally guidance-only integrations. The generator keeps them outside the bundled Compose stack and instead recommends deploying them beside NetBox behind the same reverse proxy and access-control model.
 
 ## Device-Type Library
 

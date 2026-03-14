@@ -742,7 +742,7 @@ def render_orb_agent_config() -> str:
     network_discovery:
       default:
         config:
-          schedule: "@every 5m"
+          schedule: "@every 60m"
         scope:
           targets:
             - 10.0.0.0/8
@@ -1814,6 +1814,16 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
     permission_lines = [
         f"- {permission}" for permission in plan.device_type_library.least_privilege_permissions
     ]
+    adjacent_service_sections = [
+        (
+            f"### {service.category.title()}\n\n"
+            f"- Primary: [{service.primary_solution}]({service.primary_url})\n"
+            f"- Why: {service.rationale}\n"
+            f"- Alternatives: {', '.join(service.alternatives)}\n"
+            f"- Integration: {service.integration_notes}"
+        )
+        for service in plan.adjacent_services
+    ]
 
     return f"""# Generated Deployment Plan
 
@@ -1866,6 +1876,7 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 - Worker containers: {max(1, plan.sizing.netbox_worker_containers)}
 - ORB config: `configuration/orb/agent.yaml`
+- ORB default schedule: `@every 60m`
 - ORB agent: optional `orb-discovery` profile using `netboxlabs/orb-agent` in host networking mode.
 - Diode stack: `diode-auth`, `diode-ingester`, and `diode-reconciler` services.
 
@@ -1887,6 +1898,10 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 - Ref: {plan.geo_foss.ref}
 - Import service: {plan.geo_foss.service_name}
 - Rationale: {plan.geo_foss.rationale}
+
+## Recommended Adjacent FOSS Services
+
+{chr(10).join(adjacent_service_sections)}
 
 ## Privacy Controls
 

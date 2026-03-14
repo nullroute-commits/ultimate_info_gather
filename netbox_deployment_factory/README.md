@@ -277,13 +277,24 @@ client_id: netbox-to-diode
 client_secret: replace-me
 ```
 
-The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`) and use `dry_run: true` in `configuration/orb/agent.yaml` to keep discovery stable when Diode auth endpoints are unavailable.
+The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 60m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
 - Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.96/28`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
 - The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.
 - The importer authenticates against the NetBox REST API using the v2 token from `secrets/superuser_api_token`. If stricter RBAC is required, create a dedicated NetBox user with DCIM add/view permissions and configure a separate token.
 - The geo-foss import sidecar reads its API token from the `token-store` volume rather than mounting the raw secret directly.
+
+## Recommended Adjacent FOSS Services
+
+The generator now emits adjacent-service recommendations into the generated deployment README and `deployment-plan.json`. These are intentionally guidance-only integrations: the core NetBox Compose bundle stays focused on NetBox, its data plane, and bundled import/Diode/ORB sidecars.
+
+- **Identity provider**: Prefer **Authentik** for self-hosted OIDC/SAML and flexible login flows. Evaluate **Keycloak** for mature enterprise federation, **ZITADEL** for cloud-native/passwordless-first deployments, and **Authelia** when forward-auth MFA is enough without a full IdP.
+- **Password service**: Prefer **Vaultwarden** as a lightweight Bitwarden-compatible vault for operator and bootstrap secrets. Evaluate **Passbolt** when browser-centric team password sharing is the priority.
+- **Link service**: Prefer **Linkding** for self-hosted bookmark and runbook curation. Evaluate **Shlink** when internal short URLs and click analytics are required.
+- **Cloud service**: Prefer **Nextcloud** for operator files, notes, calendars, and shared documentation. Evaluate **Seafile** when fast file synchronization matters more than broader groupware.
+
+Deploy these services adjacent to the generated NetBox stack behind the same reverse proxy and chosen identity provider, then link them operationally through NetBox RBAC, runbooks, and exported artifacts.
 
 ## Device-Type Library Import
 
