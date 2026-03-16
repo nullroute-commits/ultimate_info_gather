@@ -360,6 +360,31 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
+  diode-credential-setup:
+    image: {plan.deployment_name}:local
+    restart: "no"
+    depends_on:
+      netbox:
+        condition: service_healthy
+      netbox-superuser-sync:
+        condition: service_completed_successfully
+    env_file:
+      - env/netbox.env
+    secrets:
+      - db_password
+      - api_token_pepper_1
+      - secret_key
+      - netbox_to_diode
+    command: ["/bin/sh", "/opt/netbox/bootstrap/setup-diode-credential.sh"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./scripts:/opt/netbox/bootstrap:ro
+    networks:
+      - data
+
   {plan.device_type_library.import_service_name}:
     profiles: ["device-type-library-import"]
     image: {plan.deployment_name}:local
@@ -806,6 +831,53 @@ export POSTGRES_PASSWORD="$(cat /run/secrets/db_password)"
 export DIODE_TO_NETBOX_CLIENT_ID="netbox-to-diode"
 export DIODE_TO_NETBOX_CLIENT_SECRET="$(cat /run/secrets/netbox_to_diode)"
 exec /usr/local/bin/diode-server
+"""
+
+
+def render_diode_credential_setup_script() -> str:
+    """Render a one-shot script that creates a diode admin user and API token."""
+
+    return """#!/bin/sh
+set -eu
+
+DIODE_CLIENT_SECRET=""
+if [ -f /run/secrets/netbox_to_diode ]; then
+  DIODE_CLIENT_SECRET="$(cat /run/secrets/netbox_to_diode)"
+fi
+
+export DIODE_CLIENT_SECRET
+/opt/netbox/venv/bin/python -u /opt/netbox/netbox/manage.py shell <<'PY'
+from django.contrib.auth import get_user_model
+import os
+
+username = "diode"
+user_model = get_user_model()
+user, created = user_model.objects.get_or_create(
+  username=username,
+  defaults={"is_superuser": True, "is_active": True},
+)
+
+changed = created
+if not user.is_superuser:
+  user.is_superuser = True
+  changed = True
+if not user.is_active:
+  user.is_active = True
+  changed = True
+if changed:
+  user.save()
+
+print(f"diode-setup: user='{username}' created={created} changed={changed}")
+
+# Ensure an API token exists for the diode user
+from users.models import Token
+tokens = Token.objects.filter(user=user)
+if not tokens.exists():
+  token = Token.objects.create(user=user)
+  print(f"diode-setup: created API token key={token.key}")
+else:
+  print(f"diode-setup: API token already exists for '{username}'")
+PY
 """
 
 
@@ -1879,6 +1951,7 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 - ORB default schedule: `@every 60m`
 - ORB agent: optional `orb-discovery` profile using `netboxlabs/orb-agent` in host networking mode.
 - Diode stack: `diode-auth`, `diode-ingester`, and `diode-reconciler` services.
+- Diode credential setup: `diode-credential-setup` one-shot service auto-creates the `diode` admin user and API token after superuser sync.
 
 ## Device-Type Library
 
@@ -1956,6 +2029,10 @@ docker logs {plan.deployment_name}-netbox-1 --tail 20
 
 Once NetBox shows `(healthy)`, all dependent containers start automatically. If any
 remain in `Created` state, re-run `docker compose up -d`.
+
+The `diode-credential-setup` service runs automatically after the superuser sync and
+creates the `diode` admin user required by the Diode plugin. This is idempotent and
+runs on every stack start.
 
 ### 4. Access NetBox
 
@@ -2051,6 +2128,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "run-diode-ingester.sh": render_diode_ingester_script(),
         output_dir / "scripts" / "run-diode-reconciler.sh": render_diode_reconciler_script(),
+        output_dir / "scripts" / "setup-diode-credential.sh": render_diode_credential_setup_script(),
         output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
         output_dir / "scripts" / "import-geo-data.py": render_geo_foss_import_runner(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",

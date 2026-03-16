@@ -229,6 +229,7 @@ class PlannerTests(unittest.TestCase):
             superuser_sync_script_file = output_dir / "scripts" / "sync-superuser.sh"
             diode_ingester_script_file = output_dir / "scripts" / "run-diode-ingester.sh"
             diode_reconciler_script_file = output_dir / "scripts" / "run-diode-reconciler.sh"
+            diode_credential_setup_file = output_dir / "scripts" / "setup-diode-credential.sh"
             api_token_pepper_file = output_dir / "secrets" / "api_token_pepper_1.example"
             self.assertTrue(compose_file.exists())
             self.assertTrue(plugins_file.exists())
@@ -244,6 +245,7 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(superuser_sync_script_file.exists())
             self.assertTrue(diode_ingester_script_file.exists())
             self.assertTrue(diode_reconciler_script_file.exists())
+            self.assertTrue(diode_credential_setup_file.exists())
             self.assertTrue(api_token_pepper_file.exists())
             rendered_plan = json.loads(plan_file.read_text(encoding="utf-8"))
             self.assertEqual(rendered_plan["images"]["track"], "debian")
@@ -347,6 +349,12 @@ class PlannerTests(unittest.TestCase):
                 diode_ingester_text,
             )
             self.assertIn('DIODE_TO_NETBOX_CLIENT_SECRET', diode_reconciler_text)
+            # diode credential setup assertions
+            diode_credential_setup_text = diode_credential_setup_file.read_text(encoding="utf-8")
+            self.assertIn('diode', diode_credential_setup_text)
+            self.assertIn('get_or_create', diode_credential_setup_text)
+            self.assertIn('Token', diode_credential_setup_text)
+            self.assertIn('diode-credential-setup:', compose_text)
             self.assertIn(
                 plan.host.hostname.strip(),
                 cert_script_file.read_text(encoding="utf-8"),
