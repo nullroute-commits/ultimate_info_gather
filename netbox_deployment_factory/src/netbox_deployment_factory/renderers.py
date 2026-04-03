@@ -8,10 +8,20 @@ import re
 from pathlib import Path
 
 from .constants import (
+  CADVISOR_IMAGE,
   DIODE_AUTH_IMAGE,
   DIODE_INGESTER_IMAGE,
   DIODE_RECONCILER_IMAGE,
+  GRAFANA_IMAGE,
+  LOKI_IMAGE,
+  MONITORING_REF,
+  MONITORING_REPOSITORY,
+  NODE_EXPORTER_IMAGE,
   ORB_AGENT_IMAGE,
+  PROMETHEUS_IMAGE,
+  PROMTAIL_IMAGE,
+  SNMP_EXPORTER_IMAGE,
+  SYSLOG_NG_IMAGE,
 )
 from .models import DeploymentPlan
 
@@ -145,6 +155,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     app_cidr = _segment_cidr(plan, "app")
     data_cidr = _segment_cidr(plan, "data")
     security_cidr = _segment_cidr(plan, "security")
+    monitoring_cidr = _segment_cidr(plan, "monitoring")
 
     return f"""services:
   traefik-certgen:
@@ -470,6 +481,130 @@ def render_compose(plan: DeploymentPlan) -> str:
     volumes:
       - ./configuration/orb:/opt/orb:ro
 
+  monitoring-dashboard-init:
+    image: alpine:3.20
+    profiles: ["monitoring"]
+    restart: "no"
+    entrypoint: ["/bin/sh"]
+    command: ["/opt/scripts/fetch-monitoring-dashboards.sh", "/dashboards/performance_overview"]
+    volumes:
+      - grafana-dashboards:/dashboards
+      - ./scripts:/opt/scripts:ro
+    networks:
+      - monitoring
+
+  grafana:
+    image: {GRAFANA_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    depends_on:
+      monitoring-dashboard-init:
+        condition: service_completed_successfully
+    env_file:
+      - env/monitoring.env
+    ports:
+      - "{plan.host.service_ip}:3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - grafana-dashboards:/var/lib/grafana/dashboards:ro
+      - ./configuration/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - monitoring
+
+  prometheus:
+    image: {PROMETHEUS_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-admin-api
+      - --web.enable-lifecycle
+    volumes:
+      - prometheus-data:/prometheus
+      - ./configuration/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - monitoring
+      - data
+
+  loki:
+    image: {LOKI_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./configuration/monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+    networks:
+      - monitoring
+
+  promtail:
+    image: {PROMTAIL_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    ports:
+      - "{plan.host.service_ip}:1514:1514"
+    volumes:
+      - ./configuration/monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+    networks:
+      - monitoring
+
+  syslog-ng:
+    image: {SYSLOG_NG_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command: -edv
+    depends_on:
+      promtail:
+        condition: service_started
+    ports:
+      - "{plan.host.service_ip}:514:514/udp"
+      - "{plan.host.service_ip}:601:601"
+    volumes:
+      - ./configuration/monitoring/syslog-ng/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: {NODE_EXPORTER_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring
+
+  snmp-exporter:
+    image: {SNMP_EXPORTER_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  cadvisor:
+    image: {CADVISOR_IMAGE}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    networks:
+      - monitoring
+
 secrets:
   db_password:
     file: secrets/db_password
@@ -501,6 +636,9 @@ volumes:
   netbox-scripts:
   geo-foss-cache:
   token-store:
+  grafana-data:
+  grafana-dashboards:
+  prometheus-data:
 
 networks:
   edge:
@@ -523,6 +661,11 @@ networks:
     ipam:
       config:
         - subnet: {security_cidr}
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: {monitoring_cidr}
 """
 
 
@@ -1867,6 +2010,269 @@ if __name__ == "__main__":
 '''
 
 
+def render_prometheus_config() -> str:
+    """Render the Prometheus configuration."""
+
+    return """global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    origin_prometheus: netbox-stack
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: []
+
+rule_files: []
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['prometheus:9090']
+
+  - job_name: 'grafana'
+    static_configs:
+    - targets: ['grafana:3000']
+
+  - job_name: 'loki'
+    static_configs:
+    - targets: ['loki:3100']
+
+  - job_name: 'promtail'
+    static_configs:
+    - targets: ['promtail:9080']
+
+  - job_name: 'node-exporter'
+    static_configs:
+    - targets: ['node-exporter:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+    - targets: ['cadvisor:8080']
+"""
+
+
+def render_loki_config() -> str:
+    """Render the Loki configuration."""
+
+    return """auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  path_prefix: /tmp/loki
+  storage:
+    filesystem:
+      chunks_directory: /tmp/loki/chunks
+      rules_directory: /tmp/loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+query_scheduler:
+  max_outstanding_requests_per_tenant: 10000
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  max_query_series: 5000
+
+ruler:
+  alertmanager_url: http://localhost:9093
+
+analytics:
+  reporting_enabled: false
+"""
+
+
+def render_promtail_config() -> str:
+    """Render the Promtail configuration."""
+
+    return """server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+- job_name: syslog
+  syslog:
+    listen_address: 0.0.0.0:1514
+    idle_timeout: 60s
+    label_structured_data: yes
+    labels:
+      job: "syslog"
+  relabel_configs:
+    - source_labels: ['__syslog_message_hostname']
+      target_label: 'host'
+  pipeline_stages:
+  - match:
+      selector: '{job="syslog"}'
+      stages:
+      - regex:
+          expression: 'SRC=(?P<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)\\s+DST=(?P<dest_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)'
+      - labels:
+          src_ip:
+          dest_ip:
+"""
+
+
+def render_syslog_ng_config() -> str:
+    """Render the syslog-ng configuration."""
+
+    return """@version: 3.29
+@include "scl.conf"
+
+source s_local {
+\tinternal();
+};
+
+source s_network {
+\tdefault-network-drivers();
+};
+
+destination d_loki {
+\tsyslog("promtail" transport("tcp") port("1514"));
+};
+
+log {
+\tsource(s_local);
+\tsource(s_network);
+\tdestination(d_loki);
+};
+"""
+
+
+def render_grafana_prometheus_datasource() -> str:
+    """Render the Grafana Prometheus datasource provisioning."""
+
+    return """apiVersion: 1
+datasources:
+  -
+    access: proxy
+    basicAuth: false
+    name: Prometheus
+    type: prometheus
+    url: "http://prometheus:9090/"
+"""
+
+
+def render_grafana_loki_datasource() -> str:
+    """Render the Grafana Loki datasource provisioning."""
+
+    return """apiVersion: 1
+datasources:
+  -
+    access: proxy
+    basicAuth: false
+    jsonData:
+      maxLines: 1000
+    name: Loki
+    type: loki
+    url: "http://loki:3100/"
+"""
+
+
+def render_grafana_dashboard_provisioning() -> str:
+    """Render the Grafana dashboard provisioning configuration."""
+
+    return """apiVersion: 1
+
+providers:
+- name: 'PerformanceOverviewDashboards'
+  orgId: 1
+  folder: 'Performance Overview'
+  type: file
+  disableDeletion: false
+  editable: true
+  updateIntervalSeconds: 10
+  options:
+    path: /var/lib/grafana/dashboards/performance_overview
+"""
+
+
+def render_monitoring_env() -> str:
+    """Render environment variables for Grafana."""
+
+    return """GF_LOG_MODE=console file
+GF_ANALYTICS_REPORTING_ENABLED=false
+GF_ANALYTICS_CHECK_FOR_UPDATES=false
+GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+"""
+
+
+def render_fetch_monitoring_dashboards_script(plan: DeploymentPlan) -> str:
+    """Render a script that fetches Grafana dashboards from the pinned upstream repo."""
+
+    ref = plan.monitoring.ref
+    base_url = (
+        "https://raw.githubusercontent.com/"
+        f"nullroute-commits/enter-the-metrics/{ref}"
+        "/grafana/data/dashboards/performance_overview"
+    )
+
+    return f"""#!/bin/sh
+set -eu
+
+# Fetch Grafana performance overview dashboards from the pinned
+# enter-the-metrics repository ({plan.monitoring.repository} @ {ref}).
+# Dashboards are provisioned into Grafana via the dashboard provider
+# configuration in configuration/monitoring/grafana/provisioning/dashboards/.
+
+DASHBOARD_DIR="${{1:-configuration/monitoring/grafana/dashboards/performance_overview}}"
+mkdir -p "$DASHBOARD_DIR"
+
+BASE_URL="{base_url}"
+
+DASHBOARDS="
+performance_overview_docker.json
+performance_overview_grafana.json
+performance_overview_loki.json
+performance_overview_prometheus.json
+prometheus_node_exporter.json
+"
+
+for dashboard in $DASHBOARDS; do
+  echo "Fetching $dashboard ..."
+  if command -v wget >/dev/null 2>&1; then
+    wget -q -O "$DASHBOARD_DIR/$dashboard" "$BASE_URL/$dashboard"
+  elif command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$DASHBOARD_DIR/$dashboard" "$BASE_URL/$dashboard"
+  else
+    echo "ERROR: Neither wget nor curl is available" >&2
+    exit 1
+  fi
+done
+
+echo "Dashboards fetched to $DASHBOARD_DIR"
+"""
+
+
 def render_plan_json(plan: DeploymentPlan) -> str:
     """Render the plan as JSON."""
 
@@ -1972,6 +2378,21 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 - Import service: {plan.geo_foss.service_name}
 - Rationale: {plan.geo_foss.rationale}
 
+## Monitoring Stack (enter-the-metrics)
+
+- Profile: `monitoring`
+- Source: {plan.monitoring.repository} @ {plan.monitoring.ref}
+- Services: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, cAdvisor
+- Grafana: {plan.monitoring.grafana_image}
+- Prometheus: {plan.monitoring.prometheus_image}
+- Loki: {plan.monitoring.loki_image}
+- Promtail: {plan.monitoring.promtail_image}
+- syslog-ng: {plan.monitoring.syslog_ng_image}
+- node-exporter: {plan.monitoring.node_exporter_image}
+- snmp-exporter: {plan.monitoring.snmp_exporter_image}
+- cAdvisor: {plan.monitoring.cadvisor_image}
+- Rationale: {plan.monitoring.rationale}
+
 ## Recommended Adjacent FOSS Services
 
 {chr(10).join(adjacent_service_sections)}
@@ -2065,6 +2486,19 @@ Set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account for li
 API data. Without it, the import falls back to an embedded dataset of 64 countries
 and ~215 cities.
 
+### 7. Start the monitoring stack (optional)
+
+```bash
+./scripts/fetch-monitoring-dashboards.sh
+docker compose --profile monitoring up -d
+```
+
+The monitoring profile starts Grafana, Prometheus, Loki, Promtail, syslog-ng,
+node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once
+to download the Grafana performance overview dashboards from the pinned upstream
+repository. Grafana is then available at **http://localhost:3000** with the default
+`admin`/`admin` credentials.
+
 ## Native Import Workflow
 
 - The generated one-shot import service downloads the pinned device-type library archive.
@@ -2093,6 +2527,19 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
     (output_dir / "configuration" / "traefik").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "waf").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "orb").mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration" / "monitoring" / "prometheus").mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration" / "monitoring" / "loki").mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration" / "monitoring" / "promtail").mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration" / "monitoring" / "syslog-ng").mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration" / "monitoring" / "grafana" / "provisioning" / "datasources").mkdir(
+        parents=True, exist_ok=True
+    )
+    (output_dir / "configuration" / "monitoring" / "grafana" / "provisioning" / "dashboards").mkdir(
+        parents=True, exist_ok=True
+    )
+    (output_dir / "configuration" / "monitoring" / "grafana" / "dashboards" / "performance_overview").mkdir(
+        parents=True, exist_ok=True
+    )
     (output_dir / "env").mkdir(exist_ok=True)
     (output_dir / "secrets").mkdir(exist_ok=True)
     (output_dir / "scripts").mkdir(exist_ok=True)
@@ -2131,6 +2578,51 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "scripts" / "setup-diode-credential.sh": render_diode_credential_setup_script(),
         output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
         output_dir / "scripts" / "import-geo-data.py": render_geo_foss_import_runner(),
+        output_dir
+        / "scripts"
+        / "fetch-monitoring-dashboards.sh": render_fetch_monitoring_dashboards_script(plan),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "prometheus"
+        / "prometheus.yml": render_prometheus_config(),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "loki"
+        / "loki-config.yml": render_loki_config(),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "promtail"
+        / "promtail-config.yml": render_promtail_config(),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "syslog-ng"
+        / "syslog-ng.conf": render_syslog_ng_config(),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "grafana"
+        / "provisioning"
+        / "datasources"
+        / "prometheus.yml": render_grafana_prometheus_datasource(),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "grafana"
+        / "provisioning"
+        / "datasources"
+        / "loki.yml": render_grafana_loki_datasource(),
+        output_dir
+        / "configuration"
+        / "monitoring"
+        / "grafana"
+        / "provisioning"
+        / "dashboards"
+        / "performance_overview.yml": render_grafana_dashboard_provisioning(),
+        output_dir / "env" / "monitoring.env": render_monitoring_env(),
         output_dir / "secrets" / ".gitignore": "*\n!.gitignore\n!*.example\n",
         output_dir / "secrets" / "db_password.example": (
             "replace-with-a-strong-database-password\n"

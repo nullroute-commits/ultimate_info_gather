@@ -19,6 +19,18 @@ DEVICE_TYPE_LIBRARY_REF = "cf50cfe"
 GEO_FOSS_REPOSITORY = "https://github.com/nullroute-commits/netbox-geo-foss.git"
 GEO_FOSS_REF = "50c3c16"
 
+MONITORING_REPOSITORY = "https://github.com/nullroute-commits/enter-the-metrics.git"
+MONITORING_REF = "abb9825"
+
+GRAFANA_IMAGE = "grafana/grafana:11.4.0"
+PROMETHEUS_IMAGE = "prom/prometheus:v2.54.1"
+LOKI_IMAGE = "grafana/loki:3.2.1"
+PROMTAIL_IMAGE = "grafana/promtail:3.2.1"
+SYSLOG_NG_IMAGE = "balabit/syslog-ng:4.8.1"
+NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.8.2"
+SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.27.0"
+CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.51.0"
+
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {
         "postgres_image": "postgres:18-alpine",

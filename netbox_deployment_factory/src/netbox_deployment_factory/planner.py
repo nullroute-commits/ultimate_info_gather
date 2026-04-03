@@ -15,6 +15,16 @@ from .constants import (
     DEVICE_TYPE_LIBRARY_REPOSITORY,
     GEO_FOSS_REF,
     GEO_FOSS_REPOSITORY,
+    MONITORING_REF,
+    MONITORING_REPOSITORY,
+    CADVISOR_IMAGE,
+    GRAFANA_IMAGE,
+    LOKI_IMAGE,
+    NODE_EXPORTER_IMAGE,
+    PROMETHEUS_IMAGE,
+    PROMTAIL_IMAGE,
+    SNMP_EXPORTER_IMAGE,
+    SYSLOG_NG_IMAGE,
     NETBOX_DOCKER_WORKFLOW_VERSION,
     NETBOX_IMAGE,
     TRACK_IMAGE_DEFAULTS,
@@ -27,6 +37,7 @@ from .models import (
     GeoFossProfile,
     HostProfile,
     ImageSelection,
+    MonitoringProfile,
     NetworkProfile,
     NetworkSegment,
     PluginSpec,
@@ -211,6 +222,30 @@ def _derive_geo_foss_profile() -> GeoFossProfile:
     )
 
 
+def _derive_monitoring_profile() -> MonitoringProfile:
+    return MonitoringProfile(
+        repository=MONITORING_REPOSITORY,
+        ref=MONITORING_REF,
+        grafana_image=GRAFANA_IMAGE,
+        prometheus_image=PROMETHEUS_IMAGE,
+        loki_image=LOKI_IMAGE,
+        promtail_image=PROMTAIL_IMAGE,
+        syslog_ng_image=SYSLOG_NG_IMAGE,
+        node_exporter_image=NODE_EXPORTER_IMAGE,
+        snmp_exporter_image=SNMP_EXPORTER_IMAGE,
+        cadvisor_image=CADVISOR_IMAGE,
+        rationale=(
+            "Integrated monitoring stack based on "
+            "https://github.com/nullroute-commits/enter-the-metrics. "
+            "Provides Grafana dashboards, Prometheus metrics collection, "
+            "Loki log aggregation, Promtail log shipping, syslog-ng "
+            "forwarding, node_exporter host metrics, SNMP exporter, "
+            "and cAdvisor container metrics. All services are profiled "
+            "under the 'monitoring' Compose profile."
+        ),
+    )
+
+
 def _derive_adjacent_services() -> list[AdjacentServiceRecommendation]:
     return [
         AdjacentServiceRecommendation(
@@ -307,6 +342,7 @@ def _derive_network_profile(
         "app": 16,
         "data": 16,
         "security": 8,
+        "monitoring": 16,
     }
     requested = defaults | (required_hosts or {})
 
@@ -334,6 +370,11 @@ def _derive_network_profile(
                     cidr="172.30.0.96/28",
                     required_hosts=requested["security"],
                 ),
+                NetworkSegment(
+                    name="monitoring",
+                    cidr="172.30.0.112/27",
+                    required_hosts=requested["monitoring"],
+                ),
             ],
         )
 
@@ -345,7 +386,7 @@ def _derive_network_profile(
     cursor = base_start
     segments: list[NetworkSegment] = []
 
-    for name in ("edge", "app", "data", "security"):
+    for name in ("edge", "app", "data", "security", "monitoring"):
         prefix = _prefix_for_required_hosts(requested[name])
         block_size = 2 ** (32 - prefix)
 
@@ -482,6 +523,14 @@ def _collect_notes(track: str) -> list[str]:
             "workflow can be overridden to use a dedicated NetBox user."
         ),
         (
+            "A full monitoring stack (Grafana, Prometheus, Loki, Promtail, "
+            "syslog-ng, node_exporter, snmp_exporter, cAdvisor) is generated "
+            "as an optional 'monitoring' Compose profile based on "
+            "enter-the-metrics. Prometheus scrapes the NetBox data plane "
+            "and monitoring services; Grafana dashboards are provisioned "
+            "from the pinned upstream repository."
+        ),
+        (
             "The netbox-geo-foss companion service integrates open-source "
             "geographic data (GeoNames, Natural Earth, OpenStreetMap) into "
             "NetBox via the REST API. It runs as a profiled one-shot service "
@@ -536,6 +585,7 @@ def build_plan(
         admin_privacy=_derive_admin_privacy(report),
         device_type_library=_derive_device_type_library_profile(),
         geo_foss=_derive_geo_foss_profile(),
+        monitoring=_derive_monitoring_profile(),
         adjacent_services=_derive_adjacent_services(),
         warnings=_collect_warnings(host),
         notes=_collect_notes(track),
