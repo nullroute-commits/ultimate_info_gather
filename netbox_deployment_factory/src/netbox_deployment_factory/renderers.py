@@ -14,8 +14,6 @@ from .constants import (
   DIODE_RECONCILER_IMAGE,
   GRAFANA_IMAGE,
   LOKI_IMAGE,
-  MONITORING_REF,
-  MONITORING_REPOSITORY,
   NODE_EXPORTER_IMAGE,
   ORB_AGENT_IMAGE,
   PROMETHEUS_IMAGE,
@@ -2135,7 +2133,8 @@ scrape_configs:
       selector: '{job="syslog"}'
       stages:
       - regex:
-          expression: 'SRC=(?P<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)\\s+DST=(?P<dest_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)'
+          expression: >-
+            SRC=(?P<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)\\s+DST=(?P<dest_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)
       - labels:
           src_ip:
           dest_ip:
@@ -2531,15 +2530,11 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
     (output_dir / "configuration" / "monitoring" / "loki").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "promtail").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "syslog-ng").mkdir(parents=True, exist_ok=True)
-    (output_dir / "configuration" / "monitoring" / "grafana" / "provisioning" / "datasources").mkdir(
-        parents=True, exist_ok=True
-    )
-    (output_dir / "configuration" / "monitoring" / "grafana" / "provisioning" / "dashboards").mkdir(
-        parents=True, exist_ok=True
-    )
-    (output_dir / "configuration" / "monitoring" / "grafana" / "dashboards" / "performance_overview").mkdir(
-        parents=True, exist_ok=True
-    )
+    grafana_prov = output_dir / "configuration" / "monitoring" / "grafana" / "provisioning"
+    (grafana_prov / "datasources").mkdir(parents=True, exist_ok=True)
+    (grafana_prov / "dashboards").mkdir(parents=True, exist_ok=True)
+    grafana_dash = output_dir / "configuration" / "monitoring" / "grafana" / "dashboards"
+    (grafana_dash / "performance_overview").mkdir(parents=True, exist_ok=True)
     (output_dir / "env").mkdir(exist_ok=True)
     (output_dir / "secrets").mkdir(exist_ok=True)
     (output_dir / "scripts").mkdir(exist_ok=True)

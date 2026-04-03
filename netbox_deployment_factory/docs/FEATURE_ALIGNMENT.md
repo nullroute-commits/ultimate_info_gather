@@ -123,14 +123,15 @@ An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar betw
 
 ## Scoped Docker Networks
 
-The generated compose file defines four isolated bridge networks with explicit CIDR allocations:
+The generated compose file defines five isolated bridge networks with explicit CIDR allocations:
 
-| Network    | Purpose                                             | Deterministic CIDR    |
-|------------|-----------------------------------------------------|-----------------------|
-| `edge`     | Traefik ↔ WAF                                      | `172.30.0.0/27`       |
-| `app`      | WAF ↔ NetBox                                        | `172.30.0.32/27`      |
-| `data`     | NetBox, Postgres, Valkey, Diode, workers, imports   | `172.30.0.64/27`      |
-| `security` | Wazuh agent                                         | `172.30.0.96/28`      |
+| Network      | Purpose                                                   | Deterministic CIDR    |
+|--------------|-----------------------------------------------------------|-----------------------|
+| `edge`       | Traefik ↔ WAF                                            | `172.30.0.0/27`       |
+| `app`        | WAF ↔ NetBox                                              | `172.30.0.32/27`      |
+| `data`       | NetBox, Postgres, Valkey, Diode, workers, imports         | `172.30.0.64/27`      |
+| `security`   | Wazuh agent                                               | `172.30.0.96/28`      |
+| `monitoring` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters | `172.30.0.112/27`     |
 
 In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28` block from `172.30.0.0/24`. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
 
@@ -140,6 +141,7 @@ Services are placed on the minimum set of networks needed:
 - NetBox, workers, Postgres, Valkey, Diode, imports: `data`
 - ORB: host networking mode (`network_mode: host`)
 - Wazuh agent: `security`
+- Monitoring services: `monitoring` (Prometheus also joins `data` for scraping)
 
 ## Valkey
 
@@ -160,3 +162,53 @@ Plugin configuration keeps `diode_target_override` pointed at `grpc://diode-auth
 ## CI/CD Localization
 
 The repository localizes CI/CD into Docker. Local validation and GitHub Actions both use `docker compose -f docker-compose.ci.yml` so linting, type checking, tests, and sample bundle generation run inside the repository's CI image rather than relying on host Python tooling. Bundle artifacts are written back into the workspace under `.artifacts/` so the same containerized flow works locally and in CI.
+
+## Monitoring Stack (enter-the-metrics)
+
+The generated bundle includes a complete monitoring stack based on [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics), available as an optional `monitoring` Compose profile. The upstream repository (BSD-licensed) provides a Docker Compose-based metrics and log collection stack; the deployment factory adapts its service definitions, configuration files, and Grafana provisioning into the generated bundle.
+
+### Included Services
+
+| Service | Image | Purpose |
+|---|---|---|
+| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization with Prometheus and Loki datasources |
+| Prometheus | `prom/prometheus:v2.54.1` | Metrics collection and storage |
+| Loki | `grafana/loki:3.2.1` | Log aggregation |
+| Promtail | `grafana/promtail:3.2.1` | Log shipping agent (syslog → Loki) |
+| syslog-ng | `balabit/syslog-ng:4.8.1` | Syslog forwarding to Promtail |
+| node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics |
+| snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` | Docker container metrics |
+
+### Network Placement
+
+All monitoring services are placed on the `monitoring` network. Prometheus also joins the `data` network so it can scrape metrics from NetBox stack services (NetBox, Postgres, Valkey, Diode, workers). This follows the least-privilege principle: monitoring services cannot reach the edge or app networks.
+
+### Configuration Adaptation
+
+The upstream configuration files are adapted to the generated deployment:
+
+- **Prometheus**: Scrape targets reference Compose service names (e.g., `prometheus:9090`, `grafana:3000`, `cadvisor:8080`). Operators can add custom scrape targets for their own node-exporters and SNMP devices.
+- **Loki**: Filesystem-backed storage with embedded cache, analytics reporting disabled.
+- **Promtail**: Listens for syslog on port 1514 (TCP) with relabeling for hostname, source IP, and destination IP.
+- **syslog-ng**: Forwards all syslog sources (local + network) to Promtail via TCP 1514.
+- **Grafana**: Provisioned with Prometheus and Loki datasources and a dashboard provider pointing to the `performance_overview` directory.
+
+### Dashboard Provisioning
+
+The upstream repository includes five preconfigured Grafana dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter). These are large JSON files that are not embedded in the generator. Instead, a `scripts/fetch-monitoring-dashboards.sh` script is generated that downloads the dashboards from the pinned upstream repository commit (`abb9825`). The dashboards are placed in a shared Docker volume mounted by Grafana.
+
+### Why Profile-Gated
+
+The monitoring stack is optional because:
+1. Not all deployments need local monitoring (some organizations use centralized monitoring).
+2. cAdvisor and node-exporter require privileged access or host volume mounts.
+3. The monitoring services add significant resource overhead on small hosts.
+
+Operators enable the monitoring profile when they want self-contained observability alongside NetBox.
+
+### Source and License
+
+- Repository: https://github.com/nullroute-commits/enter-the-metrics
+- Pinned ref: `abb9825`
+- License: BSD (compatible with MIT)

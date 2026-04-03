@@ -18,6 +18,7 @@ The generated bundle is opinionated:
 - Valkey replaces Redis as the cache and task-queue backend.
 - Diode is deployed as `diode-auth`, `diode-ingester`, and `diode-reconciler` companion services.
 - Geographic data is imported as a three-tier Region hierarchy (continent → country → city) via a one-shot sidecar using the pynetbox REST API.
+- A complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is available as an optional `monitoring` Compose profile, based on the [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) project.
 
 ## Version Pins
 
@@ -41,6 +42,15 @@ The generated bundle is opinionated:
 - Inventory plugin: `netbox-inventory==2.5.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
+- Monitoring stack: based on `enter-the-metrics` pinned at commit `abb9825`
+  - Grafana: `grafana/grafana:11.4.0`
+  - Prometheus: `prom/prometheus:v2.54.1`
+  - Loki: `grafana/loki:3.2.1`
+  - Promtail: `grafana/promtail:3.2.1`
+  - syslog-ng: `balabit/syslog-ng:4.8.1`
+  - node-exporter: `prom/node-exporter:v1.8.2`
+  - snmp-exporter: `prom/snmp-exporter:v0.27.0`
+  - cAdvisor: `gcr.io/cadvisor/cadvisor:v0.51.0`
 
 ## Full Deployment Walkthrough
 
@@ -159,6 +169,19 @@ docker compose --profile geo-foss-import run --rm netbox-geo-foss
 
 Set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account for live API data. Without it, the import falls back to an embedded dataset of 64 countries and ~215 cities.
 
+### Step 10 — Start the monitoring stack (optional)
+
+```bash
+./scripts/fetch-monitoring-dashboards.sh
+docker compose --profile monitoring up -d
+```
+
+This starts the full monitoring stack: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once to download the Grafana performance overview dashboards from the pinned upstream repository.
+
+Grafana is available at **http://localhost:3000** with the default `admin`/`admin` credentials. Change the password on first login.
+
+Prometheus scrapes metrics from the monitoring services and NetBox stack services on the `data` network. To forward syslogs to syslog-ng, configure the source device to send to `<host-ip>:514` (UDP) or `<host-ip>:601` (TCP).
+
 ## Usage (Factory Only)
 
 The commands below are equivalent to Steps 2–3 above and are included for quick reference.
@@ -205,7 +228,7 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 
 ## What Gets Generated
 
-- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`)
+- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`, `monitoring`)
 - `Dockerfile-Plugins` — custom NetBox image with plugin requirements and migrations
 - `Dockerfile-GeoFoss` — local build of the netbox-geo-foss import sidecar
 - `plugin_requirements.txt`
@@ -213,12 +236,20 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `configuration/traefik/dynamic.yml` — Traefik TLS certs and routes through the WAF
 - `configuration/waf/default.conf` — OWASP ModSecurity CRS nginx reverse proxy to NetBox
 - `configuration/orb/agent.yaml` — ORB agent configuration
+- `configuration/monitoring/prometheus/prometheus.yml` — Prometheus scrape configuration
+- `configuration/monitoring/loki/loki-config.yml` — Loki log aggregation configuration
+- `configuration/monitoring/promtail/promtail-config.yml` — Promtail log agent configuration
+- `configuration/monitoring/syslog-ng/syslog-ng.conf` — syslog-ng forwarding configuration
+- `configuration/monitoring/grafana/provisioning/datasources/prometheus.yml` — Grafana Prometheus datasource
+- `configuration/monitoring/grafana/provisioning/datasources/loki.yml` — Grafana Loki datasource
+- `configuration/monitoring/grafana/provisioning/dashboards/performance_overview.yml` — Grafana dashboard provisioning
 - `env/netbox.env`
 - `env/postgres.env`
 - `env/diode.env`
 - `env/orb.env`
 - `env/device-type-library-import.env`
 - `env/geo-foss.env`
+- `env/monitoring.env` — Grafana environment variables
 - `scripts/generate-traefik-cert.sh` — self-signed TLS cert with SAN entries for localhost, hostname, and internal names
 - `scripts/sync-superuser.sh` — creates the pseudonymous superuser and writes the full v2 API token to `token-store`
 - `scripts/run-device-type-library-import.sh`
@@ -227,6 +258,7 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `scripts/run-diode-reconciler.sh`
 - `scripts/run-geo-foss-import.sh` — reads the v2 token from `token-store` and launches the import
 - `scripts/import-geo-data.py` — pynetbox-based import of continents, countries, and cities as NetBox Regions
+- `scripts/fetch-monitoring-dashboards.sh` — downloads Grafana dashboards from pinned upstream repository
 - `secrets/*.example`
 - `deployment-plan.json`
 - `README.md` summarizing the generated bundle
@@ -273,11 +305,12 @@ Before the first `docker compose up -d`:
 
 - Traefik is the only service with a published host port (443). All other services communicate over internal Docker networks.
 - The OWASP ModSecurity CRS WAF inspects HTTP traffic before it reaches NetBox, blocking common web attacks.
-- Docker networks are scoped into four isolated segments:
+- Docker networks are scoped into five isolated segments:
   - **edge**: Traefik and WAF only
   - **app**: WAF and NetBox only
-  - **data**: NetBox, Postgres, Valkey, diode-auth, diode-ingester, diode-reconciler, workers, superuser sync, imports, geo-foss
+  - **data**: NetBox, Postgres, Valkey, diode-auth, diode-ingester, diode-reconciler, workers, superuser sync, imports, geo-foss, Prometheus (for scraping)
   - **security**: Wazuh agent
+  - **monitoring**: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, cAdvisor
 
 ## ORB Discovery Profile
 
@@ -297,7 +330,7 @@ client_secret: replace-me
 ```
 
 The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 60m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
-- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.96/28`; dynamic mode allocates from `172.31.0.0/16`).
+- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.112/27`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
 - The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.
@@ -350,6 +383,32 @@ The import creates:
 Country and city data is fetched from the GeoNames API when available. When the GeoNames API is unavailable or rate-limited, the import falls back to an embedded dataset of 64 countries and ~215 cities.
 
 Before running, set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account username. Downloaded geographic datasets are cached in the `geo-foss-cache` volume. The geo-foss service depends on `netbox-superuser-sync` having completed so the v2 API token is available in the `token-store` volume.
+
+## Monitoring Stack
+
+The generated bundle includes an optional monitoring stack based on [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics), profiled under `monitoring`. It provides:
+
+- **Grafana**: Dashboard visualization sourcing data from Prometheus and Loki
+- **Prometheus**: Metrics collection with scrape targets for Grafana, Loki, Promtail, node-exporter, and cAdvisor
+- **Loki**: Log aggregation
+- **Promtail**: Log agent that ships logs to Loki
+- **syslog-ng**: Syslog forwarder that sends logs to Promtail
+- **node-exporter**: Exposes host system metrics (CPU, memory, network, disk) to Prometheus
+- **snmp-exporter**: Forwards SNMP traffic from network devices to Prometheus
+- **cAdvisor**: Sends Docker container metrics to Prometheus
+
+Start the monitoring stack:
+
+```bash
+./scripts/fetch-monitoring-dashboards.sh
+docker compose --profile monitoring up -d
+```
+
+The dashboard fetch script downloads five preconfigured Grafana performance overview dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter) from the pinned upstream repository. Grafana is available at **http://localhost:3000** with default credentials `admin`/`admin`.
+
+All monitoring services run on the isolated `monitoring` Docker network. Prometheus also joins the `data` network so it can scrape metrics from NetBox stack services. To add custom Prometheus scrape targets, edit `configuration/monitoring/prometheus/prometheus.yml`. To configure SNMP monitoring, add your device targets to the Prometheus config and set the appropriate community string in the snmp-exporter configuration.
+
+To forward syslogs, configure the source device to send to the host IP on port 514 (UDP) or 601 (TCP).
 
 ## Validation
 
