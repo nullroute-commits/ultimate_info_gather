@@ -34,8 +34,8 @@ class TestFilesystemOperations:
     @pytest.mark.asyncio
     async def test_available_space_windows(self):
         """Test disk space detection on Windows."""
-        with patch('install_github_copilot.platform.system', return_value='Windows'):
-            with patch('install_github_copilot.shutil.disk_usage') as mock_disk:
+        with patch('install_github_copilot.platform.system', return_value='Windows'), \
+             patch('install_github_copilot.shutil.disk_usage') as mock_disk:
                 mock_disk.return_value = MagicMock(free=100 * 1024 * 1024 * 1024)  # 100GB
                 space = await DeviceCapabilityDetector._get_available_space()
                 # Should have called disk_usage with SystemDrive on Windows
@@ -44,8 +44,8 @@ class TestFilesystemOperations:
     @pytest.mark.asyncio
     async def test_available_space_linux(self):
         """Test disk space detection on Linux."""
-        with patch('install_github_copilot.platform.system', return_value='Linux'):
-            with patch('install_github_copilot.shutil.disk_usage') as mock_disk:
+        with patch('install_github_copilot.platform.system', return_value='Linux'), \
+             patch('install_github_copilot.shutil.disk_usage') as mock_disk:
                 mock_disk.return_value = MagicMock(free=50 * 1024 * 1024 * 1024)  # 50GB
                 space = await DeviceCapabilityDetector._get_available_space()
                 # Should have called disk_usage with / on Linux
@@ -74,8 +74,8 @@ class TestFilesystemOperations:
         installer = GitHubCopilotInstaller(caps)
 
         # On OpenWrt, should prefer /var/tmp if it has space
-        with patch('install_github_copilot.Path.exists', return_value=True):
-            with patch('install_github_copilot.shutil.disk_usage') as mock_disk:
+        with patch('install_github_copilot.Path.exists', return_value=True), \
+             patch('install_github_copilot.shutil.disk_usage') as mock_disk:
                 # /var/tmp has good space
                 mock_disk.return_value = MagicMock(free=100 * 1024 * 1024)  # 100MB
                 temp_dir = installer._get_temp_dir()

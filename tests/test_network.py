@@ -3,7 +3,6 @@ Tests for the network collector with intensive in-depth network capabilities.
 """
 
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
 
 import pytest
 

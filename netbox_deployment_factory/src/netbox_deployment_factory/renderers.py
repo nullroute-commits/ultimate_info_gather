@@ -2363,7 +2363,8 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 - ORB default schedule: `@every 60m`
 - ORB agent: optional `orb-discovery` profile using `netboxlabs/orb-agent` in host networking mode.
 - Diode stack: `diode-auth`, `diode-ingester`, and `diode-reconciler` services.
-- Diode credential setup: `diode-credential-setup` one-shot service auto-creates the `diode` admin user and API token after superuser sync.
+- Diode credential setup: `diode-credential-setup` one-shot service
+  auto-creates the `diode` admin user and API token after superuser sync.
 
 ## Device-Type Library
 
@@ -2577,7 +2578,9 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "run-diode-ingester.sh": render_diode_ingester_script(),
         output_dir / "scripts" / "run-diode-reconciler.sh": render_diode_reconciler_script(),
-        output_dir / "scripts" / "setup-diode-credential.sh": render_diode_credential_setup_script(),
+        output_dir / "scripts" / "setup-diode-credential.sh": (
+            render_diode_credential_setup_script()
+        ),
         output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
         output_dir / "scripts" / "import-geo-data.py": render_geo_foss_import_runner(),
         output_dir

@@ -94,7 +94,7 @@ async def test_opkg_in_package_managers_list():
     collector = SoftwareCollector()
 
     # Mock which command to return success for opkg
-    async def mock_run_command(cmd, timeout):
+    async def mock_run_command(cmd, timeout):  # noqa: ARG001
         if cmd[0] == 'which' and cmd[1] == 'opkg':
             return (0, '/usr/bin/opkg', '')
         return (-1, '', 'not found')
@@ -117,7 +117,7 @@ async def test_network_speed_read_error_handling():
          patch.object(collector, '_get_ip_addresses', return_value=([], [])):
 
         # Mock the file reads for network interface
-        def mock_read_side_effect(path, silent_if_missing=False):
+        def mock_read_side_effect(path, silent_if_missing=False):  # noqa: ARG001
             if 'address' in path:
                 return '00:00:00:00:00:00'
             elif 'operstate' in path:
@@ -131,7 +131,7 @@ async def test_network_speed_read_error_handling():
 
         mock_read.side_effect = mock_read_side_effect
 
-        interfaces = await collector._get_network_interfaces()
+        await collector._get_network_interfaces()
 
         # Should not have warnings about speed reading for virtual interfaces
         # The speed file read should have been called with silent_if_missing=True
