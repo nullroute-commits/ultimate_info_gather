@@ -47,7 +47,7 @@ The generated bundle is opinionated:
   - Prometheus: `prom/prometheus:v2.54.1`
   - Loki: `grafana/loki:3.2.1`
   - Promtail: `grafana/promtail:3.2.1`
-  - syslog-ng: `balabit/syslog-ng:4.8.1`
+  - syslog-ng: `balabit/syslog-ng:4.11.0`
   - node-exporter: `prom/node-exporter:v1.8.2`
   - snmp-exporter: `prom/snmp-exporter:v0.27.0`
   - cAdvisor: `gcr.io/cadvisor/cadvisor:v0.51.0`
@@ -330,7 +330,7 @@ client_secret: replace-me
 ```
 
 The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 60m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
-- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.112/27`; dynamic mode allocates from `172.31.0.0/16`).
+- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.128/27`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
 - The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.

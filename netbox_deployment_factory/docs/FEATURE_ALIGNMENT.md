@@ -131,7 +131,7 @@ The generated compose file defines five isolated bridge networks with explicit C
 | `app`        | WAF ↔ NetBox                                              | `172.30.0.32/27`      |
 | `data`       | NetBox, Postgres, Valkey, Diode, workers, imports         | `172.30.0.64/27`      |
 | `security`   | Wazuh agent                                               | `172.30.0.96/28`      |
-| `monitoring` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters | `172.30.0.112/27`     |
+| `monitoring` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters | `172.30.0.128/27`     |
 
 In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28` block from `172.30.0.0/24`. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
 
@@ -175,7 +175,7 @@ The generated bundle includes a complete monitoring stack based on [enter-the-me
 | Prometheus | `prom/prometheus:v2.54.1` | Metrics collection and storage |
 | Loki | `grafana/loki:3.2.1` | Log aggregation |
 | Promtail | `grafana/promtail:3.2.1` | Log shipping agent (syslog → Loki) |
-| syslog-ng | `balabit/syslog-ng:4.8.1` | Syslog forwarding to Promtail |
+| syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding to Promtail |
 | node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics |
 | snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
 | cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` | Docker container metrics |
