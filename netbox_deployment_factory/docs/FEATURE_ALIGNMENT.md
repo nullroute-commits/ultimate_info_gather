@@ -99,6 +99,30 @@ Key integration details:
 - Persists downloaded geographic data in a `geo-foss-cache` volume to avoid re-downloading across runs
 - Runs with dropped capabilities and `no-new-privileges`
 
+## TLS Termination
+
+The generated bundle supports two TLS termination modes for the Traefik reverse proxy:
+
+### Self-Signed (default)
+
+When no `--fqdn` is provided, the factory generates a `traefik-certgen` init container and `scripts/generate-traefik-cert.sh` that creates a self-signed certificate with SAN entries for the host IP, `localhost`, and internal service names. The certificate is stored in a `traefik-certs` Docker volume and referenced statically in `configuration/traefik/dynamic.yml`. This mode requires no external dependencies and is suitable for development, lab, and air-gapped environments.
+
+### Let's Encrypt ACME (DNS-01 Cloudflare)
+
+When the factory is invoked with `--fqdn <domain>` and `--acme-email <email>`, the generated bundle switches to automated certificate management via Let's Encrypt:
+
+- The `traefik-certgen` init container and self-signed cert script are omitted.
+- Traefik is configured with ACME DNS-01 challenge using the Cloudflare provider (`CF_DNS_API_TOKEN_FILE` from a Docker secret).
+- Port 80 is published with an automatic HTTP→HTTPS redirect.
+- An `acme-data` volume persists the ACME account key and certificates.
+- `configuration/traefik/dynamic.yml` uses `certResolver: letsencrypt` on routers with the FQDN as the main domain, replacing static certificate references.
+- `env/netbox.env` includes the FQDN in `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`.
+- `secrets/cf_dns_api_token.example` is generated instead of the cert generation script.
+
+This mode is appropriate for production deployments where a trusted TLS certificate is required. The operator must provide a Cloudflare API token with `Zone:DNS:Edit` permission for the zone containing the FQDN.
+
+The TLS mode is determined at plan time by `_derive_tls_profile()` in the planner and stored as a `TlsProfile` dataclass on the `DeploymentPlan`. The renderer conditionally emits the appropriate Compose services, Traefik configuration, environment variables, scripts, and secrets based on `plan.tls.mode`.
+
 ## Traefik Reverse Proxy
 
 The generated bundle places a Traefik v3.2 reverse proxy at the edge of the deployment:

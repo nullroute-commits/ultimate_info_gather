@@ -59,6 +59,19 @@ def render_plugins_py(plan: DeploymentPlan) -> str:
     )
 
 
+def render_netbox_extra_py() -> str:
+    """Render NetBox settings overrides for reverse-proxy authentication."""
+
+    return '''"""Generated NetBox authentication overrides."""
+
+REMOTE_AUTH_ENABLED = True
+REMOTE_AUTH_BACKEND = "netbox.authentication.RemoteUserBackend"
+REMOTE_AUTH_HEADER = "HTTP_X_AUTHENTIK_USERNAME"
+REMOTE_AUTH_USER_EMAIL = "HTTP_X_AUTHENTIK_EMAIL"
+REMOTE_AUTH_AUTO_CREATE_USER = True
+'''
+
+
 def render_dockerfile_plugins(plan: DeploymentPlan) -> str:
     """Render the plugin image Dockerfile."""
 
@@ -70,6 +83,7 @@ RUN /usr/local/bin/uv pip install \
   --python /opt/netbox/venv/bin/python \
   -r /opt/netbox/plugin_requirements.txt
 
+COPY configuration/extra.py /etc/netbox/config/extra.py
 COPY configuration/plugins.py /etc/netbox/config/plugins.py
 RUN mkdir -p /opt/netbox/netbox/static/netbox_topology_views/img
 RUN SECRET_KEY=dummydummydummydummydummydummydummydummydummydummy \\
@@ -88,6 +102,24 @@ def _render_netbox_healthcheck_command() -> str:
         "response = urlopen('http://127.0.0.1:8080/login/', timeout=10); "
         "sys.exit(0 if response.status == 200 else 1)"
     )
+
+
+def _resolve_public_host(plan: DeploymentPlan) -> str:
+  if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
+    return plan.tls.fqdn
+  if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
+    return plan.host.service_ip
+  hostname = plan.host.hostname.strip()
+  if hostname and re.fullmatch(
+    r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*",
+    hostname,
+  ):
+    return hostname
+  return "localhost"
+
+
+def _render_netbox_public_base_url(plan: DeploymentPlan) -> str:
+  return f"https://{_resolve_public_host(plan)}"
 
 
 def _segment_cidr(plan: DeploymentPlan, name: str) -> str:
@@ -154,9 +186,41 @@ def render_compose(plan: DeploymentPlan) -> str:
     data_cidr = _segment_cidr(plan, "data")
     security_cidr = _segment_cidr(plan, "security")
     monitoring_cidr = _segment_cidr(plan, "monitoring")
+    identity_cidr = _segment_cidr(plan, "identity")
 
-    return f"""services:
-  traefik-certgen:
+    use_le = plan.tls.mode == "letsencrypt" and plan.tls.fqdn
+
+    if use_le:
+        certgen_block = ""
+        traefik_depends = """    depends_on:
+      waf:
+        condition: service_started"""
+        traefik_command = f"""    command:
+      - --api.dashboard=false
+      - --ping=true
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email={plan.tls.acme_email}
+      - --certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --log.level=INFO"""
+        traefik_ports = f"""    ports:
+      - "{plan.host.service_ip}:80:80"
+      - "{plan.host.service_ip}:443:443" """
+        traefik_volumes = """    volumes:
+      - acme-data:/acme
+      - ./configuration/traefik:/etc/traefik/dynamic:ro"""
+        traefik_env = """    secrets:
+      - cf_dns_api_token
+    environment:
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token"""
+    else:
+        certgen_block = """  traefik-certgen:
     image: alpine/openssl:latest
     restart: "no"
     entrypoint: ["/bin/sh"]
@@ -167,25 +231,34 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - edge
 
-  traefik:
-    image: traefik:v3.2
-    restart: unless-stopped
-    depends_on:
+"""
+        traefik_depends = """    depends_on:
       traefik-certgen:
         condition: service_completed_successfully
       waf:
-        condition: service_started
-    command:
+        condition: service_started"""
+        traefik_command = """    command:
       - --api.dashboard=false
       - --ping=true
       - --providers.file.directory=/etc/traefik/dynamic
       - --entrypoints.websecure.address=:443
-      - --log.level=INFO
-    ports:
-      - "{plan.host.service_ip}:443:443"
-    volumes:
+      - --log.level=INFO"""
+        traefik_ports = f"""    ports:
+      - "{plan.host.service_ip}:443:443" """
+        traefik_volumes = """    volumes:
       - traefik-certs:/certs:ro
-      - ./configuration/traefik:/etc/traefik/dynamic:ro
+      - ./configuration/traefik:/etc/traefik/dynamic:ro"""
+        traefik_env = ""
+
+    return f"""services:
+{certgen_block}  traefik:
+    image: traefik:v3.2
+    restart: unless-stopped
+{traefik_depends}
+{traefik_command}
+{traefik_ports}
+{traefik_volumes}
+{traefik_env}
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/ping"]
       interval: 15s
@@ -194,6 +267,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - edge
       - app
+      - identity
 
   waf:
     image: owasp/modsecurity-crs:nginx
@@ -253,12 +327,16 @@ def render_compose(plan: DeploymentPlan) -> str:
   diode-auth:
     image: {DIODE_AUTH_IMAGE}
     restart: unless-stopped
+    depends_on:
+      hydra:
+        condition: service_healthy
     env_file:
       - env/diode.env
     ports:
       - "127.0.0.1:18080:8080"
     networks:
       - data
+      - identity
 
   diode-ingester:
     image: {DIODE_INGESTER_IMAGE}
@@ -603,6 +681,225 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - monitoring
 
+  # ═══════════════════════════════════════════════════════════════════════
+  # Identity Provider: Authentik
+  # ═══════════════════════════════════════════════════════════════════════
+
+  authentik-postgres:
+    image: postgres:16-alpine
+    profiles: ["identity"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD_FILE: /run/secrets/authentik_pg_password
+    secrets:
+      - authentik_pg_password
+    volumes:
+      - authentik-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    cap_drop: ["ALL"]
+    cap_add: ["DAC_OVERRIDE", "CHOWN", "FOWNER", "SETUID", "SETGID"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - identity
+
+  authentik-server:
+    image: {plan.identity.authentik_image}
+    profiles: ["identity"]
+    command: server
+    restart: unless-stopped
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+    env_file:
+      - env/authentik.env
+    secrets:
+      - authentik_secret_key
+      - authentik_pg_password
+    shm_size: 512mb
+    volumes:
+      - authentik-data:/data
+    healthcheck:
+      test: ["CMD", "ak", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    cap_drop: ["ALL"]
+    cap_add: ["NET_BIND_SERVICE"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - identity
+      - app
+
+  authentik-worker:
+    image: {plan.identity.authentik_image}
+    profiles: ["identity"]
+    command: worker
+    restart: unless-stopped
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+    env_file:
+      - env/authentik.env
+    secrets:
+      - authentik_secret_key
+      - authentik_pg_password
+    shm_size: 512mb
+    volumes:
+      - authentik-data:/data
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - identity
+
+  authentik-bootstrap-netbox:
+    image: {plan.identity.authentik_image}
+    profiles: ["identity"]
+    restart: "no"
+    depends_on:
+      authentik-server:
+        condition: service_healthy
+      netbox:
+        condition: service_healthy
+    env_file:
+      - env/authentik.env
+    environment:
+      NETBOX_PUBLIC_URL: {_render_netbox_public_base_url(plan)}
+      NETBOX_INTERNAL_URL: http://waf:8081
+    secrets:
+      - authentik_secret_key
+      - authentik_pg_password
+    entrypoint: ["/bin/sh", "/opt/authentik/bootstrap/authentik-bootstrap-netbox.sh"]
+    volumes:
+      - ./scripts:/opt/authentik/bootstrap:ro
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - identity
+      - app
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Ory Hydra: OAuth2/OIDC provider for Diode
+  # ═══════════════════════════════════════════════════════════════════════
+
+  hydra-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hydra
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD_FILE: /run/secrets/hydra_pg_password
+    secrets:
+      - hydra_pg_password
+    volumes:
+      - hydra-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    cap_drop: ["ALL"]
+    cap_add: ["DAC_OVERRIDE", "CHOWN", "FOWNER", "SETUID", "SETGID"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - identity
+
+  hydra-migrate:
+    image: {plan.identity.hydra_image}
+    restart: "no"
+    depends_on:
+      hydra-postgres:
+        condition: service_healthy
+    env_file:
+      - env/hydra.env
+    secrets:
+      - hydra_pg_password
+      - hydra_system_secret
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        export DSN="postgres://hydra:$$(cat /run/secrets/hydra_pg_password)@hydra-postgres:5432/hydra?sslmode=disable"
+        export SECRETS_SYSTEM="$$(cat /run/secrets/hydra_system_secret)"
+        exec hydra migrate sql --yes --read-from-env
+    networks:
+      - identity
+
+  hydra:
+    image: {plan.identity.hydra_image}
+    restart: unless-stopped
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    env_file:
+      - env/hydra.env
+    secrets:
+      - hydra_pg_password
+      - hydra_system_secret
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        export DSN="postgres://hydra:$$(cat /run/secrets/hydra_pg_password)@hydra-postgres:5432/hydra?sslmode=disable"
+        export SECRETS_SYSTEM="$$(cat /run/secrets/hydra_system_secret)"
+        exec hydra serve all --dev
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4444/health/alive || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - identity
+      - data
+
+  hydra-bootstrap-clients:
+    image: {plan.identity.hydra_image}
+    restart: "no"
+    depends_on:
+      hydra:
+        condition: service_healthy
+    env_file:
+      - env/hydra.env
+    secrets:
+      - hydra_pg_password
+      - hydra_system_secret
+      - diode_client_id
+      - diode_client_secret
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        DIODE_CLIENT_ID=$$(cat /run/secrets/diode_client_id)
+        DIODE_CLIENT_SECRET=$$(cat /run/secrets/diode_client_secret)
+        hydra delete oauth2-client "$$DIODE_CLIENT_ID" \
+          --endpoint http://hydra:4445 2>/dev/null || true
+        hydra create oauth2-client \
+          --endpoint http://hydra:4445 \
+          --id "$$DIODE_CLIENT_ID" \
+          --secret "$$DIODE_CLIENT_SECRET" \
+          --grant-type client_credentials \
+          --scope openid,diode \
+          --token-endpoint-auth-method client_secret_post
+        echo "Diode OAuth2 client registered successfully"
+        NETBOX_CLIENT_ID="netbox-to-diode"
+        hydra delete oauth2-client "$$NETBOX_CLIENT_ID" \
+          --endpoint http://hydra:4445 2>/dev/null || true
+        hydra create oauth2-client \
+          --endpoint http://hydra:4445 \
+          --id "$$NETBOX_CLIENT_ID" \
+          --secret "$$DIODE_CLIENT_SECRET" \
+          --grant-type client_credentials \
+          --scope openid,diode \
+          --token-endpoint-auth-method client_secret_post
+        echo "NetBox-to-Diode OAuth2 client registered successfully"
+    networks:
+      - identity
+
 secrets:
   db_password:
     file: secrets/db_password
@@ -624,9 +921,18 @@ secrets:
     file: secrets/diode_client_id
   diode_client_secret:
     file: secrets/diode_client_secret
+  authentik_secret_key:
+    file: secrets/authentik_secret_key
+  authentik_pg_password:
+    file: secrets/authentik_pg_password
+  hydra_pg_password:
+    file: secrets/hydra_pg_password
+  hydra_system_secret:
+    file: secrets/hydra_system_secret
+{"  cf_dns_api_token:" + chr(10) + "    file: secrets/cf_dns_api_token" if use_le else ""}
 
 volumes:
-  traefik-certs:
+{"  acme-data:" if use_le else "  traefik-certs:"}
   postgres-data:
   valkey-data:
   netbox-media:
@@ -637,6 +943,9 @@ volumes:
   grafana-data:
   grafana-dashboards:
   prometheus-data:
+  authentik-pg-data:
+  authentik-data:
+  hydra-pg-data:
 
 networks:
   edge:
@@ -664,6 +973,11 @@ networks:
     ipam:
       config:
         - subnet: {monitoring_cidr}
+  identity:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: {identity_cidr}
 """
 
 
@@ -675,6 +989,9 @@ def render_netbox_env(plan: DeploymentPlan) -> str:
     if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
         allowed_hosts = f"{allowed_hosts} {plan.host.service_ip}"
         csrf_origins = f"{csrf_origins} https://{plan.host.service_ip}"
+    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
+        allowed_hosts = f"{allowed_hosts} {plan.tls.fqdn}"
+        csrf_origins = f"{csrf_origins} https://{plan.tls.fqdn}"
 
     return f"""ALLOWED_HOSTS={allowed_hosts}
 CSRF_TRUSTED_ORIGINS={csrf_origins}
@@ -708,34 +1025,93 @@ PG_MAX_CONNECTIONS={plan.sizing.postgres_max_connections}
 """
 
 
-def render_traefik_dynamic_config() -> str:
+def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
     """Render Traefik dynamic config for TLS certs and compression middleware."""
 
-    return """tls:
+    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
+        fqdn = plan.tls.fqdn
+        tls_block = ""
+        router_tls = f"""tls:
+        certResolver: letsencrypt
+        domains:
+          - main: "{fqdn}" """
+    else:
+        tls_block = """tls:
   certificates:
     - certFile: /certs/tls.crt
       keyFile: /certs/tls.key
 
-http:
+"""
+        router_tls = "tls: {}"
+
+    return f"""{tls_block}http:
   routers:
+    authentik-core:
+      rule: "PathPrefix(`/application/`) || PathPrefix(`/if/`) || PathPrefix(`/api/`) || PathPrefix(`/static/dist/`) || PathPrefix(`/media/`)"
+      entryPoints:
+        - websecure
+      {router_tls}
+      service: authentik-core
+      middlewares:
+        - authentik-headers
+        - netbox-compress
+      priority: 110
+
+    authentik-outpost:
+      rule: "PathPrefix(`/outpost.goauthentik.io/`)"
+      entryPoints:
+        - websecure
+      {router_tls}
+      service: authentik-outpost
+      middlewares:
+        - authentik-headers
+        - netbox-compress
+      priority: 100
+
     netbox:
       rule: "PathPrefix(`/`)"
       entryPoints:
         - websecure
-      tls: {}
+      {router_tls}
       service: netbox-waf
       middlewares:
+        - authentik-forward-auth
         - netbox-compress
 
   services:
+    authentik-core:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000"
+
+    authentik-outpost:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000/outpost.goauthentik.io"
+
     netbox-waf:
       loadBalancer:
         servers:
           - url: "http://waf:8081"
 
   middlewares:
+    authentik-forward-auth:
+      forwardAuth:
+        address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-groups
+
     netbox-compress:
-      compress: {}
+      compress: {{}}
+
+    authentik-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
 """
 
 
@@ -745,9 +1121,11 @@ def render_waf_default_conf() -> str:
     return """server {
     listen 8081;
     server_name _;
+    resolver 127.0.0.11 valid=30s ipv6=off;
 
     location / {
-        proxy_pass http://netbox:8080;
+        set $netbox_upstream http://netbox:8080;
+        proxy_pass $netbox_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -755,6 +1133,10 @@ def render_waf_default_conf() -> str:
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Port 443;
+        proxy_set_header X-authentik-username $http_x_authentik_username;
+        proxy_set_header X-authentik-email $http_x_authentik_email;
+        proxy_set_header X-authentik-name $http_x_authentik_name;
+        proxy_set_header X-authentik-groups $http_x_authentik_groups;
     }
 }
 """
@@ -887,6 +1269,87 @@ PY
 """
 
 
+def render_authentik_netbox_bootstrap_script() -> str:
+  """Render a one-shot script that provisions Authentik for NetBox forward auth."""
+
+  return '''#!/bin/sh
+set -eu
+
+/ak-root/.venv/bin/python -u -m manage shell <<'PY'
+import os
+
+from authentik.core.models import Application
+from authentik.flows.models import Flow
+from authentik.core.models import PropertyMapping
+from authentik.outposts.models import Outpost
+from authentik.providers.oauth2.models import RedirectURI, RedirectURIMatchingMode
+from authentik.providers.proxy.models import ProxyMode, ProxyProvider
+
+public_url = os.environ["NETBOX_PUBLIC_URL"].rstrip("/")
+internal_url = os.environ.get("NETBOX_INTERNAL_URL", "http://waf:8081").rstrip("/")
+callback_url = (
+  f"{public_url}/outpost.goauthentik.io/callback"
+  "?X-authentik-auth-callback=true"
+)
+
+auth_flow = Flow.objects.get(slug="default-authentication-flow")
+authorization_flow = Flow.objects.get(
+  slug="default-provider-authorization-implicit-consent"
+)
+
+provider, created = ProxyProvider.objects.update_or_create(
+  name="NetBox Proxy Provider",
+  defaults={
+    "authentication_flow": auth_flow,
+    "authorization_flow": authorization_flow,
+    "external_host": public_url,
+    "internal_host": internal_url,
+    "mode": ProxyMode.FORWARD_SINGLE,
+  },
+)
+provider.redirect_uris = [
+  RedirectURI(
+    matching_mode=RedirectURIMatchingMode.STRICT,
+    url=callback_url,
+  )
+]
+provider.property_mappings.set([
+  PropertyMapping.objects.get(name="authentik default OAuth Mapping: OpenID 'openid'"),
+  PropertyMapping.objects.get(name="authentik default OAuth Mapping: OpenID 'profile'"),
+  PropertyMapping.objects.get(name="authentik default OAuth Mapping: OpenID 'email'"),
+  PropertyMapping.objects.get(name="authentik default OAuth Mapping: Proxy outpost"),
+])
+provider.save()
+
+application, _ = Application.objects.update_or_create(
+  slug="netbox",
+  defaults={
+    "name": "NetBox",
+    "provider": provider,
+    "meta_launch_url": public_url,
+  },
+)
+
+embedded_outpost = Outpost.objects.get(name="authentik Embedded Outpost")
+embedded_outpost_config = embedded_outpost.config
+embedded_outpost_config.authentik_host = public_url
+embedded_outpost_config.authentik_host_browser = public_url
+embedded_outpost.config = embedded_outpost_config
+embedded_outpost.save()
+embedded_outpost.providers.add(provider)
+
+print(
+  "authentik-bootstrap-netbox:",
+  f"provider={'created' if created else 'updated'}",
+  f"application={application.slug}",
+  f"public_url={public_url}",
+  f"internal_url={internal_url}",
+  f"callback_url={callback_url}",
+)
+PY
+'''
+
+
 def render_orb_agent_config() -> str:
     """Render an ORB agent.yaml aligned to upstream orb-agent docs."""
 
@@ -914,6 +1377,40 @@ def render_orb_agent_config() -> str:
             - 10.0.0.0/8
             - 172.16.0.0/12
             - 192.168.0.0/16
+"""
+
+
+def render_authentik_env() -> str:
+    """Render the Authentik identity provider environment."""
+
+    return """\
+# Authentik Identity Provider
+AUTHENTIK_POSTGRESQL__HOST=authentik-postgres
+AUTHENTIK_POSTGRESQL__PORT=5432
+AUTHENTIK_POSTGRESQL__NAME=authentik
+AUTHENTIK_POSTGRESQL__USER=authentik
+AUTHENTIK_POSTGRESQL__PASSWORD=file:///run/secrets/authentik_pg_password
+AUTHENTIK_SECRET_KEY=file:///run/secrets/authentik_secret_key
+AUTHENTIK_ERROR_REPORTING__ENABLED=false
+AUTHENTIK_LOG_LEVEL=info
+AUTHENTIK_LISTEN__HTTP=0.0.0.0:9000
+AUTHENTIK_LISTEN__HTTPS=0.0.0.0:9443
+"""
+
+
+def render_hydra_env() -> str:
+    """Render the Ory Hydra OAuth2 server environment."""
+
+    return """\
+# Ory Hydra OAuth2 Server
+LOG_LEVEL=info
+URLS_SELF_ISSUER=http://hydra:4444
+URLS_SELF_PUBLIC=http://hydra:4444
+SERVE_PUBLIC_PORT=4444
+SERVE_ADMIN_PORT=4445
+DSN=postgres://hydra:replace-me@hydra-postgres:5432/hydra?sslmode=disable
+SECRETS_SYSTEM=replace-me
+OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public
 """
 
 
@@ -947,6 +1444,9 @@ DIODE_TO_NETBOX_CLIENT_ID=netbox-to-diode
 DIODE_TO_NETBOX_CLIENT_SECRET=replace-me
 NETBOX_DIODE_PLUGIN_API_BASE_URL=http://netbox:8080/api/plugins/netbox_diode_plugin
 NETBOX_DIODE_PLUGIN_SKIP_TLS_VERIFY=true
+# Ory Hydra OAuth2 endpoints (consumed by diode-auth)
+OAUTH2_PUBLIC_SERVER_URL=http://hydra:4444
+OAUTH2_ADMIN_SERVER_URL=http://hydra:4445
 """
 
 
@@ -2400,6 +2900,31 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 - cAdvisor: {plan.monitoring.cadvisor_image}
 - Rationale: {plan.monitoring.rationale}
 
+## Identity Services (Authentik + Ory Hydra)
+
+- Authentik profile: `identity` (opt-in)
+- Hydra: starts by default (required by diode-auth)
+- Hydra image: {plan.identity.hydra_image}
+- Authentik image: {plan.identity.authentik_image}
+- Network: identity (172.30.0.160/27)
+- Default services: hydra, hydra-migrate, hydra-bootstrap-clients, hydra-postgres
+- Profile services: authentik-server, authentik-worker, authentik-postgres
+- Rationale: {plan.identity.rationale}
+
+### Start Authentik identity provider (optional)
+
+```bash
+docker compose --profile identity up -d
+```
+
+Hydra starts automatically with the default stack because diode-auth is
+hard-coupled to the Ory Hydra Admin API for client credential grants.
+The `hydra-bootstrap-clients` init container automatically registers the
+Diode and NetBox-to-Diode OAuth2 clients on first start.
+
+Authentik provides the user-facing SSO/OIDC identity provider for NetBox
+and is available as an opt-in `identity` profile.
+
 ## Recommended Adjacent FOSS Services
 
 {chr(10).join(adjacent_service_sections)}
@@ -2552,13 +3077,16 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "Dockerfile-Plugins": render_dockerfile_plugins(plan),
         output_dir / "Dockerfile-GeoFoss": render_geo_foss_dockerfile(plan),
         output_dir / "plugin_requirements.txt": render_plugin_requirements(plan),
+      output_dir / "configuration" / "extra.py": render_netbox_extra_py(),
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
-        output_dir / "configuration" / "traefik" / "dynamic.yml": render_traefik_dynamic_config(),
+        output_dir / "configuration" / "traefik" / "dynamic.yml": render_traefik_dynamic_config(plan),
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
         output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
         output_dir / "env" / "postgres.env": render_postgres_env(plan),
         output_dir / "env" / "diode.env": render_diode_env(),
+        output_dir / "env" / "authentik.env": render_authentik_env(),
+        output_dir / "env" / "hydra.env": render_hydra_env(),
         output_dir / "env" / "orb.env": render_orb_env(),
         output_dir
         / "env"
@@ -2574,12 +3102,24 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir
         / "scripts"
         / "import-device-type-library.py": render_device_type_library_import_runner(),
-        output_dir / "scripts" / "generate-traefik-cert.sh": render_traefik_cert_script(plan),
+    }
+
+    if plan.tls.mode != "letsencrypt":
+        files[output_dir / "scripts" / "generate-traefik-cert.sh"] = render_traefik_cert_script(plan)
+    else:
+        files[output_dir / "secrets" / "cf_dns_api_token.example"] = (
+            "replace-with-your-cloudflare-dns-api-token\n"
+        )
+
+    files.update({
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "run-diode-ingester.sh": render_diode_ingester_script(),
         output_dir / "scripts" / "run-diode-reconciler.sh": render_diode_reconciler_script(),
         output_dir / "scripts" / "setup-diode-credential.sh": (
             render_diode_credential_setup_script()
+        ),
+        output_dir / "scripts" / "authentik-bootstrap-netbox.sh": (
+          render_authentik_netbox_bootstrap_script()
         ),
         output_dir / "scripts" / "run-geo-foss-import.sh": render_geo_foss_import_script(),
         output_dir / "scripts" / "import-geo-data.py": render_geo_foss_import_runner(),
@@ -2659,7 +3199,19 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "secrets" / "diode_client_secret.example": (
           "replace-with-the-diode-client-secret-for-orb\n"
         ),
-    }
+        output_dir / "secrets" / "authentik_secret_key.example": (
+          "replace-with-a-strong-authentik-secret-key\n"
+        ),
+        output_dir / "secrets" / "authentik_pg_password.example": (
+          "replace-with-authentik-postgres-password\n"
+        ),
+        output_dir / "secrets" / "hydra_pg_password.example": (
+          "replace-with-hydra-postgres-password\n"
+        ),
+        output_dir / "secrets" / "hydra_system_secret.example": (
+          "replace-with-hydra-system-secret\n"
+        ),
+    })
 
     written: list[Path] = []
     for path, content in files.items():
@@ -2668,3 +3220,4 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
             path.chmod(0o755)
         written.append(path)
     return written
+

@@ -538,6 +538,91 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("## Monitoring Stack", generated_readme_text)
             self.assertIn("enter-the-metrics", generated_readme_text)
 
+    def test_letsencrypt_tls_profile(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+            fqdn="netbox.example.com",
+            acme_email="admin@example.com",
+        )
+
+        self.assertEqual(plan.tls.mode, "letsencrypt")
+        self.assertEqual(plan.tls.fqdn, "netbox.example.com")
+        self.assertEqual(plan.tls.acme_email, "admin@example.com")
+        self.assertEqual(plan.tls.dns_provider, "cloudflare")
+
+    def test_self_signed_tls_profile_default(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        self.assertEqual(plan.tls.mode, "self_signed")
+        self.assertIsNone(plan.tls.fqdn)
+
+    def test_letsencrypt_requires_acme_email(self) -> None:
+        with self.assertRaises(ValueError):
+            build_plan(
+                self.report,
+                track="debian",
+                deployment_name="test-stack",
+                source_report=FIXTURE,
+                fqdn="netbox.example.com",
+            )
+
+    def test_letsencrypt_bundle_output(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+            fqdn="netbox.example.com",
+            acme_email="admin@example.com",
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            written = write_bundle(plan, output_dir)
+            compose_text = (output_dir / "docker-compose.yml").read_text(encoding="utf-8")
+            traefik_dynamic_text = (
+                output_dir / "configuration" / "traefik" / "dynamic.yml"
+            ).read_text(encoding="utf-8")
+            netbox_env = (output_dir / "env" / "netbox.env").read_text(encoding="utf-8")
+            cert_script_path = output_dir / "scripts" / "generate-traefik-cert.sh"
+            cf_token_example = output_dir / "secrets" / "cf_dns_api_token.example"
+
+            # Compose should have ACME config, not self-signed certgen
+            self.assertNotIn("traefik-certgen", compose_text)
+            self.assertNotIn("alpine/openssl", compose_text)
+            self.assertIn("certificatesresolvers.letsencrypt.acme", compose_text)
+            self.assertIn("dnschallenge.provider=cloudflare", compose_text)
+            self.assertIn("admin@example.com", compose_text)
+            self.assertIn("acme-data:", compose_text)
+            self.assertIn("cf_dns_api_token", compose_text)
+            self.assertNotIn("traefik-certs:", compose_text)
+            # Port 80 should be published for HTTP-to-HTTPS redirect
+            self.assertIn(":80:80", compose_text)
+
+            # Traefik dynamic config should reference certResolver, not static certs
+            self.assertNotIn("certFile:", traefik_dynamic_text)
+            self.assertNotIn("keyFile:", traefik_dynamic_text)
+            self.assertIn("certResolver: letsencrypt", traefik_dynamic_text)
+            self.assertIn("netbox.example.com", traefik_dynamic_text)
+
+            # NetBox env should include the FQDN
+            self.assertIn("netbox.example.com", netbox_env)
+            self.assertIn("https://netbox.example.com", netbox_env)
+
+            # Self-signed cert script should NOT be written
+            self.assertFalse(cert_script_path.exists())
+
+            # Cloudflare token secret example should be written
+            self.assertTrue(cf_token_example.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

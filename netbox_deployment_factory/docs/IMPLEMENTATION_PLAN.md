@@ -2,7 +2,7 @@
 
 ## Objective
 
-Generate a repository flow that consumes `ultimate_info_gather` output and produces a reproducible, NetBox Labs-aligned Docker deployment bundle for NetBox with topology, BGP, DNS, requested plugin-catalog integrations, ORB sidecar orchestration metadata, NetBox community device-type-library support, Traefik HTTPS reverse proxy, OWASP ModSecurity WAF, scoped Docker networks, Diode auth, and netbox-geo-foss geographic region import.
+Generate a repository flow that consumes `ultimate_info_gather` output and produces a reproducible, NetBox Labs-aligned Docker deployment bundle for NetBox with topology, BGP, DNS, requested plugin-catalog integrations, ORB sidecar orchestration metadata, NetBox community device-type-library support, Traefik HTTPS reverse proxy with self-signed or Let's Encrypt ACME TLS, OWASP ModSecurity WAF, scoped Docker networks, Diode auth, and netbox-geo-foss geographic region import.
 
 ## Standards Baseline
 
@@ -32,6 +32,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 14. Include Valkey as the Redis-compatible cache and task-queue backend.
 15. Include the Diode auth service (`netboxlabs/diode-auth`) in the data network.
 16. Generate a superuser-sync one-shot service that creates the pseudonymous bootstrap superuser, mints a v2 API token, and writes the full token (`nbt_<key>.<plaintext>`) to a `token-store` volume for sidecar consumption.
+17. Support dual TLS modes: self-signed (default) via `traefik-certgen` init container, or Let's Encrypt ACME DNS-01 via Cloudflare when `--fqdn` and `--acme-email` are provided. The TLS profile is derived at plan time and stored on `DeploymentPlan` as a `TlsProfile` dataclass.
 
 ## Current Host Findings
 
@@ -52,7 +53,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Inventory: enable `netbox-inventory` 2.5.0 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
 - ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks
-- Traefik: generate `configuration/traefik/dynamic.yml`, `scripts/generate-traefik-cert.sh`, and Traefik v3.2 compose service with TLS termination on port 443
+- Traefik: generate `configuration/traefik/dynamic.yml`, `scripts/generate-traefik-cert.sh`, and Traefik v3.2 compose service with TLS termination on port 443; support Let's Encrypt ACME DNS-01 via Cloudflare as an alternative to self-signed certificates when `--fqdn` and `--acme-email` are provided
 - WAF: generate `configuration/waf/default.conf` and OWASP ModSecurity CRS nginx sidecar between Traefik and NetBox
 - Scoped networks: derive four isolated Docker bridge networks (edge, app, data, security) with explicit CIDR allocations from `NetworkProfile` in the deployment plan
 - Valkey: replace Redis with Valkey as cache and task-queue backend, pinned per lifecycle track

@@ -145,6 +145,25 @@ class NetworkProfile:
 
 
 @dataclass(slots=True)
+class IdentityProfile:
+    """Identity provider configuration for Authentik and Ory Hydra."""
+
+    authentik_image: str
+    hydra_image: str
+    rationale: str
+
+
+@dataclass(slots=True)
+class TlsProfile:
+    """TLS certificate provisioning configuration."""
+
+    mode: str  # "self_signed" or "letsencrypt"
+    fqdn: str | None = None
+    acme_email: str | None = None
+    dns_provider: str | None = None
+
+
+@dataclass(slots=True)
 class DeploymentPlan:
     """Complete deployment plan used by the renderers."""
 
@@ -160,6 +179,8 @@ class DeploymentPlan:
     device_type_library: DeviceTypeLibraryProfile
     geo_foss: GeoFossProfile
     monitoring: MonitoringProfile
+    identity: IdentityProfile
+    tls: TlsProfile
     adjacent_services: list[AdjacentServiceRecommendation]
     warnings: list[str]
     notes: list[str]

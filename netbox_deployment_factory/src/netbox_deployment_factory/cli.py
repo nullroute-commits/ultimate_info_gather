@@ -78,6 +78,31 @@ def build_parser() -> argparse.ArgumentParser:
             "Defaults to the host-derived sizing profile."
         ),
     )
+    parser.add_argument(
+        "--host-ip",
+        default=None,
+        help=(
+            "Override the detected published host IP used for bound ports, "
+            "public URLs, and related generated configuration."
+        ),
+    )
+    parser.add_argument(
+        "--fqdn",
+        default=None,
+        help=(
+            "Fully qualified domain name for the deployment. When provided, "
+            "Traefik is configured with Let's Encrypt ACME DNS-01 challenge "
+            "via Cloudflare instead of a self-signed certificate."
+        ),
+    )
+    parser.add_argument(
+        "--acme-email",
+        default=None,
+        help=(
+            "Email address for Let's Encrypt ACME registration. "
+            "Required when --fqdn is provided."
+        ),
+    )
     return parser
 
 
@@ -103,6 +128,9 @@ def main() -> int:
             "security": args.security_hosts,
         },
         worker_containers=args.worker_containers,
+        service_ip_override=args.host_ip,
+        fqdn=args.fqdn,
+        acme_email=args.acme_email,
     )
     written = write_bundle(plan, output_dir)
 

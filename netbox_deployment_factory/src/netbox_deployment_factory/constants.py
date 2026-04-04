@@ -31,6 +31,9 @@ NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.8.2"
 SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.27.0"
 CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.51.0"
 
+AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.1"
+HYDRA_IMAGE = "oryd/hydra:v2.2.0"
+
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {
         "postgres_image": "postgres:18-alpine",
