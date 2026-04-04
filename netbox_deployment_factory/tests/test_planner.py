@@ -151,6 +151,23 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(network_map["security"], "172.31.0.112/28")
         self.assertEqual(network_map["monitoring"], "172.31.0.128/27")
 
+    def test_deterministic_network_mode_uses_valid_subnets(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+            cidr_mode="deterministic",
+        )
+
+        self.assertEqual(plan.networks.cidr_mode, "deterministic")
+        network_map = {segment.name: segment.cidr for segment in plan.networks.segments}
+        self.assertEqual(network_map["edge"], "172.30.0.0/27")
+        self.assertEqual(network_map["app"], "172.30.0.32/27")
+        self.assertEqual(network_map["data"], "172.30.0.64/27")
+        self.assertEqual(network_map["security"], "172.30.0.96/28")
+        self.assertEqual(network_map["monitoring"], "172.30.0.128/27")
+
     def test_worker_container_override(self) -> None:
         plan = build_plan(
             self.report,

@@ -372,7 +372,7 @@ def _derive_network_profile(
                 ),
                 NetworkSegment(
                     name="monitoring",
-                    cidr="172.30.0.112/27",
+                    cidr="172.30.0.128/27",
                     required_hosts=requested["monitoring"],
                 ),
             ],

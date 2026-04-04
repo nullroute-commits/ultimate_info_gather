@@ -2093,6 +2093,7 @@ schema_config:
         period: 24h
 
 limits_config:
+  allow_structured_metadata: false
   max_query_series: 5000
 
 ruler:
@@ -2259,9 +2260,15 @@ prometheus_node_exporter.json
 for dashboard in $DASHBOARDS; do
   echo "Fetching $dashboard ..."
   if command -v wget >/dev/null 2>&1; then
-    wget -q -O "$DASHBOARD_DIR/$dashboard" "$BASE_URL/$dashboard"
+    if ! wget -q -O "$DASHBOARD_DIR/$dashboard" "$BASE_URL/$dashboard"; then
+      echo "WARNING: Failed to fetch $dashboard; continuing without it" >&2
+      rm -f "$DASHBOARD_DIR/$dashboard"
+    fi
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$DASHBOARD_DIR/$dashboard" "$BASE_URL/$dashboard"
+    if ! curl -fsSL -o "$DASHBOARD_DIR/$dashboard" "$BASE_URL/$dashboard"; then
+      echo "WARNING: Failed to fetch $dashboard; continuing without it" >&2
+      rm -f "$DASHBOARD_DIR/$dashboard"
+    fi
   else
     echo "ERROR: Neither wget nor curl is available" >&2
     exit 1
