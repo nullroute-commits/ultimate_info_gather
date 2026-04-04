@@ -1,0 +1,24 @@
+orb:
+  config_manager:
+    active: local
+  secrets_manager:
+    active: none
+  backends:
+    network_discovery: {}
+    common:
+      diode:
+        target: grpc://127.0.0.1:18080
+        client_id: netbox-to-diode
+        client_secret: replace-me
+        agent_name: generated-orb-agent
+        dry_run: true
+  policies:
+    network_discovery:
+      default:
+        config:
+          schedule: "@every 60m"
+        scope:
+          targets:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16

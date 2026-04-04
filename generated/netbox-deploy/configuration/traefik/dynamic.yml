@@ -1,0 +1,25 @@
+tls:
+  certificates:
+    - certFile: /certs/tls.crt
+      keyFile: /certs/tls.key
+
+http:
+  routers:
+    netbox:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      tls: {}
+      service: netbox-waf
+      middlewares:
+        - netbox-compress
+
+  services:
+    netbox-waf:
+      loadBalancer:
+        servers:
+          - url: "http://waf:8081"
+
+  middlewares:
+    netbox-compress:
+      compress: {}
