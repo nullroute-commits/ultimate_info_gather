@@ -347,7 +347,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("https://10.0.0.50", netbox_env)  # CSRF_TRUSTED_ORIGINS
             self.assertNotIn('"8080:8080"', compose_text)
             self.assertIn("netbox-compress", traefik_dynamic_text)
-            self.assertIn("proxy_pass http://netbox:8080", waf_conf_text)
+            self.assertIn("proxy_pass $netbox_upstream", waf_conf_text)
             self.assertIn("CSRF_TRUSTED_ORIGINS=", netbox_env)
             self.assertEqual(rendered_plan["networks"]["cidr_mode"], "deterministic")
             self.assertIn(
@@ -586,7 +586,7 @@ class PlannerTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = Path(tmpdir)
-            written = write_bundle(plan, output_dir)
+            write_bundle(plan, output_dir)
             compose_text = (output_dir / "docker-compose.yml").read_text(encoding="utf-8")
             traefik_dynamic_text = (
                 output_dir / "configuration" / "traefik" / "dynamic.yml"

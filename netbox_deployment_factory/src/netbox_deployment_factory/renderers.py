@@ -824,7 +824,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        export DSN="postgres://hydra:$$(cat /run/secrets/hydra_pg_password)@hydra-postgres:5432/hydra?sslmode=disable"
+        hydra_pw="$$(cat /run/secrets/hydra_pg_password)"
+        export DSN="postgres://hydra:$$hydra_pw@hydra-postgres:5432/hydra?sslmode=disable"
         export SECRETS_SYSTEM="$$(cat /run/secrets/hydra_system_secret)"
         exec hydra migrate sql --yes --read-from-env
     networks:
@@ -844,7 +845,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        export DSN="postgres://hydra:$$(cat /run/secrets/hydra_pg_password)@hydra-postgres:5432/hydra?sslmode=disable"
+        hydra_pw="$$(cat /run/secrets/hydra_pg_password)"
+        export DSN="postgres://hydra:$$hydra_pw@hydra-postgres:5432/hydra?sslmode=disable"
         export SECRETS_SYSTEM="$$(cat /run/secrets/hydra_system_secret)"
         exec hydra serve all --dev
     healthcheck:
@@ -1047,7 +1049,10 @@ def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
     return f"""{tls_block}http:
   routers:
     authentik-core:
-      rule: "PathPrefix(`/application/`) || PathPrefix(`/if/`) || PathPrefix(`/api/`) || PathPrefix(`/static/dist/`) || PathPrefix(`/media/`)"
+      rule: >-
+        PathPrefix(`/application/`) || PathPrefix(`/if/`) ||
+        PathPrefix(`/api/`) || PathPrefix(`/static/dist/`) ||
+        PathPrefix(`/media/`)
       entryPoints:
         - websecure
       {router_tls}
@@ -3077,9 +3082,11 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "Dockerfile-Plugins": render_dockerfile_plugins(plan),
         output_dir / "Dockerfile-GeoFoss": render_geo_foss_dockerfile(plan),
         output_dir / "plugin_requirements.txt": render_plugin_requirements(plan),
-      output_dir / "configuration" / "extra.py": render_netbox_extra_py(),
+        output_dir / "configuration" / "extra.py": render_netbox_extra_py(),
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
-        output_dir / "configuration" / "traefik" / "dynamic.yml": render_traefik_dynamic_config(plan),
+        output_dir / "configuration" / "traefik" / "dynamic.yml": (
+            render_traefik_dynamic_config(plan)
+        ),
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
         output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
@@ -3105,7 +3112,9 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
     }
 
     if plan.tls.mode != "letsencrypt":
-        files[output_dir / "scripts" / "generate-traefik-cert.sh"] = render_traefik_cert_script(plan)
+        files[output_dir / "scripts" / "generate-traefik-cert.sh"] = (
+            render_traefik_cert_script(plan)
+        )
     else:
         files[output_dir / "secrets" / "cf_dns_api_token.example"] = (
             "replace-with-your-cloudflare-dns-api-token\n"

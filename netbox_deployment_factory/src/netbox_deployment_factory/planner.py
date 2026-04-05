@@ -103,7 +103,9 @@ def _resolve_service_ip_override(override: str | None) -> str | None:
     return candidate
 
 
-def _build_host_profile(report: dict[str, Any], service_ip_override: str | None = None) -> HostProfile:
+def _build_host_profile(
+    report: dict[str, Any], service_ip_override: str | None = None,
+) -> HostProfile:
     environment = report["environment"]
     software = report["software"]
     hardware = report["hardware"]
