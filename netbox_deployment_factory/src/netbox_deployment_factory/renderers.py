@@ -1364,7 +1364,18 @@ def render_orb_agent_config() -> str:
   secrets_manager:
     active: none
   backends:
-    network_discovery: {}
+    network_discovery:
+      nmap:
+        args:
+          - "-sS"
+          - "-sV"
+          - "-O"
+          - "-A"
+          - "--script=default,vuln"
+          - "-T4"
+          - "--min-rate=300"
+          - "--max-retries=3"
+        timeout: 30m
     common:
       diode:
         target: grpc://127.0.0.1:18080
@@ -1376,7 +1387,8 @@ def render_orb_agent_config() -> str:
     network_discovery:
       default:
         config:
-          schedule: "@every 60m"
+          schedule: "@every 120m"
+          timeout: 30m
         scope:
           targets:
             - 10.0.0.0/8
