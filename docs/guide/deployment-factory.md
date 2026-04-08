@@ -1,5 +1,8 @@
 # NetBox Deployment Factory
 
+!!! tip "Comprehensive Documentation Available"
+    This page provides a single-page reference for the deployment factory. For comprehensive, multiperspective documentation organized by topic, see the **[Deployment Factory docs section](../factory/index.md)**, which includes dedicated pages for [quickstart](../factory/quickstart.md), [architecture](../factory/architecture.md), [CLI reference](../factory/cli-reference.md), [plugin catalog](../factory/plugins.md), [network segmentation](../factory/networking.md), [TLS termination](../factory/tls.md), [security & privacy](../factory/security.md), [monitoring](../factory/monitoring.md), [identity](../factory/identity.md), [sidecar services](../factory/sidecars.md), [generated bundle](../factory/generated-bundle.md), and [troubleshooting](../factory/troubleshooting.md).
+
 The `netbox_deployment_factory` subproject consumes JSON reports produced by Ultimate Info Gather and generates reproducible NetBox deployment bundles following current NetBox Labs and official netbox-docker practices.
 
 ## Overview

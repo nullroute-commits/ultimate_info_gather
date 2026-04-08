@@ -90,7 +90,7 @@ graph LR
 
 ## NetBox Deployment Factory
 
-The [`netbox_deployment_factory`](guide/deployment-factory.md) subproject consumes system reports and generates production-ready NetBox deployment bundles including Docker Compose services, plugin configuration, Traefik TLS reverse proxy, monitoring stack, and identity integration. See the [Deployment Factory Guide](guide/deployment-factory.md) for details.
+The [`netbox_deployment_factory`](factory/index.md) subproject consumes system reports and generates production-ready NetBox deployment bundles including Docker Compose services, plugin configuration, Traefik TLS reverse proxy, monitoring stack, and identity integration. See the [Deployment Factory documentation](factory/index.md) for comprehensive, multiperspective guides covering [quickstart](factory/quickstart.md), [architecture](factory/architecture.md), [plugins](factory/plugins.md), [networking](factory/networking.md), [security](factory/security.md), and more.
 
 ## Requirements
 
