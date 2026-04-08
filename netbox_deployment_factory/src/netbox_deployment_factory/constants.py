@@ -1,4 +1,20 @@
-"""Version pins and plugin defaults for NetBox 4.5 deployments."""
+"""Version pins and plugin defaults for NetBox 4.5 deployments.
+
+All infrastructure images are pinned to the latest-1 major release where
+a prior major version exists and is still supported.  Components that have
+only a single active major line (e.g. node-exporter v1, cAdvisor v0) keep
+their current major and are pinned to the latest stable patch.
+
+Compatibility matrix:
+  - PostgreSQL 17 is supported by NetBox 4.5, Authentik 2025, and Ory Hydra v2.
+  - Valkey 8 is supported by NetBox 4.5 (requires Redis/Valkey ≥ 6).
+  - Grafana 10 works with Prometheus v2 and Loki 2 datasources.
+  - Loki 2.9 and Promtail 2.9 are version-matched.
+  - Prometheus v2 is latest-1 (Prometheus v3 exists).
+  - Authentik 2025 is the latest-1 year-based major (2026 is latest).
+  - Traefik v3, Hydra v2, syslog-ng 4 remain on their current major
+    because prior majors are end-of-life or API-incompatible.
+"""
 
 from __future__ import annotations
 
@@ -22,27 +38,39 @@ GEO_FOSS_REF = "50c3c16"
 MONITORING_REPOSITORY = "https://github.com/nullroute-commits/enter-the-metrics.git"
 MONITORING_REF = "abb9825"
 
-GRAFANA_IMAGE = "grafana/grafana:11.4.0"
+# --- Edge / Reverse-Proxy ---------------------------------------------------
+TRAEFIK_IMAGE = "traefik:v3.2.3"
+WAF_IMAGE = "owasp/modsecurity-crs:4.6.0-nginx"
+OPENSSL_IMAGE = "alpine/openssl:3.3.2"
+
+# --- Monitoring (latest-1 major where applicable) ---------------------------
+GRAFANA_IMAGE = "grafana/grafana:10.4.0"
 PROMETHEUS_IMAGE = "prom/prometheus:v2.54.1"
-LOKI_IMAGE = "grafana/loki:3.2.1"
-PROMTAIL_IMAGE = "grafana/promtail:3.2.1"
+LOKI_IMAGE = "grafana/loki:2.9.6"
+PROMTAIL_IMAGE = "grafana/promtail:2.9.6"
 SYSLOG_NG_IMAGE = "balabit/syslog-ng:4.11.0"
 NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.8.2"
 SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.27.0"
 CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.51.0"
 
-AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.1"
+# --- Identity ----------------------------------------------------------------
+AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2025.2.1"
 HYDRA_IMAGE = "oryd/hydra:v2.2.0"
+IDENTITY_POSTGRES_IMAGE = "postgres:17-alpine"
+
+# --- Security / Observability ------------------------------------------------
+WAZUH_AGENT_IMAGE = "wazuh/wazuh-agent:4.14.3"
+MONITORING_INIT_IMAGE = "alpine:3.20"
 
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {
-        "postgres_image": "postgres:18-alpine",
-        "valkey_image": "valkey/valkey:9-alpine",
+        "postgres_image": "postgres:17-alpine",
+        "valkey_image": "valkey/valkey:8-alpine",
         "release_reference": f"Alpine Linux {ALPINE_RELEASE}",
     },
     "debian": {
-        "postgres_image": "postgres:18",
-        "valkey_image": "valkey/valkey:9",
+        "postgres_image": "postgres:17",
+        "valkey_image": "valkey/valkey:8",
         "release_reference": f"Debian {DEBIAN_RELEASE}",
     },
 }

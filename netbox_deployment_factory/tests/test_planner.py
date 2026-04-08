@@ -326,7 +326,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("      netbox:\n        condition: service_healthy", compose_text)
             self.assertIn("http://127.0.0.1:8080/login/", compose_text)
             self.assertIn("traefik:", compose_text)
-            self.assertIn("image: alpine/openssl:latest", compose_text)
+            self.assertIn("image: alpine/openssl:3.3.2", compose_text)
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)
@@ -638,6 +638,75 @@ class PlannerTests(unittest.TestCase):
 
             # Cloudflare token secret example should be written
             self.assertTrue(cf_token_example.exists())
+
+
+    def test_version_pins_follow_latest_minus_one_policy(self) -> None:
+        """All infrastructure images must be pinned with explicit tags and
+        follow the latest-1 major release policy where a prior major exists."""
+
+        plan = build_plan(
+            self.report,
+            track="alpine",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            write_bundle(plan, output_dir)
+            compose_text = (output_dir / "docker-compose.yml").read_text(encoding="utf-8")
+
+            # --- No floating tags allowed ---
+            self.assertNotIn(":latest", compose_text)
+            self.assertNotIn(":nginx\n", compose_text)
+
+            # --- PostgreSQL pinned to 17 (latest-1, 18 is latest) ---
+            self.assertIn("postgres:17-alpine", compose_text)
+            self.assertEqual(plan.images.postgres_image, "postgres:17-alpine")
+
+            # --- Valkey pinned to 8 (latest-1, 9 is latest) ---
+            self.assertIn("valkey/valkey:8-alpine", compose_text)
+            self.assertEqual(plan.images.valkey_image, "valkey/valkey:8-alpine")
+
+            # --- Grafana pinned to 10.x (latest-1, 11 is latest) ---
+            self.assertIn("grafana/grafana:10.", compose_text)
+
+            # --- Loki and Promtail pinned to 2.x (latest-1, 3 is latest) ---
+            self.assertIn("grafana/loki:2.", compose_text)
+            self.assertIn("grafana/promtail:2.", compose_text)
+
+            # --- Loki and Promtail versions must match ---
+            self.assertEqual(
+                plan.monitoring.loki_image.split(":")[1],
+                plan.monitoring.promtail_image.split(":")[1],
+            )
+
+            # --- Prometheus pinned to v2.x (latest-1, v3 is latest) ---
+            self.assertIn("prom/prometheus:v2.", compose_text)
+
+            # --- Traefik pinned to specific patch, not just minor ---
+            self.assertRegex(compose_text, r"traefik:v3\.\d+\.\d+")
+
+            # --- OWASP CRS pinned with version, not bare backend tag ---
+            self.assertRegex(compose_text, r"owasp/modsecurity-crs:4\.\d+\.\d+-nginx")
+
+            # --- Authentik pinned to 2025 (latest-1, 2026 is latest) ---
+            self.assertIn("2025.", plan.identity.authentik_image)
+
+            # --- Identity Postgres matches main Postgres major ---
+            main_pg_major = plan.images.postgres_image.split(":")[1].split("-")[0]
+            # Identity postgres is used for Authentik and Hydra
+            self.assertIn(f"postgres:{main_pg_major}", compose_text)
+
+        # --- Debian track follows the same major versions ---
+        plan_deb = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+        self.assertEqual(plan_deb.images.postgres_image, "postgres:17")
+        self.assertEqual(plan_deb.images.valkey_image, "valkey/valkey:8")
 
 
 if __name__ == "__main__":
