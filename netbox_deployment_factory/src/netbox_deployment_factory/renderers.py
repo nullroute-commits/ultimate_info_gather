@@ -635,6 +635,7 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_started
     ports:
       - "{plan.host.service_ip}:514:514/udp"
+      - "{plan.host.service_ip}:514:514/tcp"
       - "{plan.host.service_ip}:601:601"
     volumes:
       - ./configuration/monitoring/syslog-ng/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro
@@ -645,6 +646,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     image: {NODE_EXPORTER_IMAGE}
     profiles: ["monitoring"]
     restart: unless-stopped
+    pid: host
     command:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/rootfs'
@@ -2565,6 +2567,15 @@ scrape_configs:
   - job_name: 'cadvisor'
     static_configs:
     - targets: ['cadvisor:8080']
+
+  - job_name: 'netbox'
+    metrics_path: /metrics
+    static_configs:
+    - targets: ['netbox:8080']
+
+  - job_name: 'snmp-exporter'
+    static_configs:
+    - targets: ['snmp-exporter:9116']
 """
 
 
