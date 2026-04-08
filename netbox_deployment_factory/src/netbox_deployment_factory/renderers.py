@@ -533,11 +533,10 @@ def render_compose(plan: DeploymentPlan) -> str:
     image: wazuh/wazuh-agent:4.14.3
     profiles: ["security-observability"]
     restart: unless-stopped
+    network_mode: host
     environment:
       WAZUH_MANAGER: "wazuh-manager"
       WAZUH_AGENT_NAME: "{plan.deployment_name}-wazuh-agent"
-    networks:
-      - security
 
   orb-agent:
     image: {ORB_AGENT_IMAGE}
@@ -591,6 +590,9 @@ def render_compose(plan: DeploymentPlan) -> str:
     image: {PROMETHEUS_IMAGE}
     profiles: ["monitoring"]
     restart: unless-stopped
+    extra_hosts:
+      - "node-exporter:host-gateway"
+      - "snmp-exporter:host-gateway"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -620,6 +622,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     command: -config.file=/etc/promtail/promtail-config.yml
     ports:
       - "{plan.host.service_ip}:1514:1514"
+      - "127.0.0.1:1514:1514"
     volumes:
       - ./configuration/monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
     networks:
@@ -633,20 +636,16 @@ def render_compose(plan: DeploymentPlan) -> str:
     depends_on:
       promtail:
         condition: service_started
-    ports:
-      - "{plan.host.service_ip}:514:514/udp"
-      - "{plan.host.service_ip}:514:514/tcp"
-      - "{plan.host.service_ip}:601:601"
+    network_mode: host
     volumes:
       - ./configuration/monitoring/syslog-ng/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro
-    networks:
-      - monitoring
 
   node-exporter:
     image: {NODE_EXPORTER_IMAGE}
     profiles: ["monitoring"]
     restart: unless-stopped
     pid: host
+    network_mode: host
     command:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/rootfs'
@@ -656,15 +655,12 @@ def render_compose(plan: DeploymentPlan) -> str:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    networks:
-      - monitoring
 
   snmp-exporter:
     image: {SNMP_EXPORTER_IMAGE}
     profiles: ["monitoring"]
     restart: unless-stopped
-    networks:
-      - monitoring
+    network_mode: host
 
   cadvisor:
     image: {CADVISOR_IMAGE}
@@ -2685,7 +2681,7 @@ source s_network {
 };
 
 destination d_loki {
-\tsyslog("promtail" transport("tcp") port("1514"));
+\tsyslog("127.0.0.1" transport("tcp") port("1514"));
 };
 
 log {
