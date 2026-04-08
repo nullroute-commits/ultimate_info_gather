@@ -640,9 +640,9 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(cf_token_example.exists())
 
 
-    def test_version_pins_follow_latest_minus_one_policy(self) -> None:
+    def test_version_pins_use_latest_major(self) -> None:
         """All infrastructure images must be pinned with explicit tags and
-        follow the latest-1 major release policy where a prior major exists."""
+        use the latest major release for each component."""
 
         plan = build_plan(
             self.report,
@@ -660,20 +660,20 @@ class PlannerTests(unittest.TestCase):
             self.assertNotIn(":latest", compose_text)
             self.assertNotIn(":nginx\n", compose_text)
 
-            # --- PostgreSQL pinned to 17 (latest-1, 18 is latest) ---
-            self.assertIn("postgres:17-alpine", compose_text)
-            self.assertEqual(plan.images.postgres_image, "postgres:17-alpine")
+            # --- PostgreSQL pinned to 18 (latest major) ---
+            self.assertIn("postgres:18-alpine", compose_text)
+            self.assertEqual(plan.images.postgres_image, "postgres:18-alpine")
 
-            # --- Valkey pinned to 8 (latest-1, 9 is latest) ---
-            self.assertIn("valkey/valkey:8-alpine", compose_text)
-            self.assertEqual(plan.images.valkey_image, "valkey/valkey:8-alpine")
+            # --- Valkey pinned to 9 (latest major) ---
+            self.assertIn("valkey/valkey:9-alpine", compose_text)
+            self.assertEqual(plan.images.valkey_image, "valkey/valkey:9-alpine")
 
-            # --- Grafana pinned to 10.x (latest-1, 11 is latest) ---
-            self.assertIn("grafana/grafana:10.", compose_text)
+            # --- Grafana pinned to 11.x (latest major) ---
+            self.assertIn("grafana/grafana:11.", compose_text)
 
-            # --- Loki and Promtail pinned to 2.x (latest-1, 3 is latest) ---
-            self.assertIn("grafana/loki:2.", compose_text)
-            self.assertIn("grafana/promtail:2.", compose_text)
+            # --- Loki and Promtail pinned to 3.x (latest major) ---
+            self.assertIn("grafana/loki:3.", compose_text)
+            self.assertIn("grafana/promtail:3.", compose_text)
 
             # --- Loki and Promtail versions must match ---
             self.assertEqual(
@@ -681,8 +681,8 @@ class PlannerTests(unittest.TestCase):
                 plan.monitoring.promtail_image.split(":")[1],
             )
 
-            # --- Prometheus pinned to v2.x (latest-1, v3 is latest) ---
-            self.assertIn("prom/prometheus:v2.", compose_text)
+            # --- Prometheus pinned to v3.x (latest major) ---
+            self.assertIn("prom/prometheus:v3.", compose_text)
 
             # --- Traefik pinned to specific patch, not just minor ---
             self.assertRegex(compose_text, r"traefik:v3\.\d+\.\d+")
@@ -690,8 +690,8 @@ class PlannerTests(unittest.TestCase):
             # --- OWASP CRS pinned with version, not bare backend tag ---
             self.assertRegex(compose_text, r"owasp/modsecurity-crs:4\.\d+\.\d+-nginx")
 
-            # --- Authentik pinned to 2025 (latest-1, 2026 is latest) ---
-            self.assertIn("2025.", plan.identity.authentik_image)
+            # --- Authentik pinned to 2026 (latest major) ---
+            self.assertIn("2026.", plan.identity.authentik_image)
 
             # --- Identity Postgres matches main Postgres major ---
             main_pg_major = plan.images.postgres_image.split(":")[1].split("-")[0]
@@ -705,8 +705,8 @@ class PlannerTests(unittest.TestCase):
             deployment_name="test-stack",
             source_report=FIXTURE,
         )
-        self.assertEqual(plan_deb.images.postgres_image, "postgres:17")
-        self.assertEqual(plan_deb.images.valkey_image, "valkey/valkey:8")
+        self.assertEqual(plan_deb.images.postgres_image, "postgres:18")
+        self.assertEqual(plan_deb.images.valkey_image, "valkey/valkey:9")
 
 
 if __name__ == "__main__":

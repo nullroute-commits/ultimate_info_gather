@@ -116,17 +116,17 @@ This page provides a complete listing of all files, services, and profiles produ
 | `device-type-library-import` | `device-type-library-import` | `<deployment-name>:local` | One-shot device-type library import |
 | `netbox-geo-foss` | `geo-foss-import` | Built locally | Geographic data import sidecar |
 | `orb-agent` | `orb-discovery` | `netboxlabs/orb-agent:2.7.0` | ORB network discovery agent |
-| `grafana` | `monitoring` | `grafana/grafana:10.4.0` | Dashboard visualization |
-| `prometheus` | `monitoring` | `prom/prometheus:v2.54.1` | Metrics collection |
-| `loki` | `monitoring` | `grafana/loki:2.9.6` | Log aggregation |
-| `promtail` | `monitoring` | `grafana/promtail:2.9.6` | Log shipping agent |
+| `grafana` | `monitoring` | `grafana/grafana:11.4.0` | Dashboard visualization |
+| `prometheus` | `monitoring` | `prom/prometheus:v3.11.1` | Metrics collection |
+| `loki` | `monitoring` | `grafana/loki:3.2.1` | Log aggregation |
+| `promtail` | `monitoring` | `grafana/promtail:3.2.1` | Log shipping agent |
 | `syslog-ng` | `monitoring` | `balabit/syslog-ng:4.11.0` | Syslog forwarding |
 | `node-exporter` | `monitoring` | `prom/node-exporter:v1.8.2` | Host system metrics |
 | `snmp-exporter` | `monitoring` | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
 | `cadvisor` | `monitoring` | `gcr.io/cadvisor/cadvisor:v0.51.0` | Container metrics |
 | `monitoring-dashboard-init` | `monitoring` | `alpine/git` | Grafana dashboard provisioning |
-| `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2025.2.1` | SSO/OIDC identity provider |
-| `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2025.2.1` | Authentik background worker |
+| `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
+| `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2026.2.1` | Authentik background worker |
 | `authentik-postgres` | `identity` | Track-dependent | Dedicated Postgres for Authentik |
 | `authentik-bootstrap-netbox` | `identity` | `<deployment-name>:local` | NetBox OAuth2 app configuration |
 | `hydra` | `identity` | `oryd/hydra:v2.2.0` | OAuth2/OIDC server for Diode |

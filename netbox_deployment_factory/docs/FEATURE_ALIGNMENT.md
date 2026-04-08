@@ -241,10 +241,10 @@ The generated bundle includes a complete monitoring stack based on [enter-the-me
 
 | Service | Image | Purpose |
 |---|---|---|
-| Grafana | `grafana/grafana:10.4.0` | Dashboard visualization with Prometheus and Loki datasources |
-| Prometheus | `prom/prometheus:v2.54.1` | Metrics collection and storage |
-| Loki | `grafana/loki:2.9.6` | Log aggregation |
-| Promtail | `grafana/promtail:2.9.6` | Log shipping agent (syslog → Loki) |
+| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization with Prometheus and Loki datasources |
+| Prometheus | `prom/prometheus:v3.11.1` | Metrics collection and storage |
+| Loki | `grafana/loki:3.2.1` | Log aggregation |
+| Promtail | `grafana/promtail:3.2.1` | Log shipping agent (syslog → Loki) |
 | syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding to Promtail |
 | node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics |
 | snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
@@ -291,11 +291,11 @@ The generated bundle includes an `identity` Compose profile that deploys a self-
 
 | Service | Image | Purpose |
 |---|---|---|
-| `authentik-postgres` | `postgres:17` / `postgres:17-alpine` | Dedicated Postgres for Authentik |
-| `authentik-server` | `ghcr.io/goauthentik/server:2025.2.1` | SSO/OIDC identity provider |
-| `authentik-worker` | `ghcr.io/goauthentik/server:2025.2.1` | Authentik background worker |
-| `authentik-bootstrap-netbox` | `ghcr.io/goauthentik/server:2025.2.1` | Init container: configures NetBox as an OAuth2 application |
-| `hydra-postgres` | `postgres:17` / `postgres:17-alpine` | Dedicated Postgres for Ory Hydra |
+| `authentik-postgres` | `postgres:18` / `postgres:18-alpine` | Dedicated Postgres for Authentik |
+| `authentik-server` | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
+| `authentik-worker` | `ghcr.io/goauthentik/server:2026.2.1` | Authentik background worker |
+| `authentik-bootstrap-netbox` | `ghcr.io/goauthentik/server:2026.2.1` | Init container: configures NetBox as an OAuth2 application |
+| `hydra-postgres` | `postgres:18` / `postgres:18-alpine` | Dedicated Postgres for Ory Hydra |
 | `hydra-migrate` | `oryd/hydra:v2.2.0` | Hydra database migration init container |
 | `hydra` | `oryd/hydra:v2.2.0` | OAuth2/OIDC server for Diode client-credentials |
 | `hydra-bootstrap-clients` | `oryd/hydra:v2.2.0` | Init container: provisions Diode OAuth2 client |

@@ -62,5 +62,5 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Diode: include `netboxlabs/diode-auth:latest` in the data network
 - Geographic data: include `netbox-geo-foss` as a profiled one-shot sidecar service pinned at commit `50c3c16` that imports a three-tier Region hierarchy (continent → country → city) via pynetbox, with embedded fallback data for 64 countries and ~215 cities
 - Superuser sync: generate `scripts/sync-superuser.sh` as a one-shot service that creates the bootstrap superuser, mints a v2 token, and writes the full token to the `token-store` volume
-- Identity: generate Authentik (`ghcr.io/goauthentik/server:2025.2.1`) and Ory Hydra (`oryd/hydra:v2.2.0`) under the `identity` Compose profile with dedicated Postgres instances, bootstrap scripts, and remote-auth configuration
+- Identity: generate Authentik (`ghcr.io/goauthentik/server:2026.2.1`) and Ory Hydra (`oryd/hydra:v2.2.0`) under the `identity` Compose profile with dedicated Postgres instances, bootstrap scripts, and remote-auth configuration
 - Monitoring: generate a complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics pinned at `abb9825`

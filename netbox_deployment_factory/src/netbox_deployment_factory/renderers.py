@@ -2623,6 +2623,7 @@ schema_config:
         period: 24h
 
 limits_config:
+  allow_structured_metadata: false
   max_query_series: 5000
 
 ruler:
