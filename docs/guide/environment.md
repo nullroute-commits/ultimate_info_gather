@@ -21,6 +21,8 @@ class EnvironmentState:
     shell: str | None
     home_directory: str
     temp_directory: str
+    collection_duration_ms: float = 0.0
+    errors: list[str] = field(default_factory=list)
 ```
 
 ## Python Environment
@@ -66,6 +68,7 @@ The collector detects these execution modes:
 | `SUBPROCESS` | Spawned by another Python process |
 | `CONTAINER` | Running inside a container |
 | `VIRTUAL_ENV` | Running in a virtual environment |
+| `UNKNOWN` | Unable to determine execution mode |
 
 ## Platform Types
 
@@ -75,6 +78,7 @@ The collector detects these execution modes:
 | `WINDOWS` | Windows OS |
 | `MACOS` | macOS / Darwin |
 | `BSD` | BSD variants |
+| `UNKNOWN` | Unrecognized platform |
 
 ## Container Detection
 

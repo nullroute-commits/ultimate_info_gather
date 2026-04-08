@@ -10,6 +10,7 @@
         - safe_collect
         - run_command
         - read_file_async
+        - safe_call
         - add_error
         - add_warning
         - gather_with_errors

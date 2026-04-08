@@ -21,6 +21,8 @@ class HardwareInfo:
     is_virtual_machine: bool
     hypervisor: str | None
     vm_type: str | None
+    collection_duration_ms: float = 0.0
+    errors: list[str] = field(default_factory=list)
 ```
 
 ## CPU Information
