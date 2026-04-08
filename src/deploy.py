@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass, field
@@ -99,40 +100,44 @@ _REQUIRED_BUNDLE_FILES: list[str] = [
     "secrets/.gitignore",
 ]
 
-# Compose-level features that must appear in docker-compose.yml.
-_COMPOSE_FEATURES: dict[str, str] = {
-    "traefik": "traefik:",
-    "waf": "waf:",
-    "postgres": "postgres:",
-    "valkey": "valkey:",
-    "netbox": "netbox:",
-    "netbox-worker": "netbox-worker:",
-    "netbox-superuser-sync": "netbox-superuser-sync:",
-    "diode-auth": "diode-auth:",
-    "diode-ingester": "diode-ingester:",
-    "diode-reconciler": "diode-reconciler:",
-    "diode-credential-setup": "diode-credential-setup:",
-    "device-type-library-import": "device-type-library-import:",
-    "netbox-geo-foss": "netbox-geo-foss:",
-    "wazuh-agent": "wazuh-agent:",
-    "orb-agent": "orb-agent:",
-    "grafana": "grafana:",
-    "prometheus": "prometheus:",
-    "loki": "loki:",
-    "promtail": "promtail:",
-    "syslog-ng": "syslog-ng:",
-    "node-exporter": "node-exporter:",
-    "snmp-exporter": "snmp-exporter:",
-    "cadvisor": "cadvisor:",
-    "authentik-server": "authentik-server:",
-    "authentik-worker": "authentik-worker:",
-    "authentik-postgres": "authentik-postgres:",
-    "authentik-bootstrap-netbox": "authentik-bootstrap-netbox:",
-    "hydra": "  hydra:",
-    "hydra-postgres": "hydra-postgres:",
-    "hydra-migrate": "hydra-migrate:",
-    "hydra-bootstrap-clients": "hydra-bootstrap-clients:",
-    "monitoring-dashboard-init": "monitoring-dashboard-init:",
+# Compose service names that must appear as top-level service keys.
+_COMPOSE_SERVICES: list[str] = [
+    "traefik",
+    "waf",
+    "postgres",
+    "valkey",
+    "netbox",
+    "netbox-worker",
+    "netbox-superuser-sync",
+    "diode-auth",
+    "diode-ingester",
+    "diode-reconciler",
+    "diode-credential-setup",
+    "device-type-library-import",
+    "netbox-geo-foss",
+    "wazuh-agent",
+    "orb-agent",
+    "grafana",
+    "prometheus",
+    "loki",
+    "promtail",
+    "syslog-ng",
+    "node-exporter",
+    "snmp-exporter",
+    "cadvisor",
+    "authentik-server",
+    "authentik-worker",
+    "authentik-postgres",
+    "authentik-bootstrap-netbox",
+    "hydra",
+    "hydra-postgres",
+    "hydra-migrate",
+    "hydra-bootstrap-clients",
+    "monitoring-dashboard-init",
+]
+
+# Additional compose-level features verified by plain substring match.
+_COMPOSE_EXTRA_MARKERS: dict[str, str] = {
     "healthcheck": "condition: service_healthy",
     "scoped-networks": "subnet:",
 }
@@ -191,7 +196,11 @@ async def _verify_bundle(bundle_dir: Path) -> list[str]:
     compose_path = bundle_dir / "docker-compose.yml"
     if compose_path.exists():
         compose_text = compose_path.read_text(encoding="utf-8")
-        for feature, marker in _COMPOSE_FEATURES.items():
+        for svc in _COMPOSE_SERVICES:
+            pattern = rf"^\s+{re.escape(svc)}:\s*$"
+            if not re.search(pattern, compose_text, re.MULTILINE):
+                failures.append(f"compose missing service: {svc}")
+        for feature, marker in _COMPOSE_EXTRA_MARKERS.items():
             if marker not in compose_text:
                 failures.append(f"compose missing feature: {feature} (marker: {marker!r})")
     else:
@@ -199,15 +208,20 @@ async def _verify_bundle(bundle_dir: Path) -> list[str]:
 
     # 3. Plan features ---------------------------------------------------------
     plan_path = bundle_dir / "deployment-plan.json"
+    plan_data: dict[str, Any] = {}
     if plan_path.exists():
-        plan_data = json.loads(plan_path.read_text(encoding="utf-8"))
-        for feature, keys in _PLAN_FEATURES.items():
-            for key in keys:
-                value = _resolve_dotted(plan_data, key)
-                if value is None:
-                    failures.append(
-                        f"plan missing feature: {feature} (key: {key})"
-                    )
+        try:
+            plan_data = json.loads(plan_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            failures.append(f"deployment-plan.json is not valid JSON: {exc}")
+        else:
+            for feature, keys in _PLAN_FEATURES.items():
+                for key in keys:
+                    value = _resolve_dotted(plan_data, key)
+                    if value is None:
+                        failures.append(
+                            f"plan missing feature: {feature} (key: {key})"
+                        )
     else:
         failures.append("deployment-plan.json not found – skipping plan checks")
 
@@ -355,12 +369,15 @@ async def run_deployment(
         # when netbox_deployment_factory is not installed.
         from netbox_deployment_factory.planner import build_plan  # type: ignore[import-untyped]
 
+        assert report_path is not None
+        saved_report_path: Path = report_path
+
         plan = await asyncio.to_thread(
             build_plan,
             report_dict,
             track,
             deployment_name,
-            report_path,
+            saved_report_path,
             cidr_mode,
             required_hosts or {},
             worker_containers,
