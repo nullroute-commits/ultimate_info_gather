@@ -14,12 +14,13 @@ The generated bundle is opinionated:
 - The community device-type library is included as a separate pinned import workflow that uses the NetBox REST API for idempotent creation of manufacturers, device types (with component templates), module types, and rack types.
 - ORB Discovery is generated as an optional profile using the official `netboxlabs/orb-agent` image and an `agent.yaml` config.
 - A Traefik v3.2 reverse proxy terminates TLS at the edge and routes traffic through an OWASP ModSecurity CRS WAF sidecar before reaching NetBox.
-- Docker networks are scoped into isolated segments (edge, app, data, security) with explicit CIDR allocations sized for the required host counts.
+- Docker networks are scoped into isolated segments (edge, app, data, security, monitoring, identity) with explicit CIDR allocations sized for the required host counts.
 - Valkey replaces Redis as the cache and task-queue backend.
 - Diode is deployed as `diode-auth`, `diode-ingester`, and `diode-reconciler` companion services.
 - TLS termination supports two modes: auto-generated self-signed certificates (default) or Let's Encrypt ACME via DNS-01 Cloudflare challenge when an FQDN is provided.
 - Geographic data is imported as a three-tier Region hierarchy (continent → country → city) via a one-shot sidecar using the pynetbox REST API.
 - A complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is available as an optional `monitoring` Compose profile, based on the [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) project.
+- An identity stack (Authentik for SSO/OIDC, Ory Hydra for Diode OAuth2 client-credentials) is available as an optional `identity` Compose profile with dedicated Postgres instances and an isolated `identity` network segment.
 
 ## Version Pins
 
@@ -35,6 +36,8 @@ The generated bundle is opinionated:
 - Diode reconciler: `netboxlabs/diode-reconciler:1.13.0`
 - ORB agent: `netboxlabs/orb-agent:2.7.0`
 - Wazuh agent: `wazuh/wazuh-agent:4.14.3`
+- Authentik: `ghcr.io/goauthentik/server:2026.2.1`
+- Ory Hydra: `oryd/hydra:v2.2.0`
 - Topology plugin: `netbox-topology-views==4.5.0`
 - BGP plugin: `netbox-bgp==0.18.0`
 - DNS plugin: `netbox-plugin-dns==1.5.3`
@@ -126,10 +129,35 @@ openssl rand -hex 32 > secret_key
 openssl rand -base64 24 | tr -d '\n' > superuser_api_token
 cp superuser_name.example superuser_name
 openssl rand -base64 18 | tr -d '\n' > superuser_password
+openssl rand -base64 24 | tr -d '\n' > diode_redis_password
+openssl rand -hex 16 > diode_client_id
+openssl rand -hex 32 > diode_client_secret
+openssl rand -hex 32 > netbox_to_diode
+cd ..
+```
+
+If using the `identity` profile, also populate identity secrets:
+
+```bash
+cd secrets
+openssl rand -hex 32 > authentik_secret_key
+openssl rand -base64 24 | tr -d '\n' > authentik_pg_password
+openssl rand -base64 24 | tr -d '\n' > hydra_pg_password
+openssl rand -hex 32 > hydra_system_secret
 cd ..
 ```
 
 Keep `superuser_name` aligned with the pseudonymous bootstrap account unless you intentionally change it before first start.
+
+After populating secrets, update the `replace-me` credential placeholders in `env/diode.env`. The values must match the corresponding Docker secret files so all services share consistent credentials:
+
+| Env variable | Matching secret file |
+|---|---|
+| `REDIS_PASSWORD` | `secrets/diode_redis_password` |
+| `POSTGRES_PASSWORD` | `secrets/db_password` |
+| `DIODE_TO_NETBOX_CLIENT_SECRET` | `secrets/netbox_to_diode` |
+
+The `env/hydra.env` file also contains `replace-me` placeholders (`DSN` and `SECRETS_SYSTEM`), but the Hydra compose services override these at runtime by reading from Docker secrets (`hydra_pg_password` and `hydra_system_secret`), so no manual replacement is required there.
 
 ### Step 5 — Build images
 
@@ -215,6 +243,16 @@ Grafana is available at **http://localhost:3000** with the default `admin`/`admi
 
 Prometheus scrapes metrics from the monitoring services and NetBox stack services on the `data` network. To forward syslogs to syslog-ng, configure the source device to send to `<host-ip>:514` (UDP) or `<host-ip>:601` (TCP).
 
+### Step 11 — Start the identity stack (optional)
+
+```bash
+docker compose --profile identity up -d
+```
+
+This starts Authentik (SSO/OIDC identity provider), Ory Hydra (OAuth2 server for Diode client-credentials), their dedicated Postgres instances, and bootstrap init containers. Populate `secrets/authentik_secret_key`, `secrets/authentik_pg_password`, `secrets/hydra_pg_password`, and `secrets/hydra_system_secret` before starting.
+
+Authentik is available at **https://<host-ip>:9443** with the default `akadmin` credentials. The `authentik-bootstrap-netbox` init container configures NetBox as an OAuth2 application in Authentik. Hydra's `hydra-bootstrap-clients` init container provisions the Diode client-credentials grant.
+
 ## Usage (Factory Only)
 
 The commands below are equivalent to Steps 2–3 above and are included for quick reference.
@@ -265,11 +303,12 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 
 ## What Gets Generated
 
-- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`, `monitoring`)
+- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`, `monitoring`, `identity`)
 - `Dockerfile-Plugins` — custom NetBox image with plugin requirements and migrations
 - `Dockerfile-GeoFoss` — local build of the netbox-geo-foss import sidecar
 - `plugin_requirements.txt`
 - `configuration/plugins.py`
+- `configuration/extra.py` — NetBox remote-auth settings for Authentik SSO integration
 - `configuration/traefik/dynamic.yml` — Traefik TLS certs and routes through the WAF (self-signed mode includes static cert references; Let's Encrypt mode uses `certResolver` on routers)
 - `configuration/waf/default.conf` — OWASP ModSecurity CRS nginx reverse proxy to NetBox
 - `configuration/orb/agent.yaml` — ORB agent configuration
@@ -287,6 +326,8 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `env/device-type-library-import.env`
 - `env/geo-foss.env`
 - `env/monitoring.env` — Grafana environment variables
+- `env/authentik.env` — Authentik identity provider environment variables
+- `env/hydra.env` — Ory Hydra OAuth2 server environment variables
 - `scripts/generate-traefik-cert.sh` — self-signed TLS cert with SAN entries for localhost, hostname, and internal names (omitted in Let's Encrypt mode)
 - `secrets/cf_dns_api_token.example` — Cloudflare DNS API token placeholder (Let's Encrypt mode only)
 - `scripts/sync-superuser.sh` — creates the pseudonymous superuser and writes the full v2 API token to `token-store`
@@ -297,6 +338,8 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `scripts/run-geo-foss-import.sh` — reads the v2 token from `token-store` and launches the import
 - `scripts/import-geo-data.py` — pynetbox-based import of continents, countries, and cities as NetBox Regions
 - `scripts/fetch-monitoring-dashboards.sh` — downloads Grafana dashboards from pinned upstream repository
+- `scripts/authentik-bootstrap-netbox.sh` — configures NetBox as an OAuth2 application in Authentik
+- `scripts/setup-diode-credential.sh` — provisions Diode client credentials
 - `secrets/*.example`
 - `deployment-plan.json`
 - `README.md` summarizing the generated bundle
@@ -343,12 +386,13 @@ Before the first `docker compose up -d`:
 
 - Traefik is the only service with published host ports (443 always; 80 added in Let's Encrypt mode for HTTP→HTTPS redirect). All other services communicate over internal Docker networks.
 - The OWASP ModSecurity CRS WAF inspects HTTP traffic before it reaches NetBox, blocking common web attacks.
-- Docker networks are scoped into five isolated segments:
+- Docker networks are scoped into six isolated segments:
   - **edge**: Traefik and WAF only
   - **app**: WAF and NetBox only
-  - **data**: NetBox, Postgres, Valkey, diode-auth, diode-ingester, diode-reconciler, workers, superuser sync, imports, geo-foss, Prometheus (for scraping)
+  - **data**: NetBox, Postgres, Valkey, Diode, workers, superuser sync, imports, geo-foss, Prometheus (for scraping)
   - **security**: Wazuh agent
   - **monitoring**: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, cAdvisor
+  - **identity**: Authentik, Ory Hydra, their dedicated Postgres instances, and bootstrap init containers
 
 ## ORB Discovery Profile
 
@@ -368,7 +412,7 @@ client_secret: replace-me
 ```
 
 The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 60m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
-- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.128/27`; dynamic mode allocates from `172.31.0.0/16`).
+- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.160/27`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
 - The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.
@@ -385,6 +429,23 @@ The generator now emits adjacent-service recommendations into the generated depl
 - **Cloud service**: Prefer **Nextcloud** for operator files, notes, calendars, and shared documentation. Evaluate **Seafile** when fast file synchronization matters more than broader groupware.
 
 Deploy these services adjacent to the generated NetBox stack behind the same reverse proxy and chosen identity provider, then link them operationally through NetBox RBAC, runbooks, and exported artifacts.
+
+## Identity Profile (Authentik + Ory Hydra)
+
+The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack:
+
+- **Authentik** (`ghcr.io/goauthentik/server:2026.2.1`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
+- **Ory Hydra** (`oryd/hydra:v2.2.0`) — OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients` services with a dedicated `hydra-postgres` database.
+
+All identity services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
+
+Start the identity stack:
+
+```bash
+docker compose --profile identity up -d
+```
+
+The NetBox `configuration/extra.py` enables `REMOTE_AUTH_ENABLED` with the `RemoteUserBackend` and reads the Authentik-forwarded username from `HTTP_X_AUTHENTIK_USERNAME` and email from `HTTP_X_AUTHENTIK_EMAIL`. The `authentik-bootstrap-netbox` init container runs `scripts/authentik-bootstrap-netbox.sh` to configure NetBox as an OAuth2 application in the Authentik instance. The `hydra-bootstrap-clients` init container provisions the Diode client-credentials OAuth2 client.
 
 ## Device-Type Library Import
 
