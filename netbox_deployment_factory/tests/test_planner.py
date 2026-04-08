@@ -339,6 +339,10 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("grpc://diode-auth:8080/diode", plugins_text)
             self.assertIn('profiles: ["orb-discovery"]', compose_text)
             self.assertIn('command: ["run", "-c", "/opt/orb/agent.yaml"]', compose_text)
+            # orb-agent requires host-level network access for scanning
+            self.assertIn("network_mode: host", compose_text)
+            self.assertIn("NET_ADMIN", compose_text)
+            self.assertIn("NET_RAW", compose_text)
             # service_ip from fixture: eth0 (1000 Mbps) wins over eth1 (100 Mbps)
             self.assertEqual(plan.host.service_ip, "10.0.0.50")
             self.assertIn("10.0.0.50:443:443", compose_text)
