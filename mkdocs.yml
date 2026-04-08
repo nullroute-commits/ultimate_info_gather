@@ -49,6 +49,21 @@ nav:
     - Report Generation: guide/reports.md
     - Embedded Systems: guide/embedded-systems.md
     - Deployment Factory: guide/deployment-factory.md
+  - Deployment Factory:
+    - Overview: factory/index.md
+    - Quickstart: factory/quickstart.md
+    - Architecture: factory/architecture.md
+    - CLI Reference: factory/cli-reference.md
+    - Data Models: factory/data-models.md
+    - Plugin Catalog: factory/plugins.md
+    - Network Segmentation: factory/networking.md
+    - TLS Termination: factory/tls.md
+    - Security & Privacy: factory/security.md
+    - Monitoring Stack: factory/monitoring.md
+    - Identity Stack: factory/identity.md
+    - Sidecar Services: factory/sidecars.md
+    - Generated Bundle: factory/generated-bundle.md
+    - Troubleshooting: factory/troubleshooting.md
   - API Reference:
     - Orchestrator: api/orchestrator.md
     - Models: api/models.md
