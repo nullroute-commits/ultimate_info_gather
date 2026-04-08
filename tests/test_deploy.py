@@ -3,28 +3,25 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 
 # Ensure netbox_deployment_factory is importable
-import sys
-
 NDF_SRC = str(
     Path(__file__).resolve().parents[1] / "netbox_deployment_factory" / "src"
 )
 if NDF_SRC not in sys.path:
     sys.path.insert(0, NDF_SRC)
 
-from src.deploy import (
+from src.deploy import (  # noqa: E402
     DeploymentResult,
     DeployPhase,
-    PhaseResult,
     _verify_bundle,
     run_deployment,
 )
-
 
 # ---------------------------------------------------------------------------
 # Full pipeline test
