@@ -19,6 +19,7 @@ sequenceDiagram
     participant E as Environment
     participant P as Permissions
     participant H as Hardware
+    participant N as Network
     participant S as Software
     
     O->>E: Phase 1: Collect Environment

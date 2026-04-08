@@ -54,6 +54,34 @@ docker compose -f docker-compose.ci.yml run --rm test
 docker compose -f docker-compose.ci.yml run --rm bundle
 ```
 
+### Factory Test Structure
+
+```
+netbox_deployment_factory/tests/
+├── fixtures/
+│   └── sample_report.json           # Minimal host report fixture
+├── test_planner.py                  # Planner logic, sizing, plugins, networks, TLS
+└── test_cli.py                      # CLI argument parsing tests
+```
+
+### Running Factory Tests Locally
+
+Without Docker, run the factory unit tests directly:
+
+```bash
+cd netbox_deployment_factory
+PYTHONPATH=src python -m unittest tests.test_planner tests.test_cli
+```
+
+### Full Test Suite
+
+Run all tests across both the root package and the factory:
+
+```bash
+PYTHONPATH=.:netbox_deployment_factory/src python -m pytest tests/ -o addopts="" && \
+cd netbox_deployment_factory && PYTHONPATH=src python -m unittest tests.test_planner tests.test_cli
+```
+
 ## Writing Tests
 
 ### Async Tests

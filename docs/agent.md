@@ -393,7 +393,7 @@ The agent includes an end-to-end deployment pipeline (`src/deploy.py`) that chai
 | **SAVE_REPORT** | Persist the JSON report to disk |
 | **PLAN** | Generate a deployment plan based on host capabilities |
 | **RENDER** | Render the deployment bundle (Docker Compose, configs, scripts) |
-| **VERIFY** | Validate bundle completeness (26+ files, 30+ services, healthchecks) |
+| **VERIFY** | Validate bundle completeness (38+ files, 31+ services, healthchecks) |
 
 ### Usage
 

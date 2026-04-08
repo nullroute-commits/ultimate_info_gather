@@ -38,6 +38,12 @@ Welcome to the Ultimate Info Gather documentation!
 
     Catalogs OS, packages, services, containers, and processes
 
+-   :material-server:{ .lg .middle } **NetBox Deployment Factory**
+
+    ---
+
+    Generates reproducible NetBox deployment bundles from collected system data
+
 </div>
 
 ## Quick Example
@@ -78,7 +84,13 @@ graph LR
     C --> E[System<br/>Report]
     F --> E
     D --> E
+    E --> G[Deployment<br/>Factory]
+    G --> H[NetBox<br/>Bundle]
 ```
+
+## NetBox Deployment Factory
+
+The [`netbox_deployment_factory`](guide/deployment-factory.md) subproject consumes system reports and generates production-ready NetBox deployment bundles including Docker Compose services, plugin configuration, Traefik TLS reverse proxy, monitoring stack, and identity integration. See the [Deployment Factory Guide](guide/deployment-factory.md) for details.
 
 ## Requirements
 
