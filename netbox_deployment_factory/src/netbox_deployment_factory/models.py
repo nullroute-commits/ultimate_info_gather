@@ -99,6 +99,23 @@ class GeoFossProfile:
 
 
 @dataclass(slots=True)
+class MonitoringProfile:
+    """Monitoring stack integration from enter-the-metrics."""
+
+    repository: str
+    ref: str
+    grafana_image: str
+    prometheus_image: str
+    loki_image: str
+    promtail_image: str
+    syslog_ng_image: str
+    node_exporter_image: str
+    snmp_exporter_image: str
+    cadvisor_image: str
+    rationale: str
+
+
+@dataclass(slots=True)
 class AdjacentServiceRecommendation:
     """Recommended adjacent FOSS service for operator workflows."""
 
@@ -128,6 +145,25 @@ class NetworkProfile:
 
 
 @dataclass(slots=True)
+class IdentityProfile:
+    """Identity provider configuration for Authentik and Ory Hydra."""
+
+    authentik_image: str
+    hydra_image: str
+    rationale: str
+
+
+@dataclass(slots=True)
+class TlsProfile:
+    """TLS certificate provisioning configuration."""
+
+    mode: str  # "self_signed" or "letsencrypt"
+    fqdn: str | None = None
+    acme_email: str | None = None
+    dns_provider: str | None = None
+
+
+@dataclass(slots=True)
 class DeploymentPlan:
     """Complete deployment plan used by the renderers."""
 
@@ -142,6 +178,9 @@ class DeploymentPlan:
     admin_privacy: AdminPrivacyProfile
     device_type_library: DeviceTypeLibraryProfile
     geo_foss: GeoFossProfile
+    monitoring: MonitoringProfile
+    identity: IdentityProfile
+    tls: TlsProfile
     adjacent_services: list[AdjacentServiceRecommendation]
     warnings: list[str]
     notes: list[str]

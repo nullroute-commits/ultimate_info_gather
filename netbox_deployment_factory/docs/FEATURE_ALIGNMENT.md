@@ -24,6 +24,24 @@ Two integration paths are available until a NetBox 4.5-compatible netbox-proxbox
 
 2. **NetBox Labs event-driven automation (webhook-based)**: The `netboxlabs/netbox-proxmox-automation` project provides event-driven Proxmox VM provisioning and management triggered by NetBox event rules and webhooks. This approach does not require a NetBox plugin and is compatible with current NetBox 4.x releases. See [https://github.com/netboxlabs/netbox-proxmox-automation](https://github.com/netboxlabs/netbox-proxmox-automation) for setup instructions.
 
+## ACLs
+
+The repository includes `netbox-acls` (`netbox_acls`) version 1.9.1 in the plugin spec list but sets it to `enabled=False` because the current plugin config declares `max_version='4.4.99'`, which is incompatible with the pinned NetBox 4.5.x image. Enable once a compatible release targeting NetBox 4.5 is published.
+
+**Configuration:** `top_level_menu: True`.
+
+## Prometheus Service Discovery
+
+The repository includes `netbox-prometheus-sd` (`netbox_prometheus_sd`) version 0.5 in the plugin spec list but sets it to `enabled=False` because the current release imports the legacy `extras.plugins` API and fails to load on NetBox 4.5.x. The plugin provides Prometheus HTTP SD endpoints for NetBox devices. Enable once an updated release targets modern NetBox plugin APIs.
+
+**Configuration:** `custom_field_name: "monitored"`, `target_port: 9100`, `gnmic_target_port: 32767`.
+
+## Reorder Rack
+
+The repository enables `netbox-reorder-rack` (`netbox_reorder_rack`) version 1.1.4. This community plugin exposes drag-and-drop rack reordering. The upstream compatibility matrix states `>=4.0.0`. Validate in staging before production because upstream metadata does not publish a strict NetBox 4.5 compatibility matrix.
+
+**Configuration:** Uses package defaults.
+
 ## Requested Plugin Integrations
 
 The generator enables the following user-requested plugins in `DEFAULT_PLUGIN_SPECS`:
@@ -37,6 +55,32 @@ Compatibility evidence used from upstream metadata:
 - `netbox-config-diff` 2.14.0 (`min_version='4.5.0'`, `max_version='4.5.99'`)
 - `netbox-floorplan-plugin` 0.9.0 (`min_version='4.5.0-beta1'`, `max_version='4.5.99'`)
 - `netbox-inventory` 2.5.0 (`min_version='4.5.0'`)
+
+### Config Diff
+
+The repository enables `netbox-config-diff` (`netbox_config_diff`) version 2.14.0. This community plugin provides configuration drift detection and compliance reporting for network devices.
+
+**Configuration:** `USERNAME` and `PASSWORD` are set to `replace-me` placeholders. The operator must replace these with valid device credentials for configuration retrieval.
+
+### Floorplan
+
+The repository enables `netbox-floorplan-plugin` (`netbox_floorplan`) version 0.9.0. This community plugin provides visual floorplan management for sites and locations within NetBox.
+
+**Configuration:** Uses package defaults.
+
+### Inventory
+
+The repository enables `netbox-inventory` (`netbox_inventory`) version 2.5.0. This community plugin extends NetBox with asset lifecycle tracking, purchase, and warranty management for hardware inventory.
+
+**Configuration:** Uses package defaults.
+
+## Diode Plugin
+
+The repository enables `netboxlabs-diode-netbox-plugin` (`netbox_diode_plugin`) version 1.7.1. This is the official NetBox Labs Diode plugin that provides reconciliation APIs for automated network state ingestion. Upstream declares `min_version='4.4.10'` and `max_version='4.5.99'`.
+
+**Configuration:** `diode_username: "diode"`, `diode_target_override: "grpc://diode-auth:8080/diode"`, `secrets_path: "/run/secrets/"`, `netbox_to_diode_client_id: "netbox-to-diode"`, `netbox_to_diode_client_secret_name: "netbox_to_diode"`. The `diode_target_override` points at the generated `diode-auth` Compose service so plugin and reconciler endpoints resolve within the composed deployment.
+
+The generated bundle includes three companion Diode services in the `data` network: `diode-auth` (`netboxlabs/diode-auth:1.12.0`), `diode-ingester` (`netboxlabs/diode-ingester:1.13.0`), and `diode-reconciler` (`netboxlabs/diode-reconciler:1.13.0`). A `diode-credential-setup` init container provisions the OAuth2 client credentials using `scripts/setup-diode-credential.sh`.
 
 ## ORB Orchestration
 
@@ -99,6 +143,30 @@ Key integration details:
 - Persists downloaded geographic data in a `geo-foss-cache` volume to avoid re-downloading across runs
 - Runs with dropped capabilities and `no-new-privileges`
 
+## TLS Termination
+
+The generated bundle supports two TLS termination modes for the Traefik reverse proxy:
+
+### Self-Signed (default)
+
+When no `--fqdn` is provided, the factory generates a `traefik-certgen` init container and `scripts/generate-traefik-cert.sh` that creates a self-signed certificate with SAN entries for the host IP, `localhost`, and internal service names. The certificate is stored in a `traefik-certs` Docker volume and referenced statically in `configuration/traefik/dynamic.yml`. This mode requires no external dependencies and is suitable for development, lab, and air-gapped environments.
+
+### Let's Encrypt ACME (DNS-01 Cloudflare)
+
+When the factory is invoked with `--fqdn <domain>` and `--acme-email <email>`, the generated bundle switches to automated certificate management via Let's Encrypt:
+
+- The `traefik-certgen` init container and self-signed cert script are omitted.
+- Traefik is configured with ACME DNS-01 challenge using the Cloudflare provider (`CF_DNS_API_TOKEN_FILE` from a Docker secret).
+- Port 80 is published with an automatic HTTP→HTTPS redirect.
+- An `acme-data` volume persists the ACME account key and certificates.
+- `configuration/traefik/dynamic.yml` uses `certResolver: letsencrypt` on routers with the FQDN as the main domain, replacing static certificate references.
+- `env/netbox.env` includes the FQDN in `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`.
+- `secrets/cf_dns_api_token.example` is generated instead of the cert generation script.
+
+This mode is appropriate for production deployments where a trusted TLS certificate is required. The operator must provide a Cloudflare API token with `Zone:DNS:Edit` permission for the zone containing the FQDN.
+
+The TLS mode is determined at plan time by `_derive_tls_profile()` in the planner and stored as a `TlsProfile` dataclass on the `DeploymentPlan`. The renderer conditionally emits the appropriate Compose services, Traefik configuration, environment variables, scripts, and secrets based on `plan.tls.mode`.
+
 ## Traefik Reverse Proxy
 
 The generated bundle places a Traefik v3.2 reverse proxy at the edge of the deployment:
@@ -123,14 +191,16 @@ An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar betw
 
 ## Scoped Docker Networks
 
-The generated compose file defines four isolated bridge networks with explicit CIDR allocations:
+The generated compose file defines six isolated bridge networks with explicit CIDR allocations:
 
-| Network    | Purpose                                             | Deterministic CIDR    |
-|------------|-----------------------------------------------------|-----------------------|
-| `edge`     | Traefik ↔ WAF                                      | `172.30.0.0/27`       |
-| `app`      | WAF ↔ NetBox                                        | `172.30.0.32/27`      |
-| `data`     | NetBox, Postgres, Valkey, Diode, workers, imports   | `172.30.0.64/27`      |
-| `security` | Wazuh agent                                         | `172.30.0.96/28`      |
+| Network      | Purpose                                                   | Deterministic CIDR    |
+|--------------|-----------------------------------------------------------|-----------------------|
+| `edge`       | Traefik ↔ WAF                                            | `172.30.0.0/27`       |
+| `app`        | WAF ↔ NetBox                                              | `172.30.0.32/27`      |
+| `data`       | NetBox, Postgres, Valkey, Diode, workers, imports         | `172.30.0.64/27`      |
+| `security`   | Wazuh agent                                               | `172.30.0.96/28`      |
+| `monitoring` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters | `172.30.0.128/27`     |
+| `identity`   | Authentik, Ory Hydra, dedicated Postgres instances        | `172.30.0.160/27`     |
 
 In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28` block from `172.30.0.0/24`. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
 
@@ -140,6 +210,8 @@ Services are placed on the minimum set of networks needed:
 - NetBox, workers, Postgres, Valkey, Diode, imports: `data`
 - ORB: host networking mode (`network_mode: host`)
 - Wazuh agent: `security`
+- Monitoring services: `monitoring` (Prometheus also joins `data` for scraping)
+- Authentik, Hydra, identity Postgres instances: `identity` (Diode services on `data` connect to Hydra through `identity`)
 
 ## Valkey
 
@@ -153,10 +225,100 @@ Diode is deployed as three companion services in the `data` network:
 - `diode-ingester` (`netboxlabs/diode-ingester:1.13.0`)
 - `diode-reconciler` (`netboxlabs/diode-reconciler:1.13.0`)
 
-The generated bundle includes `env/diode.env` with runtime values used by `diode-auth`, `diode-ingester`, and `diode-reconciler`, including Redis/Postgres/Diode client settings required by shellless container images.
+The generated bundle includes `env/diode.env` with runtime values used by `diode-auth`, `diode-ingester`, and `diode-reconciler`, including Redis/Postgres/Diode client settings required by shellless container images. Three values are emitted as `replace-me` placeholders: `REDIS_PASSWORD`, `POSTGRES_PASSWORD`, and `DIODE_TO_NETBOX_CLIENT_SECRET`. The operator must replace these with the corresponding Docker secret values (`secrets/diode_redis_password`, `secrets/db_password`, and `secrets/netbox_to_diode` respectively) before starting the stack.
 
 Plugin configuration keeps `diode_target_override` pointed at `grpc://diode-auth:8080/diode` and sets `netbox_to_diode_client_secret_name` to `netbox_to_diode`, aligning with the upstream plugin's default secret lookup model.
 
 ## CI/CD Localization
 
 The repository localizes CI/CD into Docker. Local validation and GitHub Actions both use `docker compose -f docker-compose.ci.yml` so linting, type checking, tests, and sample bundle generation run inside the repository's CI image rather than relying on host Python tooling. Bundle artifacts are written back into the workspace under `.artifacts/` so the same containerized flow works locally and in CI.
+
+## Monitoring Stack (enter-the-metrics)
+
+The generated bundle includes a complete monitoring stack based on [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics), available as an optional `monitoring` Compose profile. The upstream repository (BSD-licensed) provides a Docker Compose-based metrics and log collection stack; the deployment factory adapts its service definitions, configuration files, and Grafana provisioning into the generated bundle.
+
+### Included Services
+
+| Service | Image | Purpose |
+|---|---|---|
+| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization with Prometheus and Loki datasources |
+| Prometheus | `prom/prometheus:v2.54.1` | Metrics collection and storage |
+| Loki | `grafana/loki:3.2.1` | Log aggregation |
+| Promtail | `grafana/promtail:3.2.1` | Log shipping agent (syslog → Loki) |
+| syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding to Promtail |
+| node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics |
+| snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` | Docker container metrics |
+
+### Network Placement
+
+All monitoring services are placed on the `monitoring` network. Prometheus also joins the `data` network so it can scrape metrics from NetBox stack services (NetBox, Postgres, Valkey, Diode, workers). This follows the least-privilege principle: monitoring services cannot reach the edge or app networks.
+
+### Configuration Adaptation
+
+The upstream configuration files are adapted to the generated deployment:
+
+- **Prometheus**: Scrape targets reference Compose service names (e.g., `prometheus:9090`, `grafana:3000`, `cadvisor:8080`). Operators can add custom scrape targets for their own node-exporters and SNMP devices.
+- **Loki**: Filesystem-backed storage with embedded cache, analytics reporting disabled.
+- **Promtail**: Listens for syslog on port 1514 (TCP) with relabeling for hostname, source IP, and destination IP.
+- **syslog-ng**: Forwards all syslog sources (local + network) to Promtail via TCP 1514.
+- **Grafana**: Provisioned with Prometheus and Loki datasources and a dashboard provider pointing to the `performance_overview` directory.
+
+### Dashboard Provisioning
+
+The upstream repository includes five preconfigured Grafana dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter). These are large JSON files that are not embedded in the generator. Instead, a `scripts/fetch-monitoring-dashboards.sh` script is generated that downloads the dashboards from the pinned upstream repository commit (`abb9825`). The dashboards are placed in a shared Docker volume mounted by Grafana.
+
+### Why Profile-Gated
+
+The monitoring stack is optional because:
+1. Not all deployments need local monitoring (some organizations use centralized monitoring).
+2. cAdvisor and node-exporter require privileged access or host volume mounts.
+3. The monitoring services add significant resource overhead on small hosts.
+
+Operators enable the monitoring profile when they want self-contained observability alongside NetBox.
+
+### Source and License
+
+- Repository: https://github.com/nullroute-commits/enter-the-metrics
+- Pinned ref: `abb9825`
+- License: BSD (compatible with MIT)
+
+## Identity Profile (Authentik + Ory Hydra)
+
+The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack for SSO and OAuth2 client-credentials grants. The profile is optional and all services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode).
+
+### Included Services
+
+| Service | Image | Purpose |
+|---|---|---|
+| `authentik-postgres` | `postgres:18` / `postgres:18-alpine` | Dedicated Postgres for Authentik |
+| `authentik-server` | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
+| `authentik-worker` | `ghcr.io/goauthentik/server:2026.2.1` | Authentik background worker |
+| `authentik-bootstrap-netbox` | `ghcr.io/goauthentik/server:2026.2.1` | Init container: configures NetBox as an OAuth2 application |
+| `hydra-postgres` | `postgres:18` / `postgres:18-alpine` | Dedicated Postgres for Ory Hydra |
+| `hydra-migrate` | `oryd/hydra:v2.2.0` | Hydra database migration init container |
+| `hydra` | `oryd/hydra:v2.2.0` | OAuth2/OIDC server for Diode client-credentials |
+| `hydra-bootstrap-clients` | `oryd/hydra:v2.2.0` | Init container: provisions Diode OAuth2 client |
+
+### Remote Authentication Integration
+
+The generated `configuration/extra.py` enables NetBox remote authentication:
+
+- `REMOTE_AUTH_ENABLED = True`
+- `REMOTE_AUTH_BACKEND = "netbox.authentication.RemoteUserBackend"`
+- `REMOTE_AUTH_HEADER = "HTTP_X_AUTHENTIK_USERNAME"`
+- `REMOTE_AUTH_USER_EMAIL = "HTTP_X_AUTHENTIK_EMAIL"`
+- `REMOTE_AUTH_AUTO_CREATE_USER = True`
+
+Authentik forwards the authenticated username and email via HTTP headers through the reverse proxy chain (Traefik → WAF → NetBox). Users are auto-created in NetBox on first login.
+
+### Credential Flow
+
+Ory Hydra provides the OAuth2/OIDC server required by `diode-auth` for client-credentials grants. The `hydra-bootstrap-clients` init container provisions the Diode client using `scripts/setup-diode-credential.sh`. The `diode-auth` service on the `data` network connects to Hydra through the `identity` network for OAuth2 token exchange.
+
+### Why Profile-Gated
+
+The identity stack is optional because:
+1. Not all deployments need self-hosted SSO (some organizations use existing IdPs).
+2. Running Authentik and Hydra adds additional Postgres instances and resource overhead.
+3. The core NetBox stack works without SSO using the pseudonymous bootstrap account.

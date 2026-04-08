@@ -73,7 +73,7 @@ async def test_container_detection_not_container():
     with patch.object(collector, 'read_file_async', new_callable=AsyncMock) as mock_read:
         mock_read.return_value = None  # No container markers
 
-        is_container = await collector._check_is_container()
+        await collector._check_is_container()
         # Result depends on actual environment
 
 

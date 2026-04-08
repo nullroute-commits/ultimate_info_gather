@@ -149,6 +149,24 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(network_map["app"], "172.31.0.64/27")
         self.assertEqual(network_map["data"], "172.31.0.96/28")
         self.assertEqual(network_map["security"], "172.31.0.112/28")
+        self.assertEqual(network_map["monitoring"], "172.31.0.128/27")
+
+    def test_deterministic_network_mode_uses_valid_subnets(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+            cidr_mode="deterministic",
+        )
+
+        self.assertEqual(plan.networks.cidr_mode, "deterministic")
+        network_map = {segment.name: segment.cidr for segment in plan.networks.segments}
+        self.assertEqual(network_map["edge"], "172.30.0.0/27")
+        self.assertEqual(network_map["app"], "172.30.0.32/27")
+        self.assertEqual(network_map["data"], "172.30.0.64/27")
+        self.assertEqual(network_map["security"], "172.30.0.96/28")
+        self.assertEqual(network_map["monitoring"], "172.30.0.128/27")
 
     def test_worker_container_override(self) -> None:
         plan = build_plan(
@@ -188,6 +206,29 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(plan.geo_foss.ref, "50c3c16")
         self.assertEqual(plan.geo_foss.service_name, "netbox-geo-foss")
         self.assertIn("geographic", plan.geo_foss.rationale.lower())
+
+    def test_monitoring_profile_is_present(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        self.assertEqual(
+            plan.monitoring.repository,
+            "https://github.com/nullroute-commits/enter-the-metrics.git",
+        )
+        self.assertEqual(plan.monitoring.ref, "abb9825")
+        self.assertIn("grafana/grafana:", plan.monitoring.grafana_image)
+        self.assertIn("prom/prometheus:", plan.monitoring.prometheus_image)
+        self.assertIn("grafana/loki:", plan.monitoring.loki_image)
+        self.assertIn("grafana/promtail:", plan.monitoring.promtail_image)
+        self.assertIn("balabit/syslog-ng:", plan.monitoring.syslog_ng_image)
+        self.assertIn("prom/node-exporter:", plan.monitoring.node_exporter_image)
+        self.assertIn("prom/snmp-exporter:", plan.monitoring.snmp_exporter_image)
+        self.assertIn("cadvisor/cadvisor:", plan.monitoring.cadvisor_image)
+        self.assertIn("monitoring", plan.monitoring.rationale.lower())
 
     def test_admin_identity_is_pseudonymous(self) -> None:
         plan = build_plan(
@@ -306,7 +347,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("https://10.0.0.50", netbox_env)  # CSRF_TRUSTED_ORIGINS
             self.assertNotIn('"8080:8080"', compose_text)
             self.assertIn("netbox-compress", traefik_dynamic_text)
-            self.assertIn("proxy_pass http://netbox:8080", waf_conf_text)
+            self.assertIn("proxy_pass $netbox_upstream", waf_conf_text)
             self.assertIn("CSRF_TRUSTED_ORIGINS=", netbox_env)
             self.assertEqual(rendered_plan["networks"]["cidr_mode"], "deterministic")
             self.assertIn(
@@ -331,7 +372,11 @@ class PlannerTests(unittest.TestCase):
             self.assertIn('client_id: netbox-to-diode', orb_agent_config_text)
             self.assertIn('client_secret: replace-me', orb_agent_config_text)
             self.assertIn('dry_run: true', orb_agent_config_text)
-            self.assertIn('schedule: "@every 60m"', orb_agent_config_text)
+            self.assertIn('schedule: "@every 120m"', orb_agent_config_text)
+            self.assertIn('timeout: 30m', orb_agent_config_text)
+            self.assertIn('-sS', orb_agent_config_text)
+            self.assertIn('-sV', orb_agent_config_text)
+            self.assertIn('-O', orb_agent_config_text)
             self.assertNotIn('schedule: "@every 5m"', orb_agent_config_text)
             self.assertIn('scope:', orb_agent_config_text)
             self.assertIn('targets:', orb_agent_config_text)
@@ -403,6 +448,184 @@ class PlannerTests(unittest.TestCase):
             self.assertNotIn("device_type_library_token", compose_text)
             self.assertNotIn("HOUSEKEEPING_INTERVAL=", netbox_env)
             self.assertNotIn("netbox-housekeeping:", compose_text)
+            # monitoring stack assertions
+            monitoring_prometheus_config = (
+                output_dir / "configuration" / "monitoring" / "prometheus" / "prometheus.yml"
+            )
+            monitoring_loki_config = (
+                output_dir / "configuration" / "monitoring" / "loki" / "loki-config.yml"
+            )
+            monitoring_promtail_config = (
+                output_dir / "configuration" / "monitoring" / "promtail" / "promtail-config.yml"
+            )
+            monitoring_syslog_ng_config = (
+                output_dir / "configuration" / "monitoring" / "syslog-ng" / "syslog-ng.conf"
+            )
+            grafana_prometheus_ds = (
+                output_dir
+                / "configuration"
+                / "monitoring"
+                / "grafana"
+                / "provisioning"
+                / "datasources"
+                / "prometheus.yml"
+            )
+            grafana_loki_ds = (
+                output_dir
+                / "configuration"
+                / "monitoring"
+                / "grafana"
+                / "provisioning"
+                / "datasources"
+                / "loki.yml"
+            )
+            grafana_dashboard_prov = (
+                output_dir
+                / "configuration"
+                / "monitoring"
+                / "grafana"
+                / "provisioning"
+                / "dashboards"
+                / "performance_overview.yml"
+            )
+            monitoring_env_file = output_dir / "env" / "monitoring.env"
+            monitoring_dashboard_script = output_dir / "scripts" / "fetch-monitoring-dashboards.sh"
+            self.assertTrue(monitoring_prometheus_config.exists())
+            self.assertTrue(monitoring_loki_config.exists())
+            self.assertTrue(monitoring_promtail_config.exists())
+            self.assertTrue(monitoring_syslog_ng_config.exists())
+            self.assertTrue(grafana_prometheus_ds.exists())
+            self.assertTrue(grafana_loki_ds.exists())
+            self.assertTrue(grafana_dashboard_prov.exists())
+            self.assertTrue(monitoring_env_file.exists())
+            self.assertTrue(monitoring_dashboard_script.exists())
+            prometheus_config_text = monitoring_prometheus_config.read_text(encoding="utf-8")
+            self.assertIn("scrape_configs:", prometheus_config_text)
+            self.assertIn("prometheus:9090", prometheus_config_text)
+            self.assertIn("grafana:3000", prometheus_config_text)
+            self.assertIn("cadvisor:8080", prometheus_config_text)
+            loki_config_text = monitoring_loki_config.read_text(encoding="utf-8")
+            self.assertIn("http_listen_port: 3100", loki_config_text)
+            self.assertIn("reporting_enabled: false", loki_config_text)
+            promtail_config_text = monitoring_promtail_config.read_text(encoding="utf-8")
+            self.assertIn("loki:3100", promtail_config_text)
+            self.assertIn("job_name: syslog", promtail_config_text)
+            syslog_ng_text = monitoring_syslog_ng_config.read_text(encoding="utf-8")
+            self.assertIn("promtail", syslog_ng_text)
+            self.assertIn("1514", syslog_ng_text)
+            grafana_prom_ds_text = grafana_prometheus_ds.read_text(encoding="utf-8")
+            self.assertIn("prometheus:9090", grafana_prom_ds_text)
+            grafana_loki_ds_text = grafana_loki_ds.read_text(encoding="utf-8")
+            self.assertIn("loki:3100", grafana_loki_ds_text)
+            grafana_dashboard_prov_text = grafana_dashboard_prov.read_text(encoding="utf-8")
+            self.assertIn("PerformanceOverviewDashboards", grafana_dashboard_prov_text)
+            monitoring_env_text = monitoring_env_file.read_text(encoding="utf-8")
+            self.assertIn("GF_ANALYTICS_REPORTING_ENABLED=false", monitoring_env_text)
+            dashboard_script_text = monitoring_dashboard_script.read_text(encoding="utf-8")
+            self.assertIn("abb9825", dashboard_script_text)
+            self.assertIn("performance_overview_docker.json", dashboard_script_text)
+            # monitoring compose services
+            self.assertIn('profiles: ["monitoring"]', compose_text)
+            self.assertIn("grafana:", compose_text)
+            self.assertIn("prometheus:", compose_text)
+            self.assertIn("loki:", compose_text)
+            self.assertIn("promtail:", compose_text)
+            self.assertIn("syslog-ng:", compose_text)
+            self.assertIn("node-exporter:", compose_text)
+            self.assertIn("snmp-exporter:", compose_text)
+            self.assertIn("cadvisor:", compose_text)
+            self.assertIn("monitoring-dashboard-init:", compose_text)
+            self.assertIn("grafana-data:", compose_text)
+            self.assertIn("grafana-dashboards:", compose_text)
+            self.assertIn("prometheus-data:", compose_text)
+            self.assertIn("monitoring:", compose_text)
+            self.assertIn("## Monitoring Stack", generated_readme_text)
+            self.assertIn("enter-the-metrics", generated_readme_text)
+
+    def test_letsencrypt_tls_profile(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+            fqdn="netbox.example.com",
+            acme_email="admin@example.com",
+        )
+
+        self.assertEqual(plan.tls.mode, "letsencrypt")
+        self.assertEqual(plan.tls.fqdn, "netbox.example.com")
+        self.assertEqual(plan.tls.acme_email, "admin@example.com")
+        self.assertEqual(plan.tls.dns_provider, "cloudflare")
+
+    def test_self_signed_tls_profile_default(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        self.assertEqual(plan.tls.mode, "self_signed")
+        self.assertIsNone(plan.tls.fqdn)
+
+    def test_letsencrypt_requires_acme_email(self) -> None:
+        with self.assertRaises(ValueError):
+            build_plan(
+                self.report,
+                track="debian",
+                deployment_name="test-stack",
+                source_report=FIXTURE,
+                fqdn="netbox.example.com",
+            )
+
+    def test_letsencrypt_bundle_output(self) -> None:
+        plan = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+            fqdn="netbox.example.com",
+            acme_email="admin@example.com",
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            write_bundle(plan, output_dir)
+            compose_text = (output_dir / "docker-compose.yml").read_text(encoding="utf-8")
+            traefik_dynamic_text = (
+                output_dir / "configuration" / "traefik" / "dynamic.yml"
+            ).read_text(encoding="utf-8")
+            netbox_env = (output_dir / "env" / "netbox.env").read_text(encoding="utf-8")
+            cert_script_path = output_dir / "scripts" / "generate-traefik-cert.sh"
+            cf_token_example = output_dir / "secrets" / "cf_dns_api_token.example"
+
+            # Compose should have ACME config, not self-signed certgen
+            self.assertNotIn("traefik-certgen", compose_text)
+            self.assertNotIn("alpine/openssl", compose_text)
+            self.assertIn("certificatesresolvers.letsencrypt.acme", compose_text)
+            self.assertIn("dnschallenge.provider=cloudflare", compose_text)
+            self.assertIn("admin@example.com", compose_text)
+            self.assertIn("acme-data:", compose_text)
+            self.assertIn("cf_dns_api_token", compose_text)
+            self.assertNotIn("traefik-certs:", compose_text)
+            # Port 80 should be published for HTTP-to-HTTPS redirect
+            self.assertIn(":80:80", compose_text)
+
+            # Traefik dynamic config should reference certResolver, not static certs
+            self.assertNotIn("certFile:", traefik_dynamic_text)
+            self.assertNotIn("keyFile:", traefik_dynamic_text)
+            self.assertIn("certResolver: letsencrypt", traefik_dynamic_text)
+            self.assertIn("netbox.example.com", traefik_dynamic_text)
+
+            # NetBox env should include the FQDN
+            self.assertIn("netbox.example.com", netbox_env)
+            self.assertIn("https://netbox.example.com", netbox_env)
+
+            # Self-signed cert script should NOT be written
+            self.assertFalse(cert_script_path.exists())
+
+            # Cloudflare token secret example should be written
+            self.assertTrue(cf_token_example.exists())
 
 
 if __name__ == "__main__":

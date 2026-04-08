@@ -89,7 +89,7 @@ async def test_orchestrator_output_generation():
         assert 'text' in outputs
 
         # Files should exist
-        for fmt, path in outputs.items():
+        for _fmt, path in outputs.items():
             assert Path(path).exists()
             assert Path(path).stat().st_size > 0
 

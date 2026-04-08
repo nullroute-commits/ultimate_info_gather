@@ -14,10 +14,13 @@ The generated bundle is opinionated:
 - The community device-type library is included as a separate pinned import workflow that uses the NetBox REST API for idempotent creation of manufacturers, device types (with component templates), module types, and rack types.
 - ORB Discovery is generated as an optional profile using the official `netboxlabs/orb-agent` image and an `agent.yaml` config.
 - A Traefik v3.2 reverse proxy terminates TLS at the edge and routes traffic through an OWASP ModSecurity CRS WAF sidecar before reaching NetBox.
-- Docker networks are scoped into isolated segments (edge, app, data, security) with explicit CIDR allocations sized for the required host counts.
+- Docker networks are scoped into isolated segments (edge, app, data, security, monitoring, identity) with explicit CIDR allocations sized for the required host counts.
 - Valkey replaces Redis as the cache and task-queue backend.
 - Diode is deployed as `diode-auth`, `diode-ingester`, and `diode-reconciler` companion services.
+- TLS termination supports two modes: auto-generated self-signed certificates (default) or Let's Encrypt ACME via DNS-01 Cloudflare challenge when an FQDN is provided.
 - Geographic data is imported as a three-tier Region hierarchy (continent → country → city) via a one-shot sidecar using the pynetbox REST API.
+- A complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is available as an optional `monitoring` Compose profile, based on the [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) project.
+- An identity stack (Authentik for SSO/OIDC, Ory Hydra for Diode OAuth2 client-credentials) is available as an optional `identity` Compose profile with dedicated Postgres instances and an isolated `identity` network segment.
 
 ## Version Pins
 
@@ -33,6 +36,8 @@ The generated bundle is opinionated:
 - Diode reconciler: `netboxlabs/diode-reconciler:1.13.0`
 - ORB agent: `netboxlabs/orb-agent:2.7.0`
 - Wazuh agent: `wazuh/wazuh-agent:4.14.3`
+- Authentik: `ghcr.io/goauthentik/server:2026.2.1`
+- Ory Hydra: `oryd/hydra:v2.2.0`
 - Topology plugin: `netbox-topology-views==4.5.0`
 - BGP plugin: `netbox-bgp==0.18.0`
 - DNS plugin: `netbox-plugin-dns==1.5.3`
@@ -41,6 +46,15 @@ The generated bundle is opinionated:
 - Inventory plugin: `netbox-inventory==2.5.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
+- Monitoring stack: based on `enter-the-metrics` pinned at commit `abb9825`
+  - Grafana: `grafana/grafana:11.4.0`
+  - Prometheus: `prom/prometheus:v2.54.1`
+  - Loki: `grafana/loki:3.2.1`
+  - Promtail: `grafana/promtail:3.2.1`
+  - syslog-ng: `balabit/syslog-ng:4.11.0`
+  - node-exporter: `prom/node-exporter:v1.8.2`
+  - snmp-exporter: `prom/snmp-exporter:v0.27.0`
+  - cAdvisor: `gcr.io/cadvisor/cadvisor:v0.51.0`
 
 ## Full Deployment Walkthrough
 
@@ -72,6 +86,7 @@ Debian track (default):
 docker compose -f docker-compose.ci.yml run --rm factory \
   --report /host-root/generated-report/report_20260309_154959.json \
   --output-dir /workspace/generated/netbox-deploy \
+  --host-ip 192.168.1.179 \
   --track debian \
   --deployment-name netbox-deploy
 ```
@@ -82,8 +97,22 @@ Alpine track:
 docker compose -f docker-compose.ci.yml run --rm factory \
   --report /host-root/generated-report/report_20260309_154959.json \
   --output-dir /workspace/generated/netbox-deploy \
+  --host-ip 192.168.1.179 \
   --track alpine \
   --deployment-name netbox-deploy
+```
+
+Let's Encrypt TLS (requires an FQDN and Cloudflare DNS):
+
+```bash
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
+  --host-ip 192.168.1.179 \
+  --track debian \
+  --deployment-name netbox-deploy \
+  --fqdn netbox.example.com \
+  --acme-email admin@example.com
 ```
 
 The `/host-root/` prefix maps to the parent of `netbox_deployment_factory/` via the CI Compose bind mount.
@@ -100,10 +129,35 @@ openssl rand -hex 32 > secret_key
 openssl rand -base64 24 | tr -d '\n' > superuser_api_token
 cp superuser_name.example superuser_name
 openssl rand -base64 18 | tr -d '\n' > superuser_password
+openssl rand -base64 24 | tr -d '\n' > diode_redis_password
+openssl rand -hex 16 > diode_client_id
+openssl rand -hex 32 > diode_client_secret
+openssl rand -hex 32 > netbox_to_diode
+cd ..
+```
+
+If using the `identity` profile, also populate identity secrets:
+
+```bash
+cd secrets
+openssl rand -hex 32 > authentik_secret_key
+openssl rand -base64 24 | tr -d '\n' > authentik_pg_password
+openssl rand -base64 24 | tr -d '\n' > hydra_pg_password
+openssl rand -hex 32 > hydra_system_secret
 cd ..
 ```
 
 Keep `superuser_name` aligned with the pseudonymous bootstrap account unless you intentionally change it before first start.
+
+After populating secrets, update the `replace-me` credential placeholders in `env/diode.env`. The values must match the corresponding Docker secret files so all services share consistent credentials:
+
+| Env variable | Matching secret file |
+|---|---|
+| `REDIS_PASSWORD` | `secrets/diode_redis_password` |
+| `POSTGRES_PASSWORD` | `secrets/db_password` |
+| `DIODE_TO_NETBOX_CLIENT_SECRET` | `secrets/netbox_to_diode` |
+
+The `env/hydra.env` file also contains `replace-me` placeholders (`DSN` and `SECRETS_SYSTEM`), but the Hydra compose services override these at runtime by reading from Docker secrets (`hydra_pg_password` and `hydra_system_secret`), so no manual replacement is required there.
 
 ### Step 5 — Build images
 
@@ -134,9 +188,26 @@ Once NetBox shows `(healthy)`, all dependent containers should start automatical
 docker compose up -d
 ```
 
+### Step 6b — Populate Cloudflare DNS token (Let's Encrypt only)
+
+If the bundle was generated with `--fqdn`, create the Cloudflare API token secret:
+
+```bash
+cd generated/netbox-deploy/secrets
+echo -n 'your-cloudflare-dns-api-token' > cf_dns_api_token
+cd ..
+```
+
+The token needs `Zone:DNS:Edit` permission for the zone containing the FQDN. See the `cf_dns_api_token.example` file for details.
+
 ### Step 7 — Access NetBox
 
-NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
+NetBox is available at **https://<host-ip>** (port 443).
+
+- **Self-signed mode** (default): The TLS certificate is auto-generated by the `traefik-certgen` init container.
+- **Let's Encrypt mode** (`--fqdn`): Traefik obtains a trusted certificate via ACME DNS-01 challenge. Access NetBox at `https://<fqdn>` instead.
+
+When the generator runs inside WSL or another guest environment, pass `--host-ip <windows-or-lan-ip>` so published ports, public URLs, and identity redirects use the real host address instead of the guest NAT address.
 
 Log in with:
 - **Username**: the value in `secrets/superuser_name` (e.g. `bootstrap-10f19331c8`)
@@ -159,6 +230,29 @@ docker compose --profile geo-foss-import run --rm netbox-geo-foss
 
 Set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account for live API data. Without it, the import falls back to an embedded dataset of 64 countries and ~215 cities.
 
+### Step 10 — Start the monitoring stack (optional)
+
+```bash
+./scripts/fetch-monitoring-dashboards.sh
+docker compose --profile monitoring up -d
+```
+
+This starts the full monitoring stack: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once to download the Grafana performance overview dashboards from the pinned upstream repository.
+
+Grafana is available at **http://localhost:3000** with the default `admin`/`admin` credentials. Change the password on first login.
+
+Prometheus scrapes metrics from the monitoring services and NetBox stack services on the `data` network. To forward syslogs to syslog-ng, configure the source device to send to `<host-ip>:514` (UDP) or `<host-ip>:601` (TCP).
+
+### Step 11 — Start the identity stack (optional)
+
+```bash
+docker compose --profile identity up -d
+```
+
+This starts Authentik (SSO/OIDC identity provider), Ory Hydra (OAuth2 server for Diode client-credentials), their dedicated Postgres instances, and bootstrap init containers. Populate `secrets/authentik_secret_key`, `secrets/authentik_pg_password`, `secrets/hydra_pg_password`, and `secrets/hydra_system_secret` before starting.
+
+Authentik is available at **https://<host-ip>:9443** with the default `akadmin` credentials. The `authentik-bootstrap-netbox` init container configures NetBox as an OAuth2 application in Authentik. Hydra's `hydra-bootstrap-clients` init container provisions the Diode client-credentials grant.
+
 ## Usage (Factory Only)
 
 The commands below are equivalent to Steps 2–3 above and are included for quick reference.
@@ -170,6 +264,7 @@ export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
 docker compose -f docker-compose.ci.yml run --rm factory \
   --report /host-root/generated-report/report_20260309_154959.json \
   --output-dir /workspace/generated/netbox-deploy \
+  --host-ip 192.168.1.179 \
   --track debian \
   --deployment-name netbox-deploy
 ```
@@ -181,6 +276,7 @@ export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
 docker compose -f docker-compose.ci.yml run --rm factory \
   --report /host-root/generated-report/report_20260309_154959.json \
   --output-dir /workspace/generated/netbox-deploy \
+  --host-ip 192.168.1.179 \
   --track alpine \
   --deployment-name netbox-deploy
 ```
@@ -202,24 +298,38 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `--cidr-mode {deterministic,dynamic}` selects fixed or host-capacity-based Docker subnet allocation.
 - `--edge-hosts`, `--app-hosts`, `--data-hosts`, and `--security-hosts` size each network segment when `--cidr-mode dynamic` is used.
 - `--worker-containers` overrides the host-derived number of NetBox worker containers.
+- `--fqdn` sets the deployment FQDN. When provided, Traefik uses Let's Encrypt ACME DNS-01 via Cloudflare instead of a self-signed certificate. Requires `--acme-email`.
+- `--acme-email` sets the email address for Let's Encrypt ACME registration. Required when `--fqdn` is provided.
 
 ## What Gets Generated
 
-- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`)
+- `docker-compose.yml` — full stack including Traefik, WAF, NetBox, Postgres, Valkey, Diode auth/ingester/reconciler, workers, superuser sync, and profiled sidecars/services (`orb-discovery`, `device-type-library-import`, `geo-foss-import`, `security-observability`, `monitoring`, `identity`)
 - `Dockerfile-Plugins` — custom NetBox image with plugin requirements and migrations
 - `Dockerfile-GeoFoss` — local build of the netbox-geo-foss import sidecar
 - `plugin_requirements.txt`
 - `configuration/plugins.py`
-- `configuration/traefik/dynamic.yml` — Traefik TLS certs and routes through the WAF
+- `configuration/extra.py` — NetBox remote-auth settings for Authentik SSO integration
+- `configuration/traefik/dynamic.yml` — Traefik TLS certs and routes through the WAF (self-signed mode includes static cert references; Let's Encrypt mode uses `certResolver` on routers)
 - `configuration/waf/default.conf` — OWASP ModSecurity CRS nginx reverse proxy to NetBox
 - `configuration/orb/agent.yaml` — ORB agent configuration
+- `configuration/monitoring/prometheus/prometheus.yml` — Prometheus scrape configuration
+- `configuration/monitoring/loki/loki-config.yml` — Loki log aggregation configuration
+- `configuration/monitoring/promtail/promtail-config.yml` — Promtail log agent configuration
+- `configuration/monitoring/syslog-ng/syslog-ng.conf` — syslog-ng forwarding configuration
+- `configuration/monitoring/grafana/provisioning/datasources/prometheus.yml` — Grafana Prometheus datasource
+- `configuration/monitoring/grafana/provisioning/datasources/loki.yml` — Grafana Loki datasource
+- `configuration/monitoring/grafana/provisioning/dashboards/performance_overview.yml` — Grafana dashboard provisioning
 - `env/netbox.env`
 - `env/postgres.env`
 - `env/diode.env`
 - `env/orb.env`
 - `env/device-type-library-import.env`
 - `env/geo-foss.env`
-- `scripts/generate-traefik-cert.sh` — self-signed TLS cert with SAN entries for localhost, hostname, and internal names
+- `env/monitoring.env` — Grafana environment variables
+- `env/authentik.env` — Authentik identity provider environment variables
+- `env/hydra.env` — Ory Hydra OAuth2 server environment variables
+- `scripts/generate-traefik-cert.sh` — self-signed TLS cert with SAN entries for localhost, hostname, and internal names (omitted in Let's Encrypt mode)
+- `secrets/cf_dns_api_token.example` — Cloudflare DNS API token placeholder (Let's Encrypt mode only)
 - `scripts/sync-superuser.sh` — creates the pseudonymous superuser and writes the full v2 API token to `token-store`
 - `scripts/run-device-type-library-import.sh`
 - `scripts/import-device-type-library.py`
@@ -227,6 +337,9 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `scripts/run-diode-reconciler.sh`
 - `scripts/run-geo-foss-import.sh` — reads the v2 token from `token-store` and launches the import
 - `scripts/import-geo-data.py` — pynetbox-based import of continents, countries, and cities as NetBox Regions
+- `scripts/fetch-monitoring-dashboards.sh` — downloads Grafana dashboards from pinned upstream repository
+- `scripts/authentik-bootstrap-netbox.sh` — configures NetBox as an OAuth2 application in Authentik
+- `scripts/setup-diode-credential.sh` — provisions Diode client credentials
 - `secrets/*.example`
 - `deployment-plan.json`
 - `README.md` summarizing the generated bundle
@@ -261,7 +374,7 @@ Before the first `docker compose up -d`:
 2. Copy each file in `secrets/*.example` to the same path without the `.example`
    suffix and replace placeholder values with real secrets (see Step 4 in the
    Full Deployment Walkthrough above for concrete `openssl` commands).
-3. TLS certificates are auto-generated by the `traefik-certgen` init container on first start. To supply your own, place `tls.crt` and `tls.key` in the `traefik-certs` volume.
+3. TLS certificates are auto-generated by the `traefik-certgen` init container on first start (self-signed mode). In Let's Encrypt mode, Traefik obtains certificates automatically via ACME DNS-01 — populate `secrets/cf_dns_api_token` with a Cloudflare API token that has `Zone:DNS:Edit` permission. To supply your own certificate in self-signed mode, place `tls.crt` and `tls.key` in the `traefik-certs` volume.
 4. Run `docker compose up -d`. On first boot, NetBox runs migrations before
    becoming healthy (2–5 minutes). Dependent services start automatically
    once the health check passes.
@@ -271,13 +384,15 @@ Before the first `docker compose up -d`:
 
 ## Least Privilege
 
-- Traefik is the only service with a published host port (443). All other services communicate over internal Docker networks.
+- Traefik is the only service with published host ports (443 always; 80 added in Let's Encrypt mode for HTTP→HTTPS redirect). All other services communicate over internal Docker networks.
 - The OWASP ModSecurity CRS WAF inspects HTTP traffic before it reaches NetBox, blocking common web attacks.
-- Docker networks are scoped into four isolated segments:
+- Docker networks are scoped into six isolated segments:
   - **edge**: Traefik and WAF only
   - **app**: WAF and NetBox only
-  - **data**: NetBox, Postgres, Valkey, diode-auth, diode-ingester, diode-reconciler, workers, superuser sync, imports, geo-foss
+  - **data**: NetBox, Postgres, Valkey, Diode, workers, superuser sync, imports, geo-foss, Prometheus (for scraping)
   - **security**: Wazuh agent
+  - **monitoring**: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, cAdvisor
+  - **identity**: Authentik, Ory Hydra, their dedicated Postgres instances, and bootstrap init containers
 
 ## ORB Discovery Profile
 
@@ -297,7 +412,7 @@ client_secret: replace-me
 ```
 
 The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 60m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
-- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.96/28`; dynamic mode allocates from `172.31.0.0/16`).
+- Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.160/27`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
 - The importer keeps dropped capabilities and `no-new-privileges`, and downloads the pinned library archive into temporary storage at runtime.
@@ -314,6 +429,23 @@ The generator now emits adjacent-service recommendations into the generated depl
 - **Cloud service**: Prefer **Nextcloud** for operator files, notes, calendars, and shared documentation. Evaluate **Seafile** when fast file synchronization matters more than broader groupware.
 
 Deploy these services adjacent to the generated NetBox stack behind the same reverse proxy and chosen identity provider, then link them operationally through NetBox RBAC, runbooks, and exported artifacts.
+
+## Identity Profile (Authentik + Ory Hydra)
+
+The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack:
+
+- **Authentik** (`ghcr.io/goauthentik/server:2026.2.1`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
+- **Ory Hydra** (`oryd/hydra:v2.2.0`) — OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients` services with a dedicated `hydra-postgres` database.
+
+All identity services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
+
+Start the identity stack:
+
+```bash
+docker compose --profile identity up -d
+```
+
+The NetBox `configuration/extra.py` enables `REMOTE_AUTH_ENABLED` with the `RemoteUserBackend` and reads the Authentik-forwarded username from `HTTP_X_AUTHENTIK_USERNAME` and email from `HTTP_X_AUTHENTIK_EMAIL`. The `authentik-bootstrap-netbox` init container runs `scripts/authentik-bootstrap-netbox.sh` to configure NetBox as an OAuth2 application in the Authentik instance. The `hydra-bootstrap-clients` init container provisions the Diode client-credentials OAuth2 client.
 
 ## Device-Type Library Import
 
@@ -350,6 +482,74 @@ The import creates:
 Country and city data is fetched from the GeoNames API when available. When the GeoNames API is unavailable or rate-limited, the import falls back to an embedded dataset of 64 countries and ~215 cities.
 
 Before running, set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account username. Downloaded geographic datasets are cached in the `geo-foss-cache` volume. The geo-foss service depends on `netbox-superuser-sync` having completed so the v2 API token is available in the `token-store` volume.
+
+## Monitoring Stack
+
+The generated bundle includes an optional monitoring stack based on [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics), profiled under `monitoring`. It provides:
+
+- **Grafana**: Dashboard visualization sourcing data from Prometheus and Loki
+- **Prometheus**: Metrics collection with scrape targets for Grafana, Loki, Promtail, node-exporter, and cAdvisor
+- **Loki**: Log aggregation
+- **Promtail**: Log agent that ships logs to Loki
+- **syslog-ng**: Syslog forwarder that sends logs to Promtail
+- **node-exporter**: Exposes host system metrics (CPU, memory, network, disk) to Prometheus
+- **snmp-exporter**: Forwards SNMP traffic from network devices to Prometheus
+- **cAdvisor**: Sends Docker container metrics to Prometheus
+
+Start the monitoring stack:
+
+```bash
+./scripts/fetch-monitoring-dashboards.sh
+docker compose --profile monitoring up -d
+```
+
+The dashboard fetch script downloads five preconfigured Grafana performance overview dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter) from the pinned upstream repository. Grafana is available at **http://localhost:3000** with default credentials `admin`/`admin`.
+
+All monitoring services run on the isolated `monitoring` Docker network. Prometheus also joins the `data` network so it can scrape metrics from NetBox stack services. To add custom Prometheus scrape targets, edit `configuration/monitoring/prometheus/prometheus.yml`. To configure SNMP monitoring, add your device targets to the Prometheus config and set the appropriate community string in the snmp-exporter configuration.
+
+To forward syslogs, configure the source device to send to the host IP on port 514 (UDP) or 601 (TCP).
+
+## Let's Encrypt TLS
+
+When the factory is invoked with `--fqdn` and `--acme-email`, the generated bundle switches from self-signed certificates to Let's Encrypt ACME with a DNS-01 Cloudflare challenge:
+
+```bash
+docker compose -f docker-compose.ci.yml run --rm factory \
+  --report /host-root/generated-report/report_20260309_154959.json \
+  --output-dir /workspace/generated/netbox-deploy \
+  --host-ip 192.168.1.179 \
+  --deployment-name netbox-deploy \
+  --fqdn netbox.example.com \
+  --acme-email admin@example.com
+```
+
+Changes relative to self-signed mode:
+
+- The `traefik-certgen` init container and `traefik-certs` volume are removed.
+- Traefik is configured with `--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare` and the registration email.
+- Port 80 is published with an HTTP→HTTPS redirect entrypoint.
+- An `acme-data` volume persists the ACME account and certificates.
+- The Cloudflare DNS API token is read from Docker secret `cf_dns_api_token`.
+- `configuration/traefik/dynamic.yml` uses `certResolver: letsencrypt` on routers with the FQDN as the main domain instead of static certificate references.
+- `env/netbox.env` adds the FQDN to `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`.
+- `secrets/cf_dns_api_token.example` is generated instead of `scripts/generate-traefik-cert.sh`.
+
+### Prerequisites
+
+1. A Cloudflare-managed DNS zone for the FQDN.
+2. A Cloudflare API token with `Zone:DNS:Edit` permission scoped to the zone.
+3. A DNS A/AAAA record pointing the FQDN to the deployment host (or a wildcard record).
+
+### Setup
+
+```bash
+cd generated/netbox-deploy/secrets
+echo -n 'your-cloudflare-dns-api-token' > cf_dns_api_token
+cd ..
+docker compose up -d
+```
+
+Traefik will request a certificate on first start. The ACME account and certificate are persisted in the `acme-data` volume. Certificate renewal is automatic.
 
 ## Validation
 

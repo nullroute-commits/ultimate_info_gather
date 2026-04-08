@@ -6,17 +6,30 @@ import copy
 import hashlib
 import ipaddress
 import json
+import os
 from pathlib import Path
 from typing import Any, cast
 
 from .constants import (
+    AUTHENTIK_IMAGE,
+    CADVISOR_IMAGE,
     DEFAULT_PLUGIN_SPECS,
     DEVICE_TYPE_LIBRARY_REF,
     DEVICE_TYPE_LIBRARY_REPOSITORY,
     GEO_FOSS_REF,
     GEO_FOSS_REPOSITORY,
+    GRAFANA_IMAGE,
+    HYDRA_IMAGE,
+    LOKI_IMAGE,
+    MONITORING_REF,
+    MONITORING_REPOSITORY,
     NETBOX_DOCKER_WORKFLOW_VERSION,
     NETBOX_IMAGE,
+    NODE_EXPORTER_IMAGE,
+    PROMETHEUS_IMAGE,
+    PROMTAIL_IMAGE,
+    SNMP_EXPORTER_IMAGE,
+    SYSLOG_NG_IMAGE,
     TRACK_IMAGE_DEFAULTS,
 )
 from .models import (
@@ -26,11 +39,14 @@ from .models import (
     DeviceTypeLibraryProfile,
     GeoFossProfile,
     HostProfile,
+    IdentityProfile,
     ImageSelection,
+    MonitoringProfile,
     NetworkProfile,
     NetworkSegment,
     PluginSpec,
     ServiceSizing,
+    TlsProfile,
 )
 
 
@@ -76,7 +92,20 @@ def _select_service_ip(interfaces: list[dict[str, Any]]) -> str:
     return candidates[0][1]
 
 
-def _build_host_profile(report: dict[str, Any]) -> HostProfile:
+def _resolve_service_ip_override(override: str | None) -> str | None:
+    candidate = (override or os.environ.get("NETBOX_DEPLOY_HOST_IP") or "").strip()
+    if not candidate:
+        return None
+    try:
+        ipaddress.IPv4Address(candidate)
+    except ValueError as exc:
+        raise ValueError(f"Invalid host IP override '{candidate}'") from exc
+    return candidate
+
+
+def _build_host_profile(
+    report: dict[str, Any], service_ip_override: str | None = None,
+) -> HostProfile:
     environment = report["environment"]
     software = report["software"]
     hardware = report["hardware"]
@@ -86,6 +115,9 @@ def _build_host_profile(report: dict[str, Any]) -> HostProfile:
     memory = hardware["memory"]
     docker_capable = software.get("can_manage_containers", False) and (
         "docker" in software.get("container_runtimes", [])
+    )
+    service_ip = _resolve_service_ip_override(service_ip_override) or _select_service_ip(
+        network.get("interfaces", [])
     )
 
     return HostProfile(
@@ -104,7 +136,7 @@ def _build_host_profile(report: dict[str, Any]) -> HostProfile:
         logical_cores=hardware["cpu"]["logical_cores"],
         default_gateway=network.get("default_gateway"),
         nameservers=network.get("dns_config", {}).get("nameservers", []),
-        service_ip=_select_service_ip(network.get("interfaces", [])),
+        service_ip=service_ip,
     )
 
 
@@ -211,6 +243,44 @@ def _derive_geo_foss_profile() -> GeoFossProfile:
     )
 
 
+def _derive_monitoring_profile() -> MonitoringProfile:
+    return MonitoringProfile(
+        repository=MONITORING_REPOSITORY,
+        ref=MONITORING_REF,
+        grafana_image=GRAFANA_IMAGE,
+        prometheus_image=PROMETHEUS_IMAGE,
+        loki_image=LOKI_IMAGE,
+        promtail_image=PROMTAIL_IMAGE,
+        syslog_ng_image=SYSLOG_NG_IMAGE,
+        node_exporter_image=NODE_EXPORTER_IMAGE,
+        snmp_exporter_image=SNMP_EXPORTER_IMAGE,
+        cadvisor_image=CADVISOR_IMAGE,
+        rationale=(
+            "Integrated monitoring stack based on "
+            "https://github.com/nullroute-commits/enter-the-metrics. "
+            "Provides Grafana dashboards, Prometheus metrics collection, "
+            "Loki log aggregation, Promtail log shipping, syslog-ng "
+            "forwarding, node_exporter host metrics, SNMP exporter, "
+            "and cAdvisor container metrics. All services are profiled "
+            "under the 'monitoring' Compose profile."
+        ),
+    )
+
+
+def _derive_identity_profile() -> IdentityProfile:
+    return IdentityProfile(
+        authentik_image=AUTHENTIK_IMAGE,
+        hydra_image=HYDRA_IMAGE,
+        rationale=(
+            "Authentik provides a self-hosted OIDC/SAML identity provider for "
+            "NetBox SSO. Ory Hydra provides the OAuth2/OIDC server required by "
+            "diode-auth for client-credentials grants. Both are deployed under "
+            "the 'identity' Compose profile with dedicated Postgres instances "
+            "and an isolated identity network segment."
+        ),
+    )
+
+
 def _derive_adjacent_services() -> list[AdjacentServiceRecommendation]:
     return [
         AdjacentServiceRecommendation(
@@ -307,6 +377,8 @@ def _derive_network_profile(
         "app": 16,
         "data": 16,
         "security": 8,
+        "monitoring": 16,
+        "identity": 16,
     }
     requested = defaults | (required_hosts or {})
 
@@ -334,6 +406,16 @@ def _derive_network_profile(
                     cidr="172.30.0.96/28",
                     required_hosts=requested["security"],
                 ),
+                NetworkSegment(
+                    name="monitoring",
+                    cidr="172.30.0.128/27",
+                    required_hosts=requested["monitoring"],
+                ),
+                NetworkSegment(
+                    name="identity",
+                    cidr="172.30.0.160/27",
+                    required_hosts=requested["identity"],
+                ),
             ],
         )
 
@@ -345,7 +427,7 @@ def _derive_network_profile(
     cursor = base_start
     segments: list[NetworkSegment] = []
 
-    for name in ("edge", "app", "data", "security"):
+    for name in ("edge", "app", "data", "security", "monitoring", "identity"):
         prefix = _prefix_for_required_hosts(requested[name])
         block_size = 2 ** (32 - prefix)
 
@@ -482,6 +564,14 @@ def _collect_notes(track: str) -> list[str]:
             "workflow can be overridden to use a dedicated NetBox user."
         ),
         (
+            "A full monitoring stack (Grafana, Prometheus, Loki, Promtail, "
+            "syslog-ng, node_exporter, snmp_exporter, cAdvisor) is generated "
+            "as an optional 'monitoring' Compose profile based on "
+            "enter-the-metrics. Prometheus scrapes the NetBox data plane "
+            "and monitoring services; Grafana dashboards are provisioned "
+            "from the pinned upstream repository."
+        ),
+        (
             "The netbox-geo-foss companion service integrates open-source "
             "geographic data (GeoNames, Natural Earth, OpenStreetMap) into "
             "NetBox via the REST API. It runs as a profiled one-shot service "
@@ -494,7 +584,30 @@ def _collect_notes(track: str) -> list[str]:
             "workflows; deploy them beside the core stack rather than inside "
             "the generated NetBox Compose bundle."
         ),
+        (
+            "An identity profile is generated with Authentik (SSO/OIDC identity "
+            "provider) and Ory Hydra (OAuth2 server for Diode client-credentials). "
+            "Both are deployed under the 'identity' Compose profile with dedicated "
+            "Postgres instances and an isolated identity network segment "
+            "(172.30.0.160/27). Start with: docker compose --profile identity up -d"
+        ),
     ]
+
+
+def _derive_tls_profile(
+    fqdn: str | None = None,
+    acme_email: str | None = None,
+) -> TlsProfile:
+    if fqdn:
+        if not acme_email:
+            raise ValueError("--acme-email is required when --fqdn is provided for Let's Encrypt")
+        return TlsProfile(
+            mode="letsencrypt",
+            fqdn=fqdn,
+            acme_email=acme_email,
+            dns_provider="cloudflare",
+        )
+    return TlsProfile(mode="self_signed")
 
 
 def build_plan(
@@ -505,6 +618,9 @@ def build_plan(
     cidr_mode: str = "deterministic",
     required_hosts: dict[str, int] | None = None,
     worker_containers: int | None = None,
+    service_ip_override: str | None = None,
+    fqdn: str | None = None,
+    acme_email: str | None = None,
 ) -> DeploymentPlan:
     """Build a deployment plan from a collector report."""
 
@@ -512,7 +628,7 @@ def build_plan(
         expected = ", ".join(sorted(TRACK_IMAGE_DEFAULTS))
         raise ValueError(f"Unsupported track '{track}'. Expected one of: {expected}")
 
-    host = _build_host_profile(report)
+    host = _build_host_profile(report, service_ip_override=service_ip_override)
     image_defaults = TRACK_IMAGE_DEFAULTS[track]
     sizing = _derive_sizing(host)
     if worker_containers is not None:
@@ -536,6 +652,9 @@ def build_plan(
         admin_privacy=_derive_admin_privacy(report),
         device_type_library=_derive_device_type_library_profile(),
         geo_foss=_derive_geo_foss_profile(),
+        monitoring=_derive_monitoring_profile(),
+        identity=_derive_identity_profile(),
+        tls=_derive_tls_profile(fqdn=fqdn, acme_email=acme_email),
         adjacent_services=_derive_adjacent_services(),
         warnings=_collect_warnings(host),
         notes=_collect_notes(track),
