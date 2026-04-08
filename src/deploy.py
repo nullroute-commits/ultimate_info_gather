@@ -197,7 +197,7 @@ async def _verify_bundle(bundle_dir: Path) -> list[str]:
     if compose_path.exists():
         compose_text = compose_path.read_text(encoding="utf-8")
         for svc in _COMPOSE_SERVICES:
-            pattern = rf"^\s+{re.escape(svc)}:\s*$"
+            pattern = rf"^\s*{re.escape(svc)}:\s*$"
             if not re.search(pattern, compose_text, re.MULTILINE):
                 failures.append(f"compose missing service: {svc}")
         for feature, marker in _COMPOSE_EXTRA_MARKERS.items():

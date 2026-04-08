@@ -39,9 +39,13 @@ def shared_result(_shared_deployment_dir):
     """Run the pipeline once and share the result across tests."""
     import asyncio
 
-    result = asyncio.get_event_loop().run_until_complete(
-        run_deployment(output_dir=str(_shared_deployment_dir))
-    )
+    loop = asyncio.new_event_loop()
+    try:
+        result = loop.run_until_complete(
+            run_deployment(output_dir=str(_shared_deployment_dir))
+        )
+    finally:
+        loop.close()
     return result
 
 
