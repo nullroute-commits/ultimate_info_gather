@@ -21,6 +21,9 @@ class NetworkInfo:
     total_tx_bytes: int
     active_connections_count: int
     listening_ports_count: int
+    collection_duration_ms: float = 0.0
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 ```
 
 The serialized report also includes `collection_duration_ms`, `errors`, and

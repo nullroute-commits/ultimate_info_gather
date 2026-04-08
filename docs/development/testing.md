@@ -5,12 +5,13 @@
 ```
 tests/
 ├── conftest.py                      # Shared fixtures
+├── test_deploy.py                   # Deployment pipeline tests
 ├── test_environment.py              # Environment collector tests
-├── test_permissions.py              # Permissions collector tests
+├── test_improvements.py             # Embedded system improvements tests
+├── test_install_github_copilot.py   # GitHub Copilot installer tests
 ├── test_network.py                  # Network collector tests
 ├── test_orchestrator.py             # Orchestrator tests
-├── test_improvements.py             # Embedded system improvements tests
-└── test_install_github_copilot.py   # GitHub Copilot installer tests
+└── test_permissions.py              # Permissions collector tests
 ```
 
 ## Running Tests

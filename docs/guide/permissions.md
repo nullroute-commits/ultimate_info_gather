@@ -26,6 +26,8 @@ class PermissionsInfo:
     can_sudo: bool
     sudo_nopasswd: bool
     resources: ResourceInfo | None
+    collection_duration_ms: float = 0.0
+    errors: list[str] = field(default_factory=list)
 ```
 
 ## Permission Levels
@@ -38,6 +40,7 @@ class PermissionsInfo:
 | `STANDARD` | Normal user permissions |
 | `RESTRICTED` | Limited permissions |
 | `SANDBOXED` | Heavily restricted (seccomp, etc.) |
+| `UNKNOWN` | Unable to determine permission level |
 
 ## Privileged Groups
 
@@ -81,6 +84,8 @@ Each path has access level:
 | `WRITE` | Write only |
 | `EXECUTE` | Execute only |
 | `READ_WRITE` | Read and write |
+| `READ_EXECUTE` | Read and execute |
+| `WRITE_EXECUTE` | Write and execute |
 | `FULL` | Full access (rwx) |
 
 ## Security Contexts

@@ -29,6 +29,8 @@ class SoftwareInfo:
     can_manage_services: bool
     can_load_modules: bool
     can_manage_containers: bool
+    collection_duration_ms: float = 0.0
+    errors: list[str] = field(default_factory=list)
 ```
 
 ## Operating System Info
@@ -92,7 +94,7 @@ Systemd services:
 | Field | Description |
 |-------|-------------|
 | `name` | Service name |
-| `state` | RUNNING, STOPPED, FAILED |
+| `state` | RUNNING, STOPPED, FAILED, INACTIVE, UNKNOWN |
 | `is_enabled` | Starts on boot |
 | `pid` | Process ID |
 | `user` | Running as user |
