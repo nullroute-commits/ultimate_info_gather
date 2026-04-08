@@ -95,15 +95,15 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(dns_plugin.enabled)
         self.assertEqual(dns_plugin.package_name, "netbox-plugin-dns")
-        self.assertEqual(dns_plugin.version, "1.5.3")
+        self.assertEqual(dns_plugin.version, "1.5.5")
 
-        self.assertFalse(proxbox_plugin.enabled)
+        self.assertTrue(proxbox_plugin.enabled)
         self.assertEqual(proxbox_plugin.package_name, "netbox-proxbox")
-        self.assertEqual(proxbox_plugin.version, "0.0.6b2")
-        self.assertIn("4.2.99", proxbox_plugin.rationale)
+        self.assertEqual(proxbox_plugin.version, "0.0.10")
+        self.assertIn("4.5.x", proxbox_plugin.rationale)
 
-        self.assertFalse(acl_plugin.enabled)
-        self.assertIn("4.4.99", acl_plugin.rationale)
+        self.assertTrue(acl_plugin.enabled)
+        self.assertIn("4.5.x", acl_plugin.rationale)
 
         self.assertTrue(reorder_plugin.enabled)
         self.assertEqual(reorder_plugin.package_name, "netbox-reorder-rack")
@@ -118,15 +118,15 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(config_diff_plugin.enabled)
         self.assertEqual(config_diff_plugin.package_name, "netbox-config-diff")
-        self.assertEqual(config_diff_plugin.version, "2.14.0")
+        self.assertEqual(config_diff_plugin.version, "2.14.2")
 
         self.assertTrue(floorplan_plugin.enabled)
         self.assertEqual(floorplan_plugin.package_name, "netbox-floorplan-plugin")
-        self.assertEqual(floorplan_plugin.version, "0.9.0")
+        self.assertEqual(floorplan_plugin.version, "0.9.1")
 
         self.assertTrue(inventory_plugin.enabled)
         self.assertEqual(inventory_plugin.package_name, "netbox-inventory")
-        self.assertEqual(inventory_plugin.version, "2.5.0")
+        self.assertEqual(inventory_plugin.version, "2.5.1")
 
     def test_dynamic_network_mode_allocates_subnets(self) -> None:
         plan = build_plan(
@@ -184,12 +184,12 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(dns_plugin.enabled)
         self.assertEqual(dns_plugin.package_name, "netbox-plugin-dns")
-        self.assertEqual(dns_plugin.version, "1.5.3")
+        self.assertEqual(dns_plugin.version, "1.5.5")
 
-        self.assertFalse(proxbox_plugin.enabled)
+        self.assertTrue(proxbox_plugin.enabled)
         self.assertEqual(proxbox_plugin.package_name, "netbox-proxbox")
-        self.assertEqual(proxbox_plugin.version, "0.0.6b2")
-        self.assertIn("4.2.99", proxbox_plugin.rationale)
+        self.assertEqual(proxbox_plugin.version, "0.0.10")
+        self.assertIn("4.5.x", proxbox_plugin.rationale)
 
     def test_geo_foss_profile_is_present(self) -> None:
         plan = build_plan(
@@ -326,7 +326,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("      netbox:\n        condition: service_healthy", compose_text)
             self.assertIn("http://127.0.0.1:8080/login/", compose_text)
             self.assertIn("traefik:", compose_text)
-            self.assertIn("image: alpine/openssl:latest", compose_text)
+            self.assertIn("image: alpine/openssl:3.5.5", compose_text)
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)

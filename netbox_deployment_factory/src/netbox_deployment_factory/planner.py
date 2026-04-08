@@ -464,19 +464,16 @@ def _collect_warnings(host: HostProfile) -> list[str]:
             "this host."
         )
     warnings.append(
-        "The Proxmox plugin (netbox-proxbox) is included in the plugin spec "
-        "list but disabled because the current release (0.0.6b2) declares "
-        "max_version='4.2.99', which is incompatible with the pinned NetBox "
-        "4.5.x image. To enable Proxmox inventory sync, wait for an officially "
-        "supported netbox-proxbox release targeting NetBox 4.5, or use the "
-        "NetBox Labs event-driven Proxmox automation solution "
-        "(https://github.com/netboxlabs/netbox-proxmox-automation) as a "
-        "webhook-based alternative that does not require a plugin."
+        "The Proxmox plugin (netbox-proxbox) is enabled in this bundle using "
+        "version 0.0.10 which explicitly targets NetBox 4.5.x. Validate in "
+        "staging before production. For event-driven Proxmox automation without "
+        "a plugin, the NetBox Labs netbox-proxmox-automation project "
+        "(https://github.com/netboxlabs/netbox-proxmox-automation) provides a "
+        "webhook-based alternative."
     )
     warnings.append(
-        "The ACL plugin (netbox-acls) is included but disabled because upstream "
-        "declares max_version='4.4.99'. Keep it disabled on NetBox 4.5.x until "
-        "a compatible release is published."
+        "The ACL plugin (netbox-acls) version 2.0.0 is enabled and explicitly "
+        "targets NetBox 4.5.x in the upstream compatibility matrix."
     )
     warnings.append(
         "The Prometheus discovery plugin (netbox-prometheus-sd) is included "
@@ -500,24 +497,24 @@ def _collect_notes(track: str) -> list[str]:
         (
             "Topology, BGP, and DNS plugins are enabled because they have "
             "current NetBox 4.5 compatibility evidence from official NetBox "
-            "Community sources. The DNS plugin (netbox-plugin-dns 1.5.3) "
+            "Community sources. The DNS plugin (netbox-plugin-dns 1.5.5) "
             "explicitly declares min_version='4.5.0'."
         ),
         (
-            "The Diode plugin (netboxlabs-diode-netbox-plugin 1.7.1) is "
+            "The Diode plugin (netboxlabs-diode-netbox-plugin 1.9.0) is "
             "enabled by default and paired with generated diode-auth, "
             "diode-ingester, and diode-reconciler services so plugin and "
             "reconciler endpoints resolve in the composed deployment."
         ),
         (
-            "netbox-acls 1.9.1, netbox-proxbox 0.0.6b2, "
-            "and netbox-prometheus-sd 0.5 remain disabled by default until "
-            "their compatibility requirements are satisfied for this generated "
-            "bundle."
+            "netbox-prometheus-sd 0.5 remains disabled by default until "
+            "its compatibility requirements are satisfied for this generated "
+            "bundle. netbox-acls 2.0.0 and netbox-proxbox 0.0.10 are now "
+            "enabled with confirmed NetBox 4.5.x compatibility."
         ),
         (
-            "Requested plugins netbox-config-diff 2.14.0, "
-            "netbox-floorplan-plugin 0.9.0, and netbox-inventory 2.5.0 are "
+            "Requested plugins netbox-config-diff 2.14.2, "
+            "netbox-floorplan-plugin 0.9.1, and netbox-inventory 2.5.1 are "
             "integrated by default using upstream compatibility metadata."
         ),
         (
@@ -538,14 +535,13 @@ def _collect_notes(track: str) -> list[str]:
             "configuration/orb/agent.yaml."
         ),
         (
-            "DNS management is provided by netbox-plugin-dns 1.5.3, which "
+            "DNS management is provided by netbox-plugin-dns 1.5.5, which "
             "explicitly targets NetBox 4.5.0+ and handles zones, records, "
             "nameservers, and DNSSEC key templates natively inside NetBox."
         ),
         (
-            "The Proxmox plugin (netbox-proxbox) is included in the plugin "
-            "spec list as a documented integration option but is disabled "
-            "because the current release is incompatible with NetBox 4.5. "
+            "The Proxmox plugin (netbox-proxbox) version 0.0.10 is enabled "
+            "with confirmed NetBox 4.5.x compatibility. "
             "For event-driven Proxmox automation without a plugin, see the "
             "NetBox Labs netbox-proxmox-automation project."
         ),

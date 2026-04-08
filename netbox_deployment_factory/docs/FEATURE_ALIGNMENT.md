@@ -10,23 +10,19 @@ The repository enables `netbox-bgp` because it directly extends NetBox as a sour
 
 ## DNS
 
-The repository enables `netbox-plugin-dns` (module: `netbox_dns`) version 1.5.3, which explicitly declares `min_version = "4.5.0"` and is published from the official netbox-community source path. This plugin provides DNS zone, record, nameserver, and DNSSEC key template management natively inside NetBox, making DNS a first-class member of the network source of truth alongside IPAM and topology data.
+The repository enables `netbox-plugin-dns` (module: `netbox_dns`) version 1.5.5, which explicitly declares `min_version = "4.5.0"` and is published from the official netbox-community source path. This plugin provides DNS zone, record, nameserver, and DNSSEC key template management natively inside NetBox, making DNS a first-class member of the network source of truth alongside IPAM and topology data.
 
 The generated plugin configuration uses the package defaults. Operators who require custom SOA timers, zone TTL defaults, or filtered RR types can extend `PLUGINS_CONFIG["netbox_dns"]` in the generated `configuration/plugins.py`.
 
 ## Proxmox
 
-The repository includes `netbox-proxbox` (module: `netbox_proxbox`) version 0.0.6b2 in the plugin spec list as a documented integration option, but sets it to `enabled=False` because the current release declares `max_version='4.2.99'`, which is incompatible with the pinned NetBox 4.5.x image. Enabling it on a NetBox 4.5 deployment would cause NetBox to refuse startup due to the declared version ceiling.
+The repository includes `netbox-proxbox` (module: `netbox_proxbox`) version 0.0.10 in the plugin spec list with `enabled=True` because this release explicitly lists NetBox 4.5.x in its requirements.
 
-Two integration paths are available until a NetBox 4.5-compatible netbox-proxbox release ships:
-
-1. **netbox-proxbox (plugin)**: Set `enabled=True` in `DEFAULT_PLUGIN_SPECS` once an officially supported release targeting NetBox 4.5 is available. The plugin provides inventory synchronization (clusters, nodes, VMs, containers, interfaces) from Proxmox VE into NetBox via a FastAPI backend.
-
-2. **NetBox Labs event-driven automation (webhook-based)**: The `netboxlabs/netbox-proxmox-automation` project provides event-driven Proxmox VM provisioning and management triggered by NetBox event rules and webhooks. This approach does not require a NetBox plugin and is compatible with current NetBox 4.x releases. See [https://github.com/netboxlabs/netbox-proxmox-automation](https://github.com/netboxlabs/netbox-proxmox-automation) for setup instructions.
+The plugin provides inventory synchronization (clusters, nodes, VMs, containers, interfaces) from Proxmox VE into NetBox via a FastAPI backend. For event-driven Proxmox automation without a plugin, the `netboxlabs/netbox-proxmox-automation` project provides webhook-based VM provisioning and management.
 
 ## ACLs
 
-The repository includes `netbox-acls` (`netbox_acls`) version 1.9.1 in the plugin spec list but sets it to `enabled=False` because the current plugin config declares `max_version='4.4.99'`, which is incompatible with the pinned NetBox 4.5.x image. Enable once a compatible release targeting NetBox 4.5 is published.
+The repository includes `netbox-acls` (`netbox_acls`) version 2.0.0 in the plugin spec list with `enabled=True` because the upstream compatibility matrix explicitly targets NetBox 4.5.x for this version.
 
 **Configuration:** `top_level_menu: True`.
 
@@ -52,31 +48,31 @@ The generator enables the following user-requested plugins in `DEFAULT_PLUGIN_SP
 
 Compatibility evidence used from upstream metadata:
 
-- `netbox-config-diff` 2.14.0 (`min_version='4.5.0'`, `max_version='4.5.99'`)
-- `netbox-floorplan-plugin` 0.9.0 (`min_version='4.5.0-beta1'`, `max_version='4.5.99'`)
-- `netbox-inventory` 2.5.0 (`min_version='4.5.0'`)
+- `netbox-config-diff` 2.14.2 (`min_version='4.5.0'`, `max_version='4.5.99'`)
+- `netbox-floorplan-plugin` 0.9.1 (`min_version='4.5.0-beta1'`, `max_version='4.5.99'`)
+- `netbox-inventory` 2.5.1 (`min_version='4.5.0'`)
 
 ### Config Diff
 
-The repository enables `netbox-config-diff` (`netbox_config_diff`) version 2.14.0. This community plugin provides configuration drift detection and compliance reporting for network devices.
+The repository enables `netbox-config-diff` (`netbox_config_diff`) version 2.14.2. This community plugin provides configuration drift detection and compliance reporting for network devices.
 
 **Configuration:** `USERNAME` and `PASSWORD` are set to `replace-me` placeholders. The operator must replace these with valid device credentials for configuration retrieval.
 
 ### Floorplan
 
-The repository enables `netbox-floorplan-plugin` (`netbox_floorplan`) version 0.9.0. This community plugin provides visual floorplan management for sites and locations within NetBox.
+The repository enables `netbox-floorplan-plugin` (`netbox_floorplan`) version 0.9.1. This community plugin provides visual floorplan management for sites and locations within NetBox.
 
 **Configuration:** Uses package defaults.
 
 ### Inventory
 
-The repository enables `netbox-inventory` (`netbox_inventory`) version 2.5.0. This community plugin extends NetBox with asset lifecycle tracking, purchase, and warranty management for hardware inventory.
+The repository enables `netbox-inventory` (`netbox_inventory`) version 2.5.1. This community plugin extends NetBox with asset lifecycle tracking, purchase, and warranty management for hardware inventory.
 
 **Configuration:** Uses package defaults.
 
 ## Diode Plugin
 
-The repository enables `netboxlabs-diode-netbox-plugin` (`netbox_diode_plugin`) version 1.7.1. This is the official NetBox Labs Diode plugin that provides reconciliation APIs for automated network state ingestion. Upstream declares `min_version='4.4.10'` and `max_version='4.5.99'`.
+The repository enables `netboxlabs-diode-netbox-plugin` (`netbox_diode_plugin`) version 1.9.0. This is the official NetBox Labs Diode plugin that provides reconciliation APIs for automated network state ingestion. Upstream compatibility table shows NetBox >= 4.5.0 support.
 
 **Configuration:** `diode_username: "diode"`, `diode_target_override: "grpc://diode-auth:8080/diode"`, `secrets_path: "/run/secrets/"`, `netbox_to_diode_client_id: "netbox-to-diode"`, `netbox_to_diode_client_secret_name: "netbox_to_diode"`. The `diode_target_override` points at the generated `diode-auth` Compose service so plugin and reconciler endpoints resolve within the composed deployment.
 
@@ -169,7 +165,7 @@ The TLS mode is determined at plan time by `_derive_tls_profile()` in the planne
 
 ## Traefik Reverse Proxy
 
-The generated bundle places a Traefik v3.2 reverse proxy at the edge of the deployment:
+The generated bundle places a Traefik v3.6 reverse proxy at the edge of the deployment:
 
 - Listens on port 443 with TLS termination using a self-signed certificate (auto-generated by the `traefik-certgen` init container on first start).
 - Routes all HTTPS traffic to the WAF sidecar via the dynamic configuration in `configuration/traefik/dynamic.yml`.
@@ -183,7 +179,7 @@ The self-signed certificate includes SAN entries for `localhost`, `traefik`, `ne
 
 An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar between Traefik and NetBox:
 
-- Image: `owasp/modsecurity-crs:nginx`
+- Image: `owasp/modsecurity-crs:4.25.0-nginx-lts`
 - Listens on port 8081 (internal only)
 - Proxies validated requests to `http://netbox:8080`
 - Sets `X-Forwarded-Proto`, `X-Forwarded-Host`, and `X-Forwarded-Port` headers so NetBox sees the correct external origin
@@ -241,14 +237,14 @@ The generated bundle includes a complete monitoring stack based on [enter-the-me
 
 | Service | Image | Purpose |
 |---|---|---|
-| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization with Prometheus and Loki datasources |
-| Prometheus | `prom/prometheus:v2.54.1` | Metrics collection and storage |
-| Loki | `grafana/loki:3.2.1` | Log aggregation |
-| Promtail | `grafana/promtail:3.2.1` | Log shipping agent (syslog → Loki) |
+| Grafana | `grafana/grafana:12.4.2` | Dashboard visualization with Prometheus and Loki datasources |
+| Prometheus | `prom/prometheus:v3.11.1` | Metrics collection and storage |
+| Loki | `grafana/loki:3.6.10` | Log aggregation |
+| Promtail | `grafana/promtail:3.6.10` | Log shipping agent (syslog → Loki) |
 | syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding to Promtail |
-| node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics |
-| snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
-| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` | Docker container metrics |
+| node-exporter | `prom/node-exporter:v1.11.1` | Host system metrics |
+| snmp-exporter | `prom/snmp-exporter:v0.30.1` | SNMP device metrics |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.55.1` | Docker container metrics |
 
 ### Network Placement
 
@@ -292,13 +288,13 @@ The generated bundle includes an `identity` Compose profile that deploys a self-
 | Service | Image | Purpose |
 |---|---|---|
 | `authentik-postgres` | `postgres:18` / `postgres:18-alpine` | Dedicated Postgres for Authentik |
-| `authentik-server` | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
-| `authentik-worker` | `ghcr.io/goauthentik/server:2026.2.1` | Authentik background worker |
-| `authentik-bootstrap-netbox` | `ghcr.io/goauthentik/server:2026.2.1` | Init container: configures NetBox as an OAuth2 application |
+| `authentik-server` | `ghcr.io/goauthentik/server:2026.2.2` | SSO/OIDC identity provider |
+| `authentik-worker` | `ghcr.io/goauthentik/server:2026.2.2` | Authentik background worker |
+| `authentik-bootstrap-netbox` | `ghcr.io/goauthentik/server:2026.2.2` | Init container: configures NetBox as an OAuth2 application |
 | `hydra-postgres` | `postgres:18` / `postgres:18-alpine` | Dedicated Postgres for Ory Hydra |
-| `hydra-migrate` | `oryd/hydra:v2.2.0` | Hydra database migration init container |
-| `hydra` | `oryd/hydra:v2.2.0` | OAuth2/OIDC server for Diode client-credentials |
-| `hydra-bootstrap-clients` | `oryd/hydra:v2.2.0` | Init container: provisions Diode OAuth2 client |
+| `hydra-migrate` | `oryd/hydra:v2.3.0` | Hydra database migration init container |
+| `hydra` | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode client-credentials |
+| `hydra-bootstrap-clients` | `oryd/hydra:v2.3.0` | Init container: provisions Diode OAuth2 client |
 
 ### Remote Authentication Integration
 
