@@ -28,7 +28,7 @@ The agent can determine and report:
 
 - **Execution Context**
   - Running as script, module, subprocess, or interactive
-  - Container environment detection (Docker, Kubernetes, LXC)
+  - Container environment detection (Docker, Kubernetes, LXC, containerd)
   - Virtual machine detection and hypervisor identification
   - WSL environment detection
   
@@ -147,7 +147,7 @@ The agent can catalog:
   - Boot time, uptime
   
 - **Package Management**
-  - Installed packages (apt, rpm, pacman, etc.)
+  - Installed packages (apt, rpm, pacman, opkg, etc.)
   - Python packages via pip
   
 - **Services**
@@ -189,6 +189,21 @@ sw = agent.software_info           # SoftwareInfo
 
 # Generate outputs
 outputs = await agent.generate_outputs(report, ['json', 'markdown'])
+```
+
+```python
+# End-to-end deployment pipeline
+from src.deploy import run_deployment
+
+result = await run_deployment(
+    output_dir='./output',
+)
+# result.success                – overall success
+# result.phases                 – list of PhaseResult
+# result.report_path            – path to saved JSON report
+# result.bundle_dir             – path to generated bundle (output_dir / "bundle")
+# result.verification_failures  – any failures from the verify phase
+# result.elapsed_ms             – total elapsed time in milliseconds
 ```
 
 ### Command Line Interface
@@ -285,6 +300,14 @@ Runs multiple coroutines concurrently with `asyncio.gather`. Any coroutine that 
 results = await self.gather_with_errors(self._fetch_a(), self._fetch_b())
 ```
 
+**`safe_call(func: Callable[[], T], default: T, error_msg: str = "Operation failed") -> T`**
+
+Safely calls a synchronous function in an executor thread. Returns the provided default value on failure and adds a warning.
+
+```python
+count = await self.safe_call(os.cpu_count, 0, "CPU count unavailable")
+```
+
 **`add_error(message: str)` / `add_warning(message: str)`**
 
 Accumulate error or warning strings during `collect()`. These are included in the `CollectionResult` returned by `safe_collect()`.
@@ -358,7 +381,44 @@ class AgentPlugin:
 
 ---
 
+## Deployment Pipeline
+
+The agent includes an end-to-end deployment pipeline (`src/deploy.py`) that chains system information collection with infrastructure deployment bundle generation.
+
+### Pipeline Phases
+
+| Phase | Description |
+|-------|-------------|
+| **COLLECT** | Run full system information collection via the orchestrator |
+| **SAVE_REPORT** | Persist the JSON report to disk |
+| **PLAN** | Generate a deployment plan based on host capabilities |
+| **RENDER** | Render the deployment bundle (Docker Compose, configs, scripts) |
+| **VERIFY** | Validate bundle completeness (26+ files, 30+ services, healthchecks) |
+
+### Usage
+
+```python
+from src.deploy import run_deployment
+
+result = await run_deployment(
+    output_dir="./output",
+)
+
+# result.success, result.phases, result.report_path, result.bundle_dir
+# result.verification_failures, result.elapsed_ms
+```
+
+The pipeline generates deployment bundles for [NetBox Deployment Factory](../netbox_deployment_factory/README.md), producing production-ready infrastructure including Docker Compose services, Traefik reverse proxy, monitoring stack, and security hardening.
+
+---
+
 ## Future Development Roadmap
+
+### Phase 0: Completed
+
+- [x] **Embedded Systems Support**: OpenWrt/opkg support, ARM-friendly file reading (`silent_if_missing`), graceful handling of virtual interface speed reads
+- [x] **Deployment Pipeline**: End-to-end async deployment orchestrator (`src/deploy.py`) that chains system collection → JSON report → NetBox deployment planning → bundle rendering → verification
+- [x] **NetBox Integration**: Full deployment factory (`netbox_deployment_factory/`) consuming agent JSON output to generate reproducible NetBox deployment bundles with Docker Compose, Traefik, ModSecurity WAF, Valkey, Diode, Authentik SSO, monitoring stack, and more
 
 ### Phase 1: Core Enhancements
 
@@ -375,7 +435,7 @@ class AgentPlugin:
 - [ ] **WebSocket Streaming**: Real-time data streaming
 - [ ] **Database Storage**: PostgreSQL/SQLite persistence
 - [ ] **Prometheus Metrics**: Monitoring system integration
-- [x] **NetBox Integration**: Already partially realized via [`netbox_deployment_factory/`](../netbox_deployment_factory/README.md), which consumes the agent's JSON output to generate reproducible NetBox deployment bundles
+- [x] **NetBox Integration**: Fully realized via [`netbox_deployment_factory/`](../netbox_deployment_factory/README.md) with end-to-end deployment pipeline (`src/deploy.py`)
 
 ### Phase 3: Intelligence Features
 
