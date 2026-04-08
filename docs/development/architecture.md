@@ -175,3 +175,55 @@ No single failure prevents overall collection.
 1. Extend `SystemReport` with new method
 2. Or create external formatter class
 3. Access via `report.to_dict()` for raw data
+
+## NetBox Deployment Factory Architecture
+
+The [`netbox_deployment_factory/`](../../netbox_deployment_factory/README.md) subproject is a downstream consumer of agent JSON output. It follows a planner–renderer pipeline architecture:
+
+```
+┌──────────────────────────────────┐
+│        CLI (cli.py)              │
+│  Parses --report, --track, etc.  │
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│      Planner (planner.py)        │
+│  load_report → build_plan        │
+│  Derives: HostProfile,           │
+│    ServiceSizing, ImageSelection,│
+│    PluginSpecs, NetworkProfile,  │
+│    AdminPrivacy, TlsProfile,     │
+│    MonitoringProfile,            │
+│    IdentityProfile               │
+└──────────┬───────────────────────┘
+           │  DeploymentPlan
+           ▼
+┌──────────────────────────────────┐
+│     Renderers (renderers.py)     │
+│  write_bundle → files on disk    │
+│  Generates: docker-compose.yml,  │
+│    Dockerfiles, env files,       │
+│    scripts, configs, secrets     │
+└──────────────────────────────────┘
+```
+
+### Key Components
+
+| Module | Responsibility |
+|--------|---------------|
+| `models.py` | Typed dataclasses (`DeploymentPlan`, `HostProfile`, `PluginSpec`, `ServiceSizing`, `NetworkProfile`, `TlsProfile`, etc.) |
+| `constants.py` | Version pins, image tags, and default plugin specifications |
+| `planner.py` | Transforms a raw JSON report into a `DeploymentPlan` with sizing, networking, TLS, and plugin decisions |
+| `renderers.py` | Converts a `DeploymentPlan` into a complete deployment bundle (Docker Compose, Dockerfiles, configs, scripts, secrets) |
+| `cli.py` | CLI entry point exposing `--report`, `--track`, `--cidr-mode`, `--fqdn`, etc. |
+
+### End-to-End Pipeline
+
+The `src/deploy.py` module chains the agent orchestrator with the factory:
+
+1. **COLLECT** — run full system collection via `InfoGatherOrchestrator`
+2. **SAVE_REPORT** — persist the JSON report
+3. **PLAN** — feed the report into `build_plan`
+4. **RENDER** — emit the deployment bundle via `write_bundle`
+5. **VERIFY** — validate bundle completeness (38+ files, 31+ services, healthchecks, network CIDRs)

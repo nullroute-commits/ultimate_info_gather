@@ -48,6 +48,7 @@ nav:
     - Software Inventory: guide/software.md
     - Report Generation: guide/reports.md
     - Embedded Systems: guide/embedded-systems.md
+    - Deployment Factory: guide/deployment-factory.md
   - API Reference:
     - Orchestrator: api/orchestrator.md
     - Models: api/models.md
