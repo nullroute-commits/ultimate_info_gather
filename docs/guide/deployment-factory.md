@@ -30,18 +30,18 @@ graph LR
 | Alpine reference | `3.23.3` |
 | Debian reference | `13.3 (Trixie)` |
 | Traefik | `v3.2` |
-| WAF | `owasp/modsecurity-crs:nginx` |
+| WAF | `owasp/modsecurity-crs:4.6.0-nginx` |
 | Valkey | pinned per lifecycle track |
 | Diode auth | `netboxlabs/diode-auth:1.12.0` |
 | Diode ingester | `netboxlabs/diode-ingester:1.13.0` |
 | Diode reconciler | `netboxlabs/diode-reconciler:1.13.0` |
 | ORB agent | `netboxlabs/orb-agent:2.7.0` |
-| Authentik | `ghcr.io/goauthentik/server:2026.2.1` |
+| Authentik | `ghcr.io/goauthentik/server:2025.2.1` |
 | Ory Hydra | `oryd/hydra:v2.2.0` |
-| Grafana | `grafana/grafana:11.4.0` |
+| Grafana | `grafana/grafana:10.4.0` |
 | Prometheus | `prom/prometheus:v2.54.1` |
-| Loki | `grafana/loki:3.2.1` |
-| Promtail | `grafana/promtail:3.2.1` |
+| Loki | `grafana/loki:2.9.6` |
+| Promtail | `grafana/promtail:2.9.6` |
 | syslog-ng | `balabit/syslog-ng:4.11.0` |
 | node-exporter | `prom/node-exporter:v1.8.2` |
 | snmp-exporter | `prom/snmp-exporter:v0.27.0` |

@@ -112,8 +112,8 @@ The `--track` flag selects the base OS images for PostgreSQL and Valkey:
 
 | Track | PostgreSQL Image | Valkey Image | OS Reference |
 |-------|-----------------|-------------|-------------|
-| `debian` | `postgres:18` | `valkey/valkey:9` | Debian 13.3 (Trixie) |
-| `alpine` | `postgres:18-alpine` | `valkey/valkey:9-alpine` | Alpine Linux 3.23.3 |
+| `debian` | `postgres:17` | `valkey/valkey:8` | Debian 13.3 (Trixie) |
+| `alpine` | `postgres:17-alpine` | `valkey/valkey:8-alpine` | Alpine Linux 3.23.3 |
 
 Both tracks use the same NetBox image (`netboxcommunity/netbox:v4.5.4`).
 

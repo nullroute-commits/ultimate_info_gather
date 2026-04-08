@@ -29,14 +29,14 @@ The generated bundle is opinionated:
 - Alpine lifecycle reference: `3.23.3`
 - Debian lifecycle reference: `13.3 (Trixie)`
 - Traefik: `v3.2`
-- WAF: `owasp/modsecurity-crs:nginx` (OWASP Core Rule Set with nginx)
+- WAF: `owasp/modsecurity-crs:4.6.0-nginx` (OWASP Core Rule Set with nginx)
 - Valkey: pinned per lifecycle track (replaces Redis)
 - Diode auth: `netboxlabs/diode-auth:1.12.0`
 - Diode ingester: `netboxlabs/diode-ingester:1.13.0`
 - Diode reconciler: `netboxlabs/diode-reconciler:1.13.0`
 - ORB agent: `netboxlabs/orb-agent:2.7.0`
 - Wazuh agent: `wazuh/wazuh-agent:4.14.3`
-- Authentik: `ghcr.io/goauthentik/server:2026.2.1`
+- Authentik: `ghcr.io/goauthentik/server:2025.2.1`
 - Ory Hydra: `oryd/hydra:v2.2.0`
 - Topology plugin: `netbox-topology-views==4.5.0`
 - BGP plugin: `netbox-bgp==0.18.0`
@@ -47,10 +47,10 @@ The generated bundle is opinionated:
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
 - Monitoring stack: based on `enter-the-metrics` pinned at commit `abb9825`
-  - Grafana: `grafana/grafana:11.4.0`
+  - Grafana: `grafana/grafana:10.4.0`
   - Prometheus: `prom/prometheus:v2.54.1`
-  - Loki: `grafana/loki:3.2.1`
-  - Promtail: `grafana/promtail:3.2.1`
+  - Loki: `grafana/loki:2.9.6`
+  - Promtail: `grafana/promtail:2.9.6`
   - syslog-ng: `balabit/syslog-ng:4.11.0`
   - node-exporter: `prom/node-exporter:v1.8.2`
   - snmp-exporter: `prom/snmp-exporter:v0.27.0`
@@ -434,7 +434,7 @@ Deploy these services adjacent to the generated NetBox stack behind the same rev
 
 The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack:
 
-- **Authentik** (`ghcr.io/goauthentik/server:2026.2.1`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
+- **Authentik** (`ghcr.io/goauthentik/server:2025.2.1`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
 - **Ory Hydra** (`oryd/hydra:v2.2.0`) — OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients` services with a dedicated `hydra-postgres` database.
 
 All identity services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.

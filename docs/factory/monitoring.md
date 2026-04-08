@@ -6,10 +6,10 @@ The generated bundle includes an optional monitoring stack based on [enter-the-m
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization |
+| Grafana | `grafana/grafana:10.4.0` | Dashboard visualization |
 | Prometheus | `prom/prometheus:v2.54.1` | Metrics collection |
-| Loki | `grafana/loki:3.2.1` | Log aggregation |
-| Promtail | `grafana/promtail:3.2.1` | Log shipping agent |
+| Loki | `grafana/loki:2.9.6` | Log aggregation |
+| Promtail | `grafana/promtail:2.9.6` | Log shipping agent |
 | syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding |
 | node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics (CPU, memory, network, disk) |
 | snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
