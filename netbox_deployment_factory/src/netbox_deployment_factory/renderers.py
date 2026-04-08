@@ -105,21 +105,21 @@ def _render_netbox_healthcheck_command() -> str:
 
 
 def _resolve_public_host(plan: DeploymentPlan) -> str:
-  if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
-    return plan.tls.fqdn
-  if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
-    return plan.host.service_ip
-  hostname = plan.host.hostname.strip()
-  if hostname and re.fullmatch(
-    r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*",
-    hostname,
-  ):
-    return hostname
-  return "localhost"
+    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
+        return plan.tls.fqdn
+    if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
+        return plan.host.service_ip
+    hostname = plan.host.hostname.strip()
+    if hostname and re.fullmatch(
+        r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*",
+        hostname,
+    ):
+        return hostname
+    return "localhost"
 
 
 def _render_netbox_public_base_url(plan: DeploymentPlan) -> str:
-  return f"https://{_resolve_public_host(plan)}"
+    return f"https://{_resolve_public_host(plan)}"
 
 
 def _segment_cidr(plan: DeploymentPlan, name: str) -> str:
@@ -3241,4 +3241,3 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
             path.chmod(0o755)
         written.append(path)
     return written
-
