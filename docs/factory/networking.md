@@ -38,7 +38,7 @@ graph TB
         GR[Grafana]
         PM2[Prometheus]
         LK[Loki]
-        AL[Alloy]
+        PT[Promtail]
         SNG[syslog-ng]
         NE[node-exporter]
         SE[snmp-exporter]
@@ -67,7 +67,7 @@ graph TB
 | `app` | Application layer | `172.30.0.32/27` | WAF, NetBox |
 | `data` | Data plane | `172.30.0.64/27` | NetBox, PostgreSQL, Valkey, Diode, workers, imports, Prometheus |
 | `security` | Security observability | `172.30.0.96/28` | Wazuh agent |
-| `monitoring` | Monitoring stack | `172.30.0.128/27` | Grafana, Prometheus, Loki, Alloy, syslog-ng, exporters, cAdvisor |
+| `monitoring` | Monitoring stack | `172.30.0.128/27` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters, cAdvisor |
 | `identity` | Identity providers | `172.30.0.160/27` | Authentik, Ory Hydra, dedicated PostgreSQL instances |
 
 ## CIDR Planning Modes
@@ -128,7 +128,7 @@ The following table shows which networks each service connects to:
 | Grafana | | | | | ✅ | |
 | Prometheus | | | ✅ | | ✅ | |
 | Loki | | | | | ✅ | |
-| Alloy | | | | | ✅ | |
+| Promtail | | | | | ✅ | |
 | syslog-ng | | | | | ✅ | |
 | node-exporter | | | | | ✅ | |
 | snmp-exporter | | | | | ✅ | |

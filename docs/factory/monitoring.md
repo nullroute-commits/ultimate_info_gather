@@ -6,16 +6,16 @@ The generated bundle includes an optional monitoring stack based on [enter-the-m
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| Grafana | `grafana/grafana:12.4.2` | Dashboard visualization |
-| Prometheus | `prom/prometheus:v3.11.0` | Metrics collection |
-| Loki | `grafana/loki:3.7.1` | Log aggregation |
-| Alloy | `grafana/alloy:v1.15.0` | Log shipping agent |
+| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization |
+| Prometheus | `prom/prometheus:v2.54.1` | Metrics collection |
+| Loki | `grafana/loki:3.2.1` | Log aggregation |
+| Promtail | `grafana/promtail:3.2.1` | Log shipping agent |
 | syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding |
-| node-exporter | `prom/node-exporter:v1.11.1` | Host system metrics (CPU, memory, network, disk) |
-| snmp-exporter | `prom/snmp-exporter:v0.30.1` | SNMP device metrics |
-| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.52.1` | Docker container metrics |
+| node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics (CPU, memory, network, disk) |
+| snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` | Docker container metrics |
 
-Source repository: [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) pinned at commit `706ed92`.
+Source repository: [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) pinned at commit `abb9825`.
 
 ## Starting the Stack
 
@@ -44,7 +44,7 @@ graph TB
         GR[Grafana<br/>:3000]
         PM[Prometheus]
         LK[Loki]
-        AL[Alloy]
+        PT[Promtail]
         SNG[syslog-ng<br/>:514 UDP, :601 TCP]
         NE[node-exporter]
         SE[snmp-exporter]
@@ -58,13 +58,13 @@ graph TB
 
     PM -->|scrapes| GR
     PM -->|scrapes| LK
-    PM -->|scrapes| AL
+    PM -->|scrapes| PT
     PM -->|scrapes| NE
     PM -->|scrapes| CA
     GR -->|queries| PM
     GR -->|queries| LK
-    AL -->|ships logs| LK
-    SNG -->|forwards| AL
+    PT -->|ships logs| LK
+    SNG -->|forwards| PT
     PM2 -->|scrapes| NB
 ```
 
@@ -76,7 +76,7 @@ All monitoring services run on the isolated `monitoring` Docker network. Prometh
 |------|-------------|
 | `configuration/monitoring/prometheus/prometheus.yml` | Prometheus scrape targets |
 | `configuration/monitoring/loki/loki-config.yml` | Loki log aggregation |
-| `configuration/monitoring/alloy/config.alloy` | Grafana Alloy log agent |
+| `configuration/monitoring/promtail/promtail-config.yml` | Promtail log agent |
 | `configuration/monitoring/syslog-ng/syslog-ng.conf` | syslog-ng forwarding |
 | `configuration/monitoring/grafana/provisioning/datasources/prometheus.yml` | Grafana Prometheus datasource |
 | `configuration/monitoring/grafana/provisioning/datasources/loki.yml` | Grafana Loki datasource |
@@ -101,7 +101,7 @@ The generated Prometheus configuration scrapes metrics from:
 
 - Grafana
 - Loki
-- Alloy
+- Promtail
 - node-exporter
 - cAdvisor
 - NetBox stack services (via the `data` network)
@@ -115,8 +115,8 @@ To forward syslog messages to the monitoring stack:
 1. Configure the source device to send syslogs to:
     - **UDP**: `<host-ip>:514`
     - **TCP**: `<host-ip>:601`
-2. syslog-ng receives and forwards logs to Alloy.
-3. Alloy ships logs to Loki for aggregation.
+2. syslog-ng receives and forwards logs to Promtail.
+3. Promtail ships logs to Loki for aggregation.
 4. Logs are queryable in Grafana via the Loki datasource.
 
 ## SNMP Monitoring

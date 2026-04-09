@@ -197,7 +197,7 @@ Monitoring stack integration from enter-the-metrics.
 | `grafana_image` | `str` | Grafana image tag |
 | `prometheus_image` | `str` | Prometheus image tag |
 | `loki_image` | `str` | Loki image tag |
-| `alloy_image` | `str` | Grafana Alloy image tag |
+| `promtail_image` | `str` | Promtail image tag |
 | `syslog_ng_image` | `str` | syslog-ng image tag |
 | `node_exporter_image` | `str` | node-exporter image tag |
 | `snmp_exporter_image` | `str` | snmp-exporter image tag |
