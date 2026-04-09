@@ -27,7 +27,7 @@ from .constants import (
     NETBOX_IMAGE,
     NODE_EXPORTER_IMAGE,
     PROMETHEUS_IMAGE,
-    PROMTAIL_IMAGE,
+    ALLOY_IMAGE,
     SNMP_EXPORTER_IMAGE,
     SYSLOG_NG_IMAGE,
     TRACK_IMAGE_DEFAULTS,
@@ -250,7 +250,7 @@ def _derive_monitoring_profile() -> MonitoringProfile:
         grafana_image=GRAFANA_IMAGE,
         prometheus_image=PROMETHEUS_IMAGE,
         loki_image=LOKI_IMAGE,
-        promtail_image=PROMTAIL_IMAGE,
+        alloy_image=ALLOY_IMAGE,
         syslog_ng_image=SYSLOG_NG_IMAGE,
         node_exporter_image=NODE_EXPORTER_IMAGE,
         snmp_exporter_image=SNMP_EXPORTER_IMAGE,
@@ -259,7 +259,7 @@ def _derive_monitoring_profile() -> MonitoringProfile:
             "Integrated monitoring stack based on "
             "https://github.com/nullroute-commits/enter-the-metrics. "
             "Provides Grafana dashboards, Prometheus metrics collection, "
-            "Loki log aggregation, Promtail log shipping, syslog-ng "
+            "Loki log aggregation, Alloy log shipping, syslog-ng "
             "forwarding, node_exporter host metrics, SNMP exporter, "
             "and cAdvisor container metrics. All services are profiled "
             "under the 'monitoring' Compose profile."
@@ -564,7 +564,7 @@ def _collect_notes(track: str) -> list[str]:
             "workflow can be overridden to use a dedicated NetBox user."
         ),
         (
-            "A full monitoring stack (Grafana, Prometheus, Loki, Promtail, "
+            "A full monitoring stack (Grafana, Prometheus, Loki, Alloy, "
             "syslog-ng, node_exporter, snmp_exporter, cAdvisor) is generated "
             "as an optional 'monitoring' Compose profile based on "
             "enter-the-metrics. Prometheus scrapes the NetBox data plane "

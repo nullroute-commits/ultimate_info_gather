@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 from .constants import (
+  ALLOY_IMAGE,
   CADVISOR_IMAGE,
   DIODE_AUTH_IMAGE,
   DIODE_INGESTER_IMAGE,
@@ -17,7 +18,6 @@ from .constants import (
   NODE_EXPORTER_IMAGE,
   ORB_AGENT_IMAGE,
   PROMETHEUS_IMAGE,
-  PROMTAIL_IMAGE,
   SNMP_EXPORTER_IMAGE,
   SYSLOG_NG_IMAGE,
 )
@@ -615,16 +615,19 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - monitoring
 
-  promtail:
-    image: {PROMTAIL_IMAGE}
+  alloy:
+    image: {ALLOY_IMAGE}
     profiles: ["monitoring"]
     restart: unless-stopped
-    command: -config.file=/etc/promtail/promtail-config.yml
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
     ports:
       - "{plan.host.service_ip}:1514:1514"
       - "127.0.0.1:1514:1514"
     volumes:
-      - ./configuration/monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
     networks:
       - monitoring
 
@@ -634,7 +637,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     restart: unless-stopped
     command: -edv
     depends_on:
-      promtail:
+      alloy:
         condition: service_started
     network_mode: host
     volumes:
@@ -2552,9 +2555,9 @@ scrape_configs:
     static_configs:
     - targets: ['loki:3100']
 
-  - job_name: 'promtail'
+  - job_name: 'alloy'
     static_configs:
-    - targets: ['promtail:9080']
+    - targets: ['alloy:12345']
 
   - job_name: 'node-exporter'
     static_configs:
@@ -2608,16 +2611,15 @@ query_scheduler:
 
 schema_config:
   configs:
-    - from: 2020-10-24
-      store: boltdb-shipper
+    - from: 2024-01-01
+      store: tsdb
       object_store: filesystem
-      schema: v11
+      schema: v13
       index:
         prefix: index_
         period: 24h
 
 limits_config:
-  allow_structured_metadata: false
   max_query_series: 5000
 
 ruler:
@@ -2628,48 +2630,63 @@ analytics:
 """
 
 
-def render_promtail_config() -> str:
-    """Render the Promtail configuration."""
+def render_alloy_config() -> str:
+    """Render the Grafana Alloy configuration."""
 
-    return """server:
-  http_listen_port: 9080
-  grpc_listen_port: 0
+    return r"""// Syslog receiver - listens for syslog messages forwarded from syslog-ng
+loki.source.syslog "syslog" {
+  listener {
+    address               = "0.0.0.0:1514"
+    protocol              = "tcp"
+    idle_timeout          = "60s"
+    label_structured_data = true
+    labels                = {
+      job = "syslog",
+    }
+  }
 
-positions:
-  filename: /tmp/positions.yaml
+  forward_to = [loki.relabel.syslog.receiver]
+}
 
-clients:
-  - url: http://loki:3100/loki/api/v1/push
+// Relabel syslog messages to extract hostname
+loki.relabel "syslog" {
+  rule {
+    source_labels = ["__syslog_message_hostname"]
+    target_label  = "host"
+  }
 
-scrape_configs:
+  forward_to = [loki.process.syslog.receiver]
+}
 
-- job_name: syslog
-  syslog:
-    listen_address: 0.0.0.0:1514
-    idle_timeout: 60s
-    label_structured_data: yes
-    labels:
-      job: "syslog"
-  relabel_configs:
-    - source_labels: ['__syslog_message_hostname']
-      target_label: 'host'
-  pipeline_stages:
-  - match:
-      selector: '{job="syslog"}'
-      stages:
-      - regex:
-          expression: >-
-            SRC=(?P<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)\\s+DST=(?P<dest_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)
-      - labels:
-          src_ip:
-          dest_ip:
+// Process syslog messages - extract SRC/DST IPs from firewall logs
+loki.process "syslog" {
+  stage.regex {
+    expression = "SRC=(?P<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)\\s+DST=(?P<dest_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"
+  }
+
+  stage.labels {
+    values = {
+      src_ip  = "",
+      dest_ip = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// Write logs to Loki
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
 """
 
 
 def render_syslog_ng_config() -> str:
     """Render the syslog-ng configuration."""
 
-    return """@version: 3.29
+    return """@version: 4.0
 @include "scl.conf"
 
 source s_local {
@@ -2681,7 +2698,7 @@ source s_network {
 };
 
 destination d_loki {
-\tsyslog("127.0.0.1" transport("tcp") port("1514"));
+\tsyslog("alloy" transport("tcp") port("1514"));
 };
 
 log {
@@ -2913,11 +2930,11 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 - Profile: `monitoring`
 - Source: {plan.monitoring.repository} @ {plan.monitoring.ref}
-- Services: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, cAdvisor
+- Services: Grafana, Prometheus, Loki, Alloy, syslog-ng, node-exporter, snmp-exporter, cAdvisor
 - Grafana: {plan.monitoring.grafana_image}
 - Prometheus: {plan.monitoring.prometheus_image}
 - Loki: {plan.monitoring.loki_image}
-- Promtail: {plan.monitoring.promtail_image}
+- Alloy: {plan.monitoring.alloy_image}
 - syslog-ng: {plan.monitoring.syslog_ng_image}
 - node-exporter: {plan.monitoring.node_exporter_image}
 - snmp-exporter: {plan.monitoring.snmp_exporter_image}
@@ -3049,7 +3066,7 @@ and ~215 cities.
 docker compose --profile monitoring up -d
 ```
 
-The monitoring profile starts Grafana, Prometheus, Loki, Promtail, syslog-ng,
+The monitoring profile starts Grafana, Prometheus, Loki, Alloy, syslog-ng,
 node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once
 to download the Grafana performance overview dashboards from the pinned upstream
 repository. Grafana is then available at **http://localhost:3000** with the default
@@ -3085,7 +3102,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
     (output_dir / "configuration" / "orb").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "prometheus").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "loki").mkdir(parents=True, exist_ok=True)
-    (output_dir / "configuration" / "monitoring" / "promtail").mkdir(parents=True, exist_ok=True)
+    (output_dir / "configuration" / "monitoring" / "alloy").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "syslog-ng").mkdir(parents=True, exist_ok=True)
     grafana_prov = output_dir / "configuration" / "monitoring" / "grafana" / "provisioning"
     (grafana_prov / "datasources").mkdir(parents=True, exist_ok=True)
@@ -3167,8 +3184,8 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir
         / "configuration"
         / "monitoring"
-        / "promtail"
-        / "promtail-config.yml": render_promtail_config(),
+        / "alloy"
+        / "config.alloy": render_alloy_config(),
         output_dir
         / "configuration"
         / "monitoring"
