@@ -1,0 +1,10 @@
+netbox-topology-views==4.5.1
+netbox-bgp==0.18.1
+netbox-plugin-dns==1.5.5
+netbox-acls==2.0.0
+netbox-reorder-rack==1.1.4
+netboxlabs-diode-netbox-plugin==1.9.0
+netbox-proxbox==0.0.10
+netbox-config-diff==2.14.2
+netbox-floorplan-plugin==0.9.1
+netbox-inventory==2.5.1

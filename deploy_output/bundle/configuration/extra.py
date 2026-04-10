@@ -1,0 +1,7 @@
+"""Generated NetBox authentication overrides."""
+
+REMOTE_AUTH_ENABLED = True
+REMOTE_AUTH_BACKEND = "netbox.authentication.RemoteUserBackend"
+REMOTE_AUTH_HEADER = "HTTP_X_AUTHENTIK_USERNAME"
+REMOTE_AUTH_USER_EMAIL = "HTTP_X_AUTHENTIK_EMAIL"
+REMOTE_AUTH_AUTO_CREATE_USER = True

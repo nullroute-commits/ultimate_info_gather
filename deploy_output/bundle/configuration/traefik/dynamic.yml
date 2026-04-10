@@ -1,0 +1,76 @@
+tls:
+  certificates:
+    - certFile: /certs/tls.crt
+      keyFile: /certs/tls.key
+
+http:
+  routers:
+    authentik-core:
+      rule: >-
+        PathPrefix(`/application/`) || PathPrefix(`/if/`) ||
+        PathPrefix(`/api/`) || PathPrefix(`/static/dist/`) ||
+        PathPrefix(`/media/`)
+      entryPoints:
+        - websecure
+      tls: {}
+      service: authentik-core
+      middlewares:
+        - authentik-headers
+        - netbox-compress
+      priority: 110
+
+    authentik-outpost:
+      rule: "PathPrefix(`/outpost.goauthentik.io/`)"
+      entryPoints:
+        - websecure
+      tls: {}
+      service: authentik-outpost
+      middlewares:
+        - authentik-headers
+        - netbox-compress
+      priority: 100
+
+    netbox:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      tls: {}
+      service: netbox-waf
+      middlewares:
+        - authentik-forward-auth
+        - netbox-compress
+
+  services:
+    authentik-core:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000"
+
+    authentik-outpost:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000/outpost.goauthentik.io"
+
+    netbox-waf:
+      loadBalancer:
+        servers:
+          - url: "http://waf:8081"
+
+  middlewares:
+    authentik-forward-auth:
+      forwardAuth:
+        address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-groups
+
+    netbox-compress:
+      compress: {}
+
+    authentik-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
