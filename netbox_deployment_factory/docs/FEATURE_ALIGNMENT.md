@@ -199,7 +199,7 @@ The generated compose file defines six isolated bridge networks with explicit CI
 | `app`        | WAF ↔ NetBox                                              | `172.30.0.32/27`      |
 | `data`       | NetBox, Postgres, Valkey, Diode, workers, imports         | `172.30.0.64/27`      |
 | `security`   | Wazuh agent                                               | `172.30.0.96/28`      |
-| `monitoring` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters | `172.30.0.128/27`     |
+| `monitoring` | Grafana, Prometheus, Loki, Alloy, syslog-ng, exporters | `172.30.0.128/27`     |
 | `identity`   | Authentik, Ory Hydra, dedicated Postgres instances        | `172.30.0.160/27`     |
 
 In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28` block from `172.30.0.0/24`. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
@@ -241,14 +241,14 @@ The generated bundle includes a complete monitoring stack based on [enter-the-me
 
 | Service | Image | Purpose |
 |---|---|---|
-| Grafana | `grafana/grafana:11.4.0` | Dashboard visualization with Prometheus and Loki datasources |
-| Prometheus | `prom/prometheus:v3.11.1` | Metrics collection and storage |
-| Loki | `grafana/loki:3.2.1` | Log aggregation |
-| Promtail | `grafana/promtail:3.2.1` | Log shipping agent (syslog → Loki) |
-| syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding to Promtail |
-| node-exporter | `prom/node-exporter:v1.8.2` | Host system metrics |
-| snmp-exporter | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
-| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` | Docker container metrics |
+| Grafana | `grafana/grafana:12.4.2` | Dashboard visualization with Prometheus and Loki datasources |
+| Prometheus | `prom/prometheus:v3.11.0` | Metrics collection and storage |
+| Loki | `grafana/loki:3.7.1` | Log aggregation |
+| Alloy | `grafana/alloy:v1.15.0` | Log shipping agent (syslog → Loki) |
+| syslog-ng | `balabit/syslog-ng:4.11.0` | Syslog forwarding to Alloy |
+| node-exporter | `prom/node-exporter:v1.11.1` | Host system metrics |
+| snmp-exporter | `prom/snmp-exporter:v0.30.1` | SNMP device metrics |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.52.1` | Docker container metrics |
 
 ### Network Placement
 
@@ -260,13 +260,13 @@ The upstream configuration files are adapted to the generated deployment:
 
 - **Prometheus**: Scrape targets reference Compose service names (e.g., `prometheus:9090`, `grafana:3000`, `cadvisor:8080`). Operators can add custom scrape targets for their own node-exporters and SNMP devices.
 - **Loki**: Filesystem-backed storage with embedded cache, analytics reporting disabled.
-- **Promtail**: Listens for syslog on port 1514 (TCP) with relabeling for hostname, source IP, and destination IP.
-- **syslog-ng**: Forwards all syslog sources (local + network) to Promtail via TCP 1514.
+- **Alloy**: Listens for syslog on port 1514 (TCP) with relabeling for hostname, source IP, and destination IP.
+- **syslog-ng**: Forwards all syslog sources (local + network) to Alloy via TCP 1514.
 - **Grafana**: Provisioned with Prometheus and Loki datasources and a dashboard provider pointing to the `performance_overview` directory.
 
 ### Dashboard Provisioning
 
-The upstream repository includes five preconfigured Grafana dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter). These are large JSON files that are not embedded in the generator. Instead, a `scripts/fetch-monitoring-dashboards.sh` script is generated that downloads the dashboards from the pinned upstream repository commit (`abb9825`). The dashboards are placed in a shared Docker volume mounted by Grafana.
+The upstream repository includes five preconfigured Grafana dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter). These are large JSON files that are not embedded in the generator. Instead, a `scripts/fetch-monitoring-dashboards.sh` script is generated that downloads the dashboards from the pinned upstream repository commit (`706ed92`). The dashboards are placed in a shared Docker volume mounted by Grafana.
 
 ### Why Profile-Gated
 
@@ -280,7 +280,7 @@ Operators enable the monitoring profile when they want self-contained observabil
 ### Source and License
 
 - Repository: https://github.com/nullroute-commits/enter-the-metrics
-- Pinned ref: `abb9825`
+- Pinned ref: `706ed92`
 - License: BSD (compatible with MIT)
 
 ## Identity Profile (Authentik + Ory Hydra)

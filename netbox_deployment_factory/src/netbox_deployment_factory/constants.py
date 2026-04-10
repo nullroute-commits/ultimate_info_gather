@@ -39,22 +39,16 @@ GEO_FOSS_REPOSITORY = "https://github.com/nullroute-commits/netbox-geo-foss.git"
 GEO_FOSS_REF = "50c3c16"
 
 MONITORING_REPOSITORY = "https://github.com/nullroute-commits/enter-the-metrics.git"
-MONITORING_REF = "abb9825"
+MONITORING_REF = "706ed92"
 
-# --- Edge / Reverse-Proxy ---------------------------------------------------
-TRAEFIK_IMAGE = "traefik:v3.2.3"
-WAF_IMAGE = "owasp/modsecurity-crs:4.6.0-nginx"
-OPENSSL_IMAGE = "alpine/openssl:3.3.2"
-
-# --- Monitoring (latest major) ----------------------------------------------
-GRAFANA_IMAGE = "grafana/grafana:11.4.0"
-PROMETHEUS_IMAGE = "prom/prometheus:v3.11.1"
-LOKI_IMAGE = "grafana/loki:3.2.1"
-PROMTAIL_IMAGE = "grafana/promtail:3.2.1"
+GRAFANA_IMAGE = "grafana/grafana:12.4.2"
+PROMETHEUS_IMAGE = "prom/prometheus:v3.11.0"
+LOKI_IMAGE = "grafana/loki:3.7.1"
+ALLOY_IMAGE = "grafana/alloy:v1.15.0"
 SYSLOG_NG_IMAGE = "balabit/syslog-ng:4.11.0"
-NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.8.2"
-SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.27.0"
-CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.51.0"
+NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.11.1"
+SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.30.1"
+CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.52.1"
 
 # --- Identity ----------------------------------------------------------------
 AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.1"

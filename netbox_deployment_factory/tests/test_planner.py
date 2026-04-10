@@ -219,11 +219,11 @@ class PlannerTests(unittest.TestCase):
             plan.monitoring.repository,
             "https://github.com/nullroute-commits/enter-the-metrics.git",
         )
-        self.assertEqual(plan.monitoring.ref, "abb9825")
+        self.assertEqual(plan.monitoring.ref, "706ed92")
         self.assertIn("grafana/grafana:", plan.monitoring.grafana_image)
         self.assertIn("prom/prometheus:", plan.monitoring.prometheus_image)
         self.assertIn("grafana/loki:", plan.monitoring.loki_image)
-        self.assertIn("grafana/promtail:", plan.monitoring.promtail_image)
+        self.assertIn("grafana/alloy:", plan.monitoring.alloy_image)
         self.assertIn("balabit/syslog-ng:", plan.monitoring.syslog_ng_image)
         self.assertIn("prom/node-exporter:", plan.monitoring.node_exporter_image)
         self.assertIn("prom/snmp-exporter:", plan.monitoring.snmp_exporter_image)
@@ -459,8 +459,8 @@ class PlannerTests(unittest.TestCase):
             monitoring_loki_config = (
                 output_dir / "configuration" / "monitoring" / "loki" / "loki-config.yml"
             )
-            monitoring_promtail_config = (
-                output_dir / "configuration" / "monitoring" / "promtail" / "promtail-config.yml"
+            monitoring_alloy_config = (
+                output_dir / "configuration" / "monitoring" / "alloy" / "config.alloy"
             )
             monitoring_syslog_ng_config = (
                 output_dir / "configuration" / "monitoring" / "syslog-ng" / "syslog-ng.conf"
@@ -496,7 +496,7 @@ class PlannerTests(unittest.TestCase):
             monitoring_dashboard_script = output_dir / "scripts" / "fetch-monitoring-dashboards.sh"
             self.assertTrue(monitoring_prometheus_config.exists())
             self.assertTrue(monitoring_loki_config.exists())
-            self.assertTrue(monitoring_promtail_config.exists())
+            self.assertTrue(monitoring_alloy_config.exists())
             self.assertTrue(monitoring_syslog_ng_config.exists())
             self.assertTrue(grafana_prometheus_ds.exists())
             self.assertTrue(grafana_loki_ds.exists())
@@ -514,11 +514,11 @@ class PlannerTests(unittest.TestCase):
             loki_config_text = monitoring_loki_config.read_text(encoding="utf-8")
             self.assertIn("http_listen_port: 3100", loki_config_text)
             self.assertIn("reporting_enabled: false", loki_config_text)
-            promtail_config_text = monitoring_promtail_config.read_text(encoding="utf-8")
-            self.assertIn("loki:3100", promtail_config_text)
-            self.assertIn("job_name: syslog", promtail_config_text)
+            alloy_config_text = monitoring_alloy_config.read_text(encoding="utf-8")
+            self.assertIn("loki:3100", alloy_config_text)
+            self.assertIn("syslog", alloy_config_text)
             syslog_ng_text = monitoring_syslog_ng_config.read_text(encoding="utf-8")
-            self.assertIn("127.0.0.1", syslog_ng_text)
+            self.assertIn("alloy", syslog_ng_text)
             self.assertIn("1514", syslog_ng_text)
             grafana_prom_ds_text = grafana_prometheus_ds.read_text(encoding="utf-8")
             self.assertIn("prometheus:9090", grafana_prom_ds_text)
@@ -529,14 +529,14 @@ class PlannerTests(unittest.TestCase):
             monitoring_env_text = monitoring_env_file.read_text(encoding="utf-8")
             self.assertIn("GF_ANALYTICS_REPORTING_ENABLED=false", monitoring_env_text)
             dashboard_script_text = monitoring_dashboard_script.read_text(encoding="utf-8")
-            self.assertIn("abb9825", dashboard_script_text)
+            self.assertIn("706ed92", dashboard_script_text)
             self.assertIn("performance_overview_docker.json", dashboard_script_text)
             # monitoring compose services
             self.assertIn('profiles: ["monitoring"]', compose_text)
             self.assertIn("grafana:", compose_text)
             self.assertIn("prometheus:", compose_text)
             self.assertIn("loki:", compose_text)
-            self.assertIn("promtail:", compose_text)
+            self.assertIn("alloy:", compose_text)
             self.assertIn("syslog-ng:", compose_text)
             self.assertIn("node-exporter:", compose_text)
             self.assertIn("pid: host", compose_text)

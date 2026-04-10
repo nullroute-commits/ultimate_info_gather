@@ -19,7 +19,7 @@ The generated bundle is opinionated:
 - Diode is deployed as `diode-auth`, `diode-ingester`, and `diode-reconciler` companion services.
 - TLS termination supports two modes: auto-generated self-signed certificates (default) or Let's Encrypt ACME via DNS-01 Cloudflare challenge when an FQDN is provided.
 - Geographic data is imported as a three-tier Region hierarchy (continent → country → city) via a one-shot sidecar using the pynetbox REST API.
-- A complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is available as an optional `monitoring` Compose profile, based on the [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) project.
+- A complete monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is available as an optional `monitoring` Compose profile, based on the [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics) project.
 - An identity stack (Authentik for SSO/OIDC, Ory Hydra for Diode OAuth2 client-credentials) is available as an optional `identity` Compose profile with dedicated Postgres instances and an isolated `identity` network segment.
 
 ## Version Pins
@@ -46,15 +46,15 @@ The generated bundle is opinionated:
 - Inventory plugin: `netbox-inventory==2.5.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
-- Monitoring stack: based on `enter-the-metrics` pinned at commit `abb9825`
-  - Grafana: `grafana/grafana:11.4.0`
-  - Prometheus: `prom/prometheus:v3.11.1`
-  - Loki: `grafana/loki:3.2.1`
-  - Promtail: `grafana/promtail:3.2.1`
+- Monitoring stack: based on `enter-the-metrics` pinned at commit `706ed92`
+  - Grafana: `grafana/grafana:12.4.2`
+  - Prometheus: `prom/prometheus:v3.11.0`
+  - Loki: `grafana/loki:3.7.1`
+  - Alloy: `grafana/alloy:v1.15.0`
   - syslog-ng: `balabit/syslog-ng:4.11.0`
-  - node-exporter: `prom/node-exporter:v1.8.2`
-  - snmp-exporter: `prom/snmp-exporter:v0.27.0`
-  - cAdvisor: `gcr.io/cadvisor/cadvisor:v0.51.0`
+  - node-exporter: `prom/node-exporter:v1.11.1`
+  - snmp-exporter: `prom/snmp-exporter:v0.30.1`
+  - cAdvisor: `gcr.io/cadvisor/cadvisor:v0.52.1`
 
 ## Full Deployment Walkthrough
 
@@ -237,7 +237,7 @@ Set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoNames account for li
 docker compose --profile monitoring up -d
 ```
 
-This starts the full monitoring stack: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once to download the Grafana performance overview dashboards from the pinned upstream repository.
+This starts the full monitoring stack: Grafana, Prometheus, Loki, Alloy, syslog-ng, node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once to download the Grafana performance overview dashboards from the pinned upstream repository.
 
 Grafana is available at **http://localhost:3000** with the default `admin`/`admin` credentials. Change the password on first login.
 
@@ -314,7 +314,7 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 - `configuration/orb/agent.yaml` — ORB agent configuration
 - `configuration/monitoring/prometheus/prometheus.yml` — Prometheus scrape configuration
 - `configuration/monitoring/loki/loki-config.yml` — Loki log aggregation configuration
-- `configuration/monitoring/promtail/promtail-config.yml` — Promtail log agent configuration
+- `configuration/monitoring/alloy/config.alloy` — Grafana Alloy log agent configuration
 - `configuration/monitoring/syslog-ng/syslog-ng.conf` — syslog-ng forwarding configuration
 - `configuration/monitoring/grafana/provisioning/datasources/prometheus.yml` — Grafana Prometheus datasource
 - `configuration/monitoring/grafana/provisioning/datasources/loki.yml` — Grafana Loki datasource
@@ -391,7 +391,7 @@ Before the first `docker compose up -d`:
   - **app**: WAF and NetBox only
   - **data**: NetBox, Postgres, Valkey, Diode, workers, superuser sync, imports, geo-foss, Prometheus (for scraping)
   - **security**: Wazuh agent
-  - **monitoring**: Grafana, Prometheus, Loki, Promtail, syslog-ng, node-exporter, snmp-exporter, cAdvisor
+  - **monitoring**: Grafana, Prometheus, Loki, Alloy, syslog-ng, node-exporter, snmp-exporter, cAdvisor
   - **identity**: Authentik, Ory Hydra, their dedicated Postgres instances, and bootstrap init containers
 
 ## ORB Discovery Profile
@@ -488,10 +488,10 @@ Before running, set `GEONAMES_USERNAME` in `env/geo-foss.env` to a valid GeoName
 The generated bundle includes an optional monitoring stack based on [enter-the-metrics](https://github.com/nullroute-commits/enter-the-metrics), profiled under `monitoring`. It provides:
 
 - **Grafana**: Dashboard visualization sourcing data from Prometheus and Loki
-- **Prometheus**: Metrics collection with scrape targets for Grafana, Loki, Promtail, node-exporter, and cAdvisor
+- **Prometheus**: Metrics collection with scrape targets for Grafana, Loki, Alloy, node-exporter, and cAdvisor
 - **Loki**: Log aggregation
-- **Promtail**: Log agent that ships logs to Loki
-- **syslog-ng**: Syslog forwarder that sends logs to Promtail
+- **Alloy**: Grafana Alloy log agent that ships logs to Loki
+- **syslog-ng**: Syslog forwarder that sends logs to Alloy
 - **node-exporter**: Exposes host system metrics (CPU, memory, network, disk) to Prometheus
 - **snmp-exporter**: Forwards SNMP traffic from network devices to Prometheus
 - **cAdvisor**: Sends Docker container metrics to Prometheus
