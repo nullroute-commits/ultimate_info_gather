@@ -95,15 +95,15 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(dns_plugin.enabled)
         self.assertEqual(dns_plugin.package_name, "netbox-plugin-dns")
-        self.assertEqual(dns_plugin.version, "1.5.3")
+        self.assertEqual(dns_plugin.version, "1.5.5")
 
-        self.assertFalse(proxbox_plugin.enabled)
+        self.assertTrue(proxbox_plugin.enabled)
         self.assertEqual(proxbox_plugin.package_name, "netbox-proxbox")
-        self.assertEqual(proxbox_plugin.version, "0.0.6b2")
-        self.assertIn("4.2.99", proxbox_plugin.rationale)
+        self.assertEqual(proxbox_plugin.version, "0.0.10")
+        self.assertIn("4.5.x", proxbox_plugin.rationale)
 
-        self.assertFalse(acl_plugin.enabled)
-        self.assertIn("4.4.99", acl_plugin.rationale)
+        self.assertTrue(acl_plugin.enabled)
+        self.assertIn("4.5.x", acl_plugin.rationale)
 
         self.assertTrue(reorder_plugin.enabled)
         self.assertEqual(reorder_plugin.package_name, "netbox-reorder-rack")
@@ -118,15 +118,15 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(config_diff_plugin.enabled)
         self.assertEqual(config_diff_plugin.package_name, "netbox-config-diff")
-        self.assertEqual(config_diff_plugin.version, "2.14.0")
+        self.assertEqual(config_diff_plugin.version, "2.14.2")
 
         self.assertTrue(floorplan_plugin.enabled)
         self.assertEqual(floorplan_plugin.package_name, "netbox-floorplan-plugin")
-        self.assertEqual(floorplan_plugin.version, "0.9.0")
+        self.assertEqual(floorplan_plugin.version, "0.9.1")
 
         self.assertTrue(inventory_plugin.enabled)
         self.assertEqual(inventory_plugin.package_name, "netbox-inventory")
-        self.assertEqual(inventory_plugin.version, "2.5.0")
+        self.assertEqual(inventory_plugin.version, "2.5.1")
 
     def test_dynamic_network_mode_allocates_subnets(self) -> None:
         plan = build_plan(
@@ -184,12 +184,12 @@ class PlannerTests(unittest.TestCase):
 
         self.assertTrue(dns_plugin.enabled)
         self.assertEqual(dns_plugin.package_name, "netbox-plugin-dns")
-        self.assertEqual(dns_plugin.version, "1.5.3")
+        self.assertEqual(dns_plugin.version, "1.5.5")
 
-        self.assertFalse(proxbox_plugin.enabled)
+        self.assertTrue(proxbox_plugin.enabled)
         self.assertEqual(proxbox_plugin.package_name, "netbox-proxbox")
-        self.assertEqual(proxbox_plugin.version, "0.0.6b2")
-        self.assertIn("4.2.99", proxbox_plugin.rationale)
+        self.assertEqual(proxbox_plugin.version, "0.0.10")
+        self.assertIn("4.5.x", proxbox_plugin.rationale)
 
     def test_geo_foss_profile_is_present(self) -> None:
         plan = build_plan(
@@ -257,6 +257,9 @@ class PlannerTests(unittest.TestCase):
             compose_file = output_dir / "docker-compose.yml"
             plugins_file = output_dir / "configuration" / "plugins.py"
             traefik_dynamic_file = output_dir / "configuration" / "traefik" / "dynamic.yml"
+            traefik_identity_file = (
+                output_dir / "configuration" / "traefik" / "dynamic-identity.yml.disabled"
+            )
             waf_conf_file = output_dir / "configuration" / "waf" / "default.conf"
             orb_agent_config_file = output_dir / "configuration" / "orb" / "agent.yaml"
             orb_env_file = output_dir / "env" / "orb.env"
@@ -275,6 +278,7 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(compose_file.exists())
             self.assertTrue(plugins_file.exists())
             self.assertTrue(traefik_dynamic_file.exists())
+            self.assertTrue(traefik_identity_file.exists())
             self.assertTrue(waf_conf_file.exists())
             self.assertTrue(orb_agent_config_file.exists())
             self.assertTrue(orb_env_file.exists())
@@ -326,7 +330,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("      netbox:\n        condition: service_healthy", compose_text)
             self.assertIn("http://127.0.0.1:8080/login/", compose_text)
             self.assertIn("traefik:", compose_text)
-            self.assertIn("image: alpine/openssl:latest", compose_text)
+            self.assertIn("image: alpine/openssl:3.5.5", compose_text)
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)
@@ -351,6 +355,10 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("https://10.0.0.50", netbox_env)  # CSRF_TRUSTED_ORIGINS
             self.assertNotIn('"8080:8080"', compose_text)
             self.assertIn("netbox-compress", traefik_dynamic_text)
+            self.assertNotIn("authentik-forward-auth", traefik_dynamic_text)
+            traefik_identity_text = traefik_identity_file.read_text(encoding="utf-8")
+            self.assertIn("authentik-forward-auth", traefik_identity_text)
+            self.assertIn("netbox-sso", traefik_identity_text)
             self.assertIn("proxy_pass $netbox_upstream", waf_conf_text)
             self.assertIn("CSRF_TRUSTED_ORIGINS=", netbox_env)
             self.assertEqual(rendered_plan["networks"]["cidr_mode"], "deterministic")
@@ -518,7 +526,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("loki:3100", alloy_config_text)
             self.assertIn("syslog", alloy_config_text)
             syslog_ng_text = monitoring_syslog_ng_config.read_text(encoding="utf-8")
-            self.assertIn("alloy", syslog_ng_text)
+            self.assertIn("127.0.0.1", syslog_ng_text)
             self.assertIn("1514", syslog_ng_text)
             grafana_prom_ds_text = grafana_prometheus_ds.read_text(encoding="utf-8")
             self.assertIn("prometheus:9090", grafana_prom_ds_text)
@@ -638,6 +646,73 @@ class PlannerTests(unittest.TestCase):
 
             # Cloudflare token secret example should be written
             self.assertTrue(cf_token_example.exists())
+
+
+    def test_version_pins_use_latest_major(self) -> None:
+        """All infrastructure images must be pinned with explicit tags and
+        use the latest major release for each component."""
+
+        plan = build_plan(
+            self.report,
+            track="alpine",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            write_bundle(plan, output_dir)
+            compose_text = (output_dir / "docker-compose.yml").read_text(encoding="utf-8")
+
+            # --- No floating tags allowed ---
+            self.assertNotIn(":latest", compose_text)
+            self.assertNotIn(":nginx\n", compose_text)
+
+            # --- PostgreSQL pinned to 18 (latest major) ---
+            self.assertIn("postgres:18-alpine", compose_text)
+            self.assertEqual(plan.images.postgres_image, "postgres:18-alpine")
+
+            # --- Valkey pinned to 9 (latest major) ---
+            self.assertIn("valkey/valkey:9-alpine", compose_text)
+            self.assertEqual(plan.images.valkey_image, "valkey/valkey:9-alpine")
+
+            # --- Grafana pinned to 12.x (latest major) ---
+            self.assertIn("grafana/grafana:12.", compose_text)
+
+            # --- Loki and Alloy pinned to latest stable ---
+            self.assertIn("grafana/loki:3.", compose_text)
+            self.assertIn("grafana/alloy:v1.", compose_text)
+
+            # --- Alloy image is pinned to exact version ---
+            from netbox_deployment_factory.constants import ALLOY_IMAGE
+            self.assertEqual(plan.monitoring.alloy_image, ALLOY_IMAGE)
+
+            # --- Prometheus pinned to v3.x (latest major) ---
+            self.assertIn("prom/prometheus:v3.", compose_text)
+
+            # --- Traefik pinned to specific patch, not just minor ---
+            self.assertRegex(compose_text, r"traefik:v3\.\d+\.\d+")
+
+            # --- OWASP CRS pinned with version, not bare backend tag ---
+            self.assertRegex(compose_text, r"owasp/modsecurity-crs:4\.\d+\.\d+-nginx")
+
+            # --- Authentik pinned to 2026 (latest major) ---
+            self.assertIn("2026.", plan.identity.authentik_image)
+
+            # --- Identity Postgres matches main Postgres major ---
+            main_pg_major = plan.images.postgres_image.split(":")[1].split("-")[0]
+            # Identity postgres is used for Authentik and Hydra
+            self.assertIn(f"postgres:{main_pg_major}", compose_text)
+
+        # --- Debian track follows the same major versions ---
+        plan_deb = build_plan(
+            self.report,
+            track="debian",
+            deployment_name="test-stack",
+            source_report=FIXTURE,
+        )
+        self.assertEqual(plan_deb.images.postgres_image, "postgres:18")
+        self.assertEqual(plan_deb.images.valkey_image, "valkey/valkey:9")
 
 
 if __name__ == "__main__":

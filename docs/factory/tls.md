@@ -88,7 +88,7 @@ docker compose up -d
 
 ## Traefik Reverse Proxy
 
-The Traefik v3.2 reverse proxy sits at the edge of the deployment:
+The Traefik v3.6 reverse proxy sits at the edge of the deployment:
 
 - Listens on port 443 with TLS termination.
 - Routes all HTTPS traffic to the WAF sidecar via the dynamic configuration in `configuration/traefik/dynamic.yml`.
@@ -102,7 +102,7 @@ An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar betw
 
 | Property | Value |
 |----------|-------|
-| Image | `owasp/modsecurity-crs:nginx` |
+| Image | `owasp/modsecurity-crs:4.25.0-nginx-lts` |
 | Internal port | 8081 |
 | Upstream | `http://netbox:8080` |
 | Networks | `edge`, `app` |

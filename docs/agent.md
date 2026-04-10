@@ -147,7 +147,7 @@ The agent can catalog:
   - Boot time, uptime
   
 - **Package Management**
-  - Installed packages (apt, rpm, pacman, opkg, etc.)
+  - Installed packages (opkg, apt, rpm, pacman, apk, etc.)
   - Python packages via pip
   
 - **Services**
@@ -161,6 +161,40 @@ The agent can catalog:
 - **Processes**
   - Active process listing
   - Resource usage per process
+
+### 6. Embedded Systems Support
+
+The agent handles non-standard Linux environments gracefully:
+
+- **ARM / Embedded Platforms**
+  - Silent handling of missing DMI/SMBIOS files on ARM systems
+  - Graceful degradation for virtual network interface speed reads (EINVAL)
+  - OpenWrt `opkg` package detection (prioritized on embedded systems)
+
+- **Supported Embedded Targets**
+  - OpenWrt routers (e.g., GL-MT6000)
+  - ARM-based single-board computers
+  - Devices without x86-specific sysfs entries
+
+See the [Embedded Systems Guide](guide/embedded-systems.md) for full details.
+
+### 7. Deployment Pipeline
+
+The agent includes an end-to-end async deployment orchestrator (`src/deploy.py`) that chains system information collection with downstream bundle generation:
+
+- **Pipeline Phases**
+  1. **COLLECT** – gather live system information via `InfoGatherOrchestrator`
+  2. **SAVE_REPORT** – persist the JSON report
+  3. **PLAN** – feed the report into the NetBox Deployment Factory planner
+  4. **RENDER** – emit the full deployment bundle (Docker Compose, configs, scripts, secrets)
+  5. **VERIFY** – confirm every expected feature is present and correct
+
+- **Bundle Verification**
+  - Required file presence and non-emptiness checks
+  - Compose service enumeration (all expected services present)
+  - Plan feature validation (sizing, plugins, networks, TLS, identity, monitoring)
+  - Plugin requirements validation
+  - Network CIDR validation
 
 ---
 
@@ -232,6 +266,40 @@ python main.py -q
 | `-v` | `--verbose` | off | Verbose output with full summary |
 | `-q` | `--quiet` | off | Quiet mode, suppresses progress output |
 
+### Deployment Pipeline CLI
+
+```bash
+# End-to-end deployment: collect → plan → render → verify
+python -m src.deploy
+
+# Specify output directory
+python -m src.deploy -o ./deploy_output
+
+# Set deployment name and image track
+python -m src.deploy --deployment-name my-stack --track debian
+
+# Override worker containers and host IP
+python -m src.deploy --worker-containers 4 --host-ip 10.0.0.1
+
+# Let's Encrypt TLS mode
+python -m src.deploy --fqdn netbox.example.com --acme-email admin@example.com
+
+# Quiet mode
+python -m src.deploy -q
+```
+
+| Flag | Long Form | Default | Description |
+|------|-----------|---------|-------------|
+| `-o` | `--output-dir` | `./deploy_output` | Root output directory |
+| | `--deployment-name` | `netbox-stack` | Logical name for the deployment |
+| | `--track` | `debian` | Image lifecycle track (`alpine` or `debian`) |
+| | `--cidr-mode` | `deterministic` | CIDR planning mode (`deterministic` or `dynamic`) |
+| | `--worker-containers` | auto | Override worker container count |
+| | `--host-ip` | auto-detected | Override the detected host IP |
+| | `--fqdn` | none | FQDN for Let's Encrypt TLS |
+| | `--acme-email` | none | ACME email (required with `--fqdn`) |
+| `-q` | `--quiet` | off | Suppress progress output |
+
 ### Output Formats
 
 | Format | Use Case |
@@ -302,10 +370,10 @@ results = await self.gather_with_errors(self._fetch_a(), self._fetch_b())
 
 **`safe_call(func: Callable[[], T], default: T, error_msg: str = "Operation failed") -> T`**
 
-Safely calls a synchronous function in an executor thread. Returns the provided default value on failure and adds a warning.
+Safely call a synchronous function in an executor (thread pool). Returns `default` and adds a warning if the call raises an exception.
 
 ```python
-count = await self.safe_call(os.cpu_count, 0, "CPU count unavailable")
+value = await self.safe_call(os.getuid, -1, error_msg="Failed to get UID")
 ```
 
 **`add_error(message: str)` / `add_warning(message: str)`**
@@ -623,6 +691,7 @@ async def collect_basic():
 
 ### Concurrency
 
+- Environment and Permissions collectors run sequentially (data dependency)
 - Hardware, Network, and Software collectors run in parallel
 - Individual collectors use async I/O
 - No blocking operations in main thread

@@ -224,5 +224,5 @@ A Wazuh security observability agent runs on the `security` network.
 |----------|-------|
 | Compose service | `wazuh-agent` |
 | Compose profile | `security-observability` |
-| Image | `wazuh/wazuh-agent:4.14.3` |
+| Image | `wazuh/wazuh-agent:4.14.4` |
 | Network | `security` |

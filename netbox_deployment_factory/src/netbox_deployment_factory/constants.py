@@ -1,11 +1,30 @@
-"""Version pins and plugin defaults for NetBox 4.5 deployments."""
+"""Version pins and plugin defaults for NetBox 4.5 deployments.
+
+All infrastructure images are pinned to the latest stable release.
+Components that have only a single active major line (e.g. node-exporter v1,
+cAdvisor v0) keep their current major and are pinned to the latest stable
+patch.
+
+Compatibility matrix:
+  - PostgreSQL 18 is the latest major and is supported by NetBox 4.5,
+    Authentik 2026, and Ory Hydra v2.
+  - Valkey 9 is the latest major and is supported by NetBox 4.5
+    (requires Redis/Valkey >= 6).
+  - Grafana 12 is the latest major and works with Prometheus v3 and
+    Loki 3 datasources.
+  - Loki 3.7 and Alloy v1.15 are the current monitoring stack pins.
+  - Prometheus v3 is the latest major.
+  - Authentik 2026 is the latest year-based major.
+  - Traefik v3, Hydra v2, syslog-ng 4 remain on their current major
+    because prior majors are end-of-life or API-incompatible.
+"""
 
 from __future__ import annotations
 
 from .models import PluginSpec
 
-NETBOX_VERSION = "4.5.4"
-NETBOX_DOCKER_WORKFLOW_VERSION = "4.0.1"
+NETBOX_VERSION = "4.5.7"
+NETBOX_DOCKER_WORKFLOW_VERSION = "4.0.2"
 ALPINE_RELEASE = "3.23.3"
 DEBIAN_RELEASE = "13.3 (Trixie)"
 NETBOX_IMAGE = f"netboxcommunity/netbox:v{NETBOX_VERSION}"
@@ -31,8 +50,18 @@ NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.11.1"
 SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.30.1"
 CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.52.1"
 
-AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.1"
-HYDRA_IMAGE = "oryd/hydra:v2.2.0"
+# --- Edge / Security ---------------------------------------------------------
+TRAEFIK_IMAGE = "traefik:v3.6.13"
+WAF_IMAGE = "owasp/modsecurity-crs:4.25.0-nginx-lts"
+OPENSSL_IMAGE = "alpine/openssl:3.5.5"
+
+# --- Identity ----------------------------------------------------------------
+AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.2"
+HYDRA_IMAGE = "oryd/hydra:v2.3.0"
+
+# --- Security / Observability ------------------------------------------------
+WAZUH_AGENT_IMAGE = "wazuh/wazuh-agent:4.14.4"
+MONITORING_INIT_IMAGE = "alpine:3.23"
 
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {
@@ -51,7 +80,7 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-topology-views",
         module_name="netbox_topology_views",
-        version="4.5.0",
+        version="4.5.1",
         enabled=True,
         support_tier="supported-community",
         rationale=(
@@ -67,7 +96,7 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-bgp",
         module_name="netbox_bgp",
-        version="0.18.0",
+        version="0.18.1",
         enabled=True,
         support_tier="supported-community",
         rationale="Explicit NetBox 4.5.x compatibility for BGP data modeling.",
@@ -79,7 +108,7 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-plugin-dns",
         module_name="netbox_dns",
-        version="1.5.3",
+        version="1.5.5",
         enabled=True,
         support_tier="supported-community",
         rationale=(
@@ -93,13 +122,13 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-acls",
         module_name="netbox_acls",
-        version="1.9.1",
-        enabled=False,
+        version="2.0.0",
+        enabled=True,
         support_tier="supported-community",
         rationale=(
-            "Official netbox-community plugin and package, but the current "
-            "plugin config declares max_version='4.4.99'. It is intentionally "
-            "disabled on NetBox 4.5.x until a compatible release exists."
+            "Official netbox-community plugin and package. Version 2.0.0 "
+            "explicitly targets NetBox 4.5.x in the upstream compatibility "
+            "matrix."
         ),
         config={
             "top_level_menu": True,
@@ -138,15 +167,15 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netboxlabs-diode-netbox-plugin",
         module_name="netbox_diode_plugin",
-        version="1.7.1",
+        version="1.9.0",
         enabled=True,
         support_tier="supported-netboxlabs",
         rationale=(
-            "Official NetBox Labs Diode plugin. Upstream declares "
-            "min_version='4.4.10' and max_version='4.5.99'. The generated "
-            "bundle includes Diode auth/ingester/reconciler services by default "
-            "so the plugin target resolves and reconciliation APIs are available "
-            "on first start."
+            "Official NetBox Labs Diode plugin. Upstream compatibility table "
+            "shows NetBox >= 4.5.0 support. The generated bundle includes "
+            "Diode auth/ingester/reconciler services by default so the plugin "
+            "target resolves and reconciliation APIs are available on first "
+            "start."
         ),
         config={
             "diode_username": "diode",
@@ -159,25 +188,20 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-proxbox",
         module_name="netbox_proxbox",
-        version="0.0.6b2",
-        enabled=False,
-        support_tier="community-beta",
+        version="0.0.10",
+        enabled=True,
+        support_tier="community",
         rationale=(
             "Integrates Proxmox VE inventory (clusters, nodes, VMs, containers) "
-            "with NetBox as the network source of truth. This plugin is the "
-            "proxmox-netboxlabs solution for Proxmox–NetBox synchronization. "
-            "Currently disabled because the latest release (0.0.6b2) declares "
-            "max_version='4.2.99', making it incompatible with the pinned "
-            "NetBox 4.5.x image. Enable once an officially supported release "
-            "targeting NetBox 4.5 is available, or when using a NetBox 4.2.x "
-            "deployment track."
+            "with NetBox as the network source of truth. Version 0.0.10 "
+            "explicitly lists NetBox 4.5.x in its requirements."
         ),
         config={},
     ),
     PluginSpec(
         package_name="netbox-config-diff",
         module_name="netbox_config_diff",
-        version="2.14.0",
+        version="2.14.2",
         enabled=True,
         support_tier="community",
         rationale=(
@@ -192,7 +216,7 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-floorplan-plugin",
         module_name="netbox_floorplan",
-        version="0.9.0",
+        version="0.9.1",
         enabled=True,
         support_tier="community",
         rationale=(
@@ -205,7 +229,7 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
     PluginSpec(
         package_name="netbox-inventory",
         module_name="netbox_inventory",
-        version="2.5.0",
+        version="2.5.1",
         enabled=True,
         support_tier="community",
         rationale=(

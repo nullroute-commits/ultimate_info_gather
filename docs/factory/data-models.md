@@ -98,7 +98,7 @@ Pinned image decisions per lifecycle track.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `netbox_image` | `str` | NetBox container image (e.g. `netboxcommunity/netbox:v4.5.4`) |
+| `netbox_image` | `str` | NetBox container image (e.g. `netboxcommunity/netbox:v4.5.7`) |
 | `postgres_image` | `str` | PostgreSQL image (track-dependent) |
 | `valkey_image` | `str` | Valkey image (track-dependent) |
 | `track` | `str` | Lifecycle track: `alpine` or `debian` |
@@ -197,7 +197,7 @@ Monitoring stack integration from enter-the-metrics.
 | `grafana_image` | `str` | Grafana image tag |
 | `prometheus_image` | `str` | Prometheus image tag |
 | `loki_image` | `str` | Loki image tag |
-| `promtail_image` | `str` | Promtail image tag |
+| `alloy_image` | `str` | Alloy image tag |
 | `syslog_ng_image` | `str` | syslog-ng image tag |
 | `node_exporter_image` | `str` | node-exporter image tag |
 | `snmp_exporter_image` | `str` | snmp-exporter image tag |

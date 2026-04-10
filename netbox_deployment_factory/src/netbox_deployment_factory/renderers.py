@@ -15,11 +15,16 @@ from .constants import (
   DIODE_RECONCILER_IMAGE,
   GRAFANA_IMAGE,
   LOKI_IMAGE,
+  MONITORING_INIT_IMAGE,
   NODE_EXPORTER_IMAGE,
+  OPENSSL_IMAGE,
   ORB_AGENT_IMAGE,
   PROMETHEUS_IMAGE,
   SNMP_EXPORTER_IMAGE,
   SYSLOG_NG_IMAGE,
+  TRAEFIK_IMAGE,
+  WAF_IMAGE,
+  WAZUH_AGENT_IMAGE,
 )
 from .models import DeploymentPlan
 
@@ -220,8 +225,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     environment:
       - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token"""
     else:
-        certgen_block = """  traefik-certgen:
-    image: alpine/openssl:latest
+        certgen_block = f"""  traefik-certgen:
+    image: {OPENSSL_IMAGE}
     restart: "no"
     entrypoint: ["/bin/sh"]
     command: ["/opt/scripts/generate-traefik-cert.sh"]
@@ -252,7 +257,7 @@ def render_compose(plan: DeploymentPlan) -> str:
 
     return f"""services:
 {certgen_block}  traefik:
-    image: traefik:v3.2
+    image: {TRAEFIK_IMAGE}
     restart: unless-stopped
 {traefik_depends}
 {traefik_command}
@@ -270,7 +275,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - identity
 
   waf:
-    image: owasp/modsecurity-crs:nginx
+    image: {WAF_IMAGE}
     restart: unless-stopped
     depends_on:
       netbox:
@@ -530,7 +535,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - data
 
   wazuh-agent:
-    image: wazuh/wazuh-agent:4.14.3
+    image: {WAZUH_AGENT_IMAGE}
     profiles: ["security-observability"]
     restart: unless-stopped
     network_mode: host
@@ -557,7 +562,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - ./configuration/orb:/opt/orb:ro
 
   monitoring-dashboard-init:
-    image: alpine:3.20
+    image: {MONITORING_INIT_IMAGE}
     profiles: ["monitoring"]
     restart: "no"
     entrypoint: ["/bin/sh"]
@@ -687,7 +692,7 @@ def render_compose(plan: DeploymentPlan) -> str:
   # ═══════════════════════════════════════════════════════════════════════
 
   authentik-postgres:
-    image: postgres:16-alpine
+    image: {plan.images.postgres_image}
     profiles: ["identity"]
     restart: unless-stopped
     environment:
@@ -790,7 +795,7 @@ def render_compose(plan: DeploymentPlan) -> str:
   # ═══════════════════════════════════════════════════════════════════════
 
   hydra-postgres:
-    image: postgres:16-alpine
+    image: {plan.images.postgres_image}
     restart: unless-stopped
     environment:
       POSTGRES_DB: hydra
@@ -1029,7 +1034,13 @@ PG_MAX_CONNECTIONS={plan.sizing.postgres_max_connections}
 
 
 def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
-    """Render Traefik dynamic config for TLS certs and compression middleware."""
+    """Render the base Traefik dynamic config (works without identity profile).
+
+    This config routes all HTTPS traffic to NetBox via the WAF sidecar.
+    Authentik SSO routers and forwardAuth middleware are in a separate
+    ``dynamic-identity.yml`` that should only be active when the identity
+    Compose profile is enabled.
+    """
 
     if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
         fqdn = plan.tls.fqdn
@@ -1049,11 +1060,71 @@ def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
 
     return f"""{tls_block}http:
   routers:
+    netbox:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      {router_tls}
+      service: netbox-waf
+      middlewares:
+        - netbox-compress
+
+  services:
+    netbox-waf:
+      loadBalancer:
+        servers:
+          - url: "http://waf:8081"
+
+  middlewares:
+    netbox-compress:
+      compress: {{}}
+"""
+
+
+def render_traefik_identity_config(plan: DeploymentPlan) -> str:
+    """Render the identity-profile Traefik overlay.
+
+    This file is placed in the Traefik dynamic config directory as
+    ``dynamic-identity.yml.disabled``.  Rename it to
+    ``dynamic-identity.yml`` when enabling the ``identity`` Compose
+    profile so that Authentik SSO protects the NetBox UI.
+
+    It adds:
+    - ``netbox-sso`` router (priority 1) that applies ``authentik-forward-auth``
+      in front of the WAF, shadowing the base ``netbox`` router.
+    - ``authentik-core`` and ``authentik-outpost`` routers for Authentik UI.
+    - Authentik load-balancer services and middleware definitions.
+    """
+
+    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
+        fqdn = plan.tls.fqdn
+        router_tls = f"""tls:
+        certResolver: letsencrypt
+        domains:
+          - main: "{fqdn}" """
+    else:
+        router_tls = "tls: {}"
+
+    return f"""# Identity-profile Traefik overlay.
+# Rename this file from dynamic-identity.yml.disabled to
+# dynamic-identity.yml when enabling the 'identity' Compose profile.
+http:
+  routers:
+    netbox-sso:
+      rule: "PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      {router_tls}
+      service: netbox-waf
+      middlewares:
+        - authentik-forward-auth
+        - netbox-compress
+      priority: 1
+
     authentik-core:
       rule: >-
         PathPrefix(`/application/`) || PathPrefix(`/if/`) ||
-        PathPrefix(`/api/`) || PathPrefix(`/static/dist/`) ||
-        PathPrefix(`/media/`)
+        PathPrefix(`/static/dist/`)
       entryPoints:
         - websecure
       {router_tls}
@@ -1074,16 +1145,6 @@ def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
         - netbox-compress
       priority: 100
 
-    netbox:
-      rule: "PathPrefix(`/`)"
-      entryPoints:
-        - websecure
-      {router_tls}
-      service: netbox-waf
-      middlewares:
-        - authentik-forward-auth
-        - netbox-compress
-
   services:
     authentik-core:
       loadBalancer:
@@ -1095,11 +1156,6 @@ def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
         servers:
           - url: "http://authentik-server:9000/outpost.goauthentik.io"
 
-    netbox-waf:
-      loadBalancer:
-        servers:
-          - url: "http://waf:8081"
-
   middlewares:
     authentik-forward-auth:
       forwardAuth:
@@ -1110,9 +1166,6 @@ def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
           - X-authentik-email
           - X-authentik-name
           - X-authentik-groups
-
-    netbox-compress:
-      compress: {{}}
 
     authentik-headers:
       headers:
@@ -1602,6 +1655,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -1618,7 +1672,7 @@ CACHE_DIR = Path(os.environ.get("DATA_CACHE_DIR", "/app/cache"))
 BATCH_SIZE = int(os.environ.get("DATA_BATCH_SIZE", "1000"))
 MIN_CITY_POP = int(os.environ.get("DATA_MIN_CITY_POPULATION", "15000"))
 
-GEONAMES_API = "http://api.geonames.org"
+GEONAMES_API = "https://secure.geonames.org"
 
 # Continent codes → human names
 CONTINENTS = {
@@ -1638,7 +1692,7 @@ CONTINENTS = {
 def _geonames_get(endpoint: str, params: dict) -> dict:
     """Call a GeoNames JSON endpoint with rate-limit back-off."""
     params["username"] = GEONAMES_USERNAME
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
+    qs = urllib.parse.urlencode(params)
     url = f"{GEONAMES_API}/{endpoint}?{qs}"
     for attempt in range(1, 4):
         try:
@@ -2245,6 +2299,10 @@ def _download_library() -> Path:
 
     urlretrieve(archive_url, archive_path)
     with tarfile.open(archive_path, mode="r:gz") as archive:
+        for member in archive.getmembers():
+            resolved = os.path.normpath(os.path.join(extract_dir, member.name))
+            if not resolved.startswith(str(extract_dir) + os.sep):
+                raise RuntimeError(f"Unsafe archive member: {member.name}")
         archive.extractall(extract_dir)
 
     roots = sorted(p for p in extract_dir.iterdir() if p.is_dir())
@@ -2698,7 +2756,7 @@ source s_network {
 };
 
 destination d_loki {
-\tsyslog("alloy" transport("tcp") port("1514"));
+\tsyslog("127.0.0.1" transport("tcp") port("1514"));
 };
 
 log {
@@ -2955,7 +3013,12 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 ### Start Authentik identity provider (optional)
 
 ```bash
+# 1. Enable the identity Compose profile
 docker compose --profile identity up -d
+
+# 2. Activate Authentik SSO in Traefik (rename the disabled overlay)
+mv configuration/traefik/dynamic-identity.yml.disabled \\
+   configuration/traefik/dynamic-identity.yml
 ```
 
 Hydra starts automatically with the default stack because diode-auth is
@@ -2964,7 +3027,10 @@ The `hydra-bootstrap-clients` init container automatically registers the
 Diode and NetBox-to-Diode OAuth2 clients on first start.
 
 Authentik provides the user-facing SSO/OIDC identity provider for NetBox
-and is available as an opt-in `identity` profile.
+and is available as an opt-in `identity` profile.  The base Traefik
+config routes NetBox traffic directly to the WAF without SSO.  To enable
+Authentik forward-auth, rename `dynamic-identity.yml.disabled` to
+`dynamic-identity.yml` in the Traefik config directory (see above).
 
 ## Recommended Adjacent FOSS Services
 
@@ -3122,6 +3188,9 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
         output_dir / "configuration" / "traefik" / "dynamic.yml": (
             render_traefik_dynamic_config(plan)
+        ),
+        output_dir / "configuration" / "traefik" / "dynamic-identity.yml.disabled": (
+            render_traefik_identity_config(plan)
         ),
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
         output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),

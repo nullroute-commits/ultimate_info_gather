@@ -6,10 +6,10 @@ The generated bundle includes an `identity` Compose profile that deploys a self-
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| Authentik server | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
+| Authentik server | `ghcr.io/goauthentik/server:2026.2.2` | SSO/OIDC identity provider |
 | Authentik worker | Same as server | Background task worker |
 | Authentik PostgreSQL | Track-dependent | Dedicated database |
-| Ory Hydra | `oryd/hydra:v2.2.0` | OAuth2/OIDC server for Diode |
+| Ory Hydra | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode |
 | Hydra PostgreSQL | Track-dependent | Dedicated database |
 
 ## Architecture
