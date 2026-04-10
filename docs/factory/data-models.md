@@ -98,7 +98,7 @@ Pinned image decisions per lifecycle track.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `netbox_image` | `str` | NetBox container image (e.g. `netboxcommunity/netbox:v4.5.4`) |
+| `netbox_image` | `str` | NetBox container image (e.g. `netboxcommunity/netbox:v4.5.7`) |
 | `postgres_image` | `str` | PostgreSQL image (track-dependent) |
 | `valkey_image` | `str` | Valkey image (track-dependent) |
 | `track` | `str` | Lifecycle track: `alpine` or `debian` |

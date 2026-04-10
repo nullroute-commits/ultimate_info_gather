@@ -128,7 +128,7 @@ The following table shows which networks each service connects to:
 | Grafana | | | | | ✅ | |
 | Prometheus | | | ✅ | | ✅ | |
 | Loki | | | | | ✅ | |
-| Promtail | | | | | ✅ | |
+| Alloy | | | | | ✅ | |
 | syslog-ng | | | | | ✅ | |
 | node-exporter | | | | | ✅ | |
 | snmp-exporter | | | | | ✅ | |

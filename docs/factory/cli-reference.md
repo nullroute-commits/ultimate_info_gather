@@ -115,7 +115,7 @@ The `--track` flag selects the base OS images for PostgreSQL and Valkey:
 | `debian` | `postgres:18` | `valkey/valkey:9` | Debian 13.3 (Trixie) |
 | `alpine` | `postgres:18-alpine` | `valkey/valkey:9-alpine` | Alpine Linux 3.23.3 |
 
-Both tracks use the same NetBox image (`netboxcommunity/netbox:v4.5.4`).
+Both tracks use the same NetBox image (`netboxcommunity/netbox:v4.5.7`).
 
 ## CIDR Modes
 

@@ -7,7 +7,7 @@ The **NetBox Deployment Factory** is a subproject of Ultimate Info Gather that t
 The factory consumes a JSON report produced by `ultimate_info_gather` and generates a complete Docker Compose deployment bundle for NetBox 4.5.x. The bundle follows the official [netbox-docker](https://github.com/netbox-community/netbox-docker) plugin workflow and includes:
 
 - A custom NetBox image with pinned plugins and migrations
-- Traefik v3.2 reverse proxy with TLS termination
+- Traefik v3.6 reverse proxy with TLS termination
 - OWASP ModSecurity CRS WAF sidecar
 - PostgreSQL and Valkey (Redis-compatible) backends
 - Diode auth, ingester, and reconciler services
@@ -136,12 +136,12 @@ This documentation is organized around multiple perspectives to serve different 
 
 | Component | Version |
 |-----------|---------|
-| NetBox | `4.5.4` |
-| netbox-docker workflow | `4.0.1` |
+| NetBox | `4.5.7` |
+| netbox-docker workflow | `4.0.2` |
 | Alpine reference | `3.23.3` |
 | Debian reference | `13.3 (Trixie)` |
-| Traefik | `v3.2` |
-| WAF | `owasp/modsecurity-crs:4.6.0-nginx` |
+| Traefik | `v3.6.13` |
+| WAF | `owasp/modsecurity-crs:4.25.0-nginx-lts` |
 | Valkey | pinned per lifecycle track |
 
 See the individual component pages for complete version pin tables.

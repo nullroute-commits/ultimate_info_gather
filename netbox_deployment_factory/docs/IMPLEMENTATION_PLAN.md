@@ -26,7 +26,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 8. Generate a deployment bundle from the current host report to prove end-to-end functionality.
 9. Generate ORB sidecar configuration and compose profile wiring that is gated by NetBox API readiness.
 10. Generate netbox-geo-foss sidecar wiring as a profiled one-shot import service that creates a three-tier Region hierarchy (continent → country → city) via the pynetbox REST API, with embedded fallback data for offline environments.
-11. Generate a Traefik v3.2 reverse proxy with TLS termination and an auto-generated self-signed certificate (with SAN entries for the host).
+11. Generate a Traefik v3.6 reverse proxy with TLS termination and an auto-generated self-signed certificate (with SAN entries for the host).
 12. Generate an OWASP ModSecurity CRS WAF sidecar between Traefik and NetBox to inspect HTTP traffic before it reaches the application.
 13. Derive scoped Docker network segments (edge, app, data, security, monitoring, identity) with explicit CIDR allocations from the deployment plan, using deterministic or dynamic mode.
 14. Include Valkey as the Redis-compatible cache and task-queue backend.
@@ -55,12 +55,12 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Inventory: enable `netbox-inventory` 2.5.0 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
 - ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks
-- Traefik: generate `configuration/traefik/dynamic.yml`, `scripts/generate-traefik-cert.sh`, and Traefik v3.2 compose service with TLS termination on port 443; support Let's Encrypt ACME DNS-01 via Cloudflare as an alternative to self-signed certificates when `--fqdn` and `--acme-email` are provided
+- Traefik: generate `configuration/traefik/dynamic.yml`, `scripts/generate-traefik-cert.sh`, and Traefik v3.6 compose service with TLS termination on port 443; support Let's Encrypt ACME DNS-01 via Cloudflare as an alternative to self-signed certificates when `--fqdn` and `--acme-email` are provided
 - WAF: generate `configuration/waf/default.conf` and OWASP ModSecurity CRS nginx sidecar between Traefik and NetBox
 - Scoped networks: derive six isolated Docker bridge networks (edge, app, data, security, monitoring, identity) with explicit CIDR allocations from `NetworkProfile` in the deployment plan
 - Valkey: replace Redis with Valkey as cache and task-queue backend, pinned per lifecycle track
 - Diode: include `netboxlabs/diode-auth:latest` in the data network
 - Geographic data: include `netbox-geo-foss` as a profiled one-shot sidecar service pinned at commit `50c3c16` that imports a three-tier Region hierarchy (continent → country → city) via pynetbox, with embedded fallback data for 64 countries and ~215 cities
 - Superuser sync: generate `scripts/sync-superuser.sh` as a one-shot service that creates the bootstrap superuser, mints a v2 token, and writes the full token to the `token-store` volume
-- Identity: generate Authentik (`ghcr.io/goauthentik/server:2026.2.1`) and Ory Hydra (`oryd/hydra:v2.2.0`) under the `identity` Compose profile with dedicated Postgres instances, bootstrap scripts, and remote-auth configuration
+- Identity: generate Authentik (`ghcr.io/goauthentik/server:2026.2.2`) and Ory Hydra (`oryd/hydra:v2.3.0`) under the `identity` Compose profile with dedicated Postgres instances, bootstrap scripts, and remote-auth configuration
 - Monitoring: generate a complete monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics pinned at `706ed92`

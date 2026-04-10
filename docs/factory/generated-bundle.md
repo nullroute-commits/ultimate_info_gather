@@ -93,8 +93,8 @@ This page provides a complete listing of all files, services, and profiles produ
 
 | Service | Image | Description |
 |---------|-------|-------------|
-| `traefik` | `traefik:v3.2.3` | TLS reverse proxy (port 443) |
-| `waf` | `owasp/modsecurity-crs:4.6.0-nginx` | OWASP ModSecurity CRS WAF sidecar |
+| `traefik` | `traefik:v3.6.13` | TLS reverse proxy (port 443) |
+| `waf` | `owasp/modsecurity-crs:4.25.0-nginx-lts` | OWASP ModSecurity CRS WAF sidecar |
 | `postgres` | Track-dependent | PostgreSQL database |
 | `valkey` | Track-dependent | Valkey cache and task queue |
 | `netbox` | `<deployment-name>:local` | NetBox application |
@@ -104,7 +104,7 @@ This page provides a complete listing of all files, services, and profiles produ
 | `diode-ingester` | `netboxlabs/diode-ingester:1.13.0` | Diode ingestion service |
 | `diode-reconciler` | `netboxlabs/diode-reconciler:1.13.0` | Diode reconciliation service |
 | `diode-credential-setup` | `<deployment-name>:local` | Diode OAuth2 credential provisioning (init) |
-| `wazuh-agent` | `wazuh/wazuh-agent:4.14.3` | Security observability agent |
+| `wazuh-agent` | `wazuh/wazuh-agent:4.14.4` | Security observability agent |
 
 !!! note "Self-signed mode only"
     In self-signed mode, a `traefik-certgen` init container runs before Traefik to generate the TLS certificate.
@@ -125,13 +125,13 @@ This page provides a complete listing of all files, services, and profiles produ
 | `snmp-exporter` | `monitoring` | `prom/snmp-exporter:v0.30.1` | SNMP device metrics |
 | `cadvisor` | `monitoring` | `gcr.io/cadvisor/cadvisor:v0.52.1` | Container metrics |
 | `monitoring-dashboard-init` | `monitoring` | `alpine/git` | Grafana dashboard provisioning |
-| `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
-| `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2026.2.1` | Authentik background worker |
+| `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | SSO/OIDC identity provider |
+| `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | Authentik background worker |
 | `authentik-postgres` | `identity` | Track-dependent | Dedicated Postgres for Authentik |
 | `authentik-bootstrap-netbox` | `identity` | `<deployment-name>:local` | NetBox OAuth2 app configuration |
-| `hydra` | `identity` | `oryd/hydra:v2.2.0` | OAuth2/OIDC server for Diode |
+| `hydra` | `identity` | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode |
 | `hydra-postgres` | `identity` | Track-dependent | Dedicated Postgres for Hydra |
-| `hydra-migrate` | `identity` | `oryd/hydra:v2.2.0` | Hydra database migration |
+| `hydra-migrate` | `identity` | `oryd/hydra:v2.3.0` | Hydra database migration |
 | `hydra-bootstrap-clients` | `identity` | `<deployment-name>:local` | Diode OAuth2 client provisioning |
 
 ## Docker Volumes

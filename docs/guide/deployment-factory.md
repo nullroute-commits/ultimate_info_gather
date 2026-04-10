@@ -25,19 +25,19 @@ graph LR
 
 | Component | Version |
 |-----------|---------|
-| NetBox | `4.5.4` |
-| netbox-docker workflow | `4.0.1` |
+| NetBox | `4.5.7` |
+| netbox-docker workflow | `4.0.2` |
 | Alpine reference | `3.23.3` |
 | Debian reference | `13.3 (Trixie)` |
-| Traefik | `v3.2` |
-| WAF | `owasp/modsecurity-crs:4.6.0-nginx` |
+| Traefik | `v3.6.13` |
+| WAF | `owasp/modsecurity-crs:4.25.0-nginx-lts` |
 | Valkey | pinned per lifecycle track |
 | Diode auth | `netboxlabs/diode-auth:1.12.0` |
 | Diode ingester | `netboxlabs/diode-ingester:1.13.0` |
 | Diode reconciler | `netboxlabs/diode-reconciler:1.13.0` |
 | ORB agent | `netboxlabs/orb-agent:2.7.0` |
-| Authentik | `ghcr.io/goauthentik/server:2026.2.1` |
-| Ory Hydra | `oryd/hydra:v2.2.0` |
+| Authentik | `ghcr.io/goauthentik/server:2026.2.2` |
+| Ory Hydra | `oryd/hydra:v2.3.0` |
 | Grafana | `grafana/grafana:12.4.2` |
 | Prometheus | `prom/prometheus:v3.11.0` |
 | Loki | `grafana/loki:3.7.1` |
