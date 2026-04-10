@@ -1,16 +1,16 @@
 {
   "report_metadata": {
-    "report_id": "ec31c182-cb5b-47f1-90a7-637c86652279",
-    "generated_at": "2026-04-10T01:55:10.779746",
+    "report_id": "15a1193e-0ed8-4b19-8c0b-5dcc8fea513c",
+    "generated_at": "2026-04-10T03:09:23.866511",
     "generator_version": "1.0.0",
-    "total_collection_time_ms": 841.4475299999964,
+    "total_collection_time_ms": 795.5229209999857,
     "collection_errors": [],
     "warnings": [
       "Failed to read /sys/class/dmi/id/board_serial: [Errno 13] Permission denied: '/sys/class/dmi/id/board_serial'"
     ]
   },
   "environment": {
-    "timestamp": "2026-04-10T01:55:09.938317",
+    "timestamp": "2026-04-10T03:09:23.071004",
     "python_env": {
       "version": "3.12.3 (main, Mar  3 2026, 12:15:18) [GCC 13.3.0]",
       "version_info": [
@@ -39,8 +39,8 @@
       ]
     },
     "process_info": {
-      "pid": 4059,
-      "ppid": 4057,
+      "pid": 6355,
+      "ppid": 6353,
       "uid": 1001,
       "gid": 1001,
       "euid": 1001,
@@ -60,11 +60,11 @@
     "shell": "/bin/bash",
     "home_directory": "/home/runner",
     "temp_directory": "/tmp",
-    "collection_duration_ms": 2.1782419999993863,
+    "collection_duration_ms": 2.198953000004167,
     "errors": []
   },
   "permissions": {
-    "timestamp": "2026-04-10T01:55:09.940507",
+    "timestamp": "2026-04-10T03:09:23.073214",
     "permission_level": "PRIVILEGED",
     "user_id": 1001,
     "user_name": "runner",
@@ -421,7 +421,7 @@
       "cpu_count": 4,
       "cpu_count_logical": 4,
       "memory_total_bytes": 16766431232,
-      "memory_available_bytes": 14628151296,
+      "memory_available_bytes": 14606823424,
       "disk_partitions": [
         {
           "device": "/dev/root",
@@ -443,10 +443,10 @@
         }
       ],
       "network_interfaces": [
-        "enP56590s1",
-        "eth0",
+        "docker0",
+        "enP7830s1",
         "lo",
-        "docker0"
+        "eth0"
       ],
       "resource_limits": {
         "max_open_files": [
@@ -479,11 +479,11 @@
         ]
       }
     },
-    "collection_duration_ms": 8.653560999988485,
+    "collection_duration_ms": 8.280098999989605,
     "errors": []
   },
   "hardware": {
-    "timestamp": "2026-04-10T01:55:09.949201",
+    "timestamp": "2026-04-10T03:09:23.081537",
     "system_board": {
       "manufacturer": "Microsoft Corporation",
       "product_name": "Virtual Machine",
@@ -494,9 +494,9 @@
       "bios_date": "01/08/2026"
     },
     "machine_id": "67fc13678f93410d97baf9fc704b9fba",
-    "product_uuid": "9e4cd517-7796-457d-a4e9-161d5d442a05",
+    "product_uuid": "dfea5c8d-4cf4-40af-a802-3d977fcff196",
     "cpu": {
-      "model_name": "AMD EPYC 9V74 80-Core Processor",
+      "model_name": "AMD EPYC 7763 64-Core Processor",
       "vendor": "AuthenticAMD",
       "architecture": "x86_64",
       "physical_cores": 1,
@@ -504,7 +504,7 @@
       "max_frequency_mhz": null,
       "current_frequency_mhz": null,
       "cache_size_kb": {
-        "L2": 1024,
+        "L2": 512,
         "L1": 32,
         "L3": 32768
       },
@@ -617,9 +617,9 @@
     },
     "memory": {
       "total_bytes": 16766431232,
-      "available_bytes": 14628151296,
-      "used_bytes": 2138279936,
-      "percent_used": 12.753339732303504,
+      "available_bytes": 14606565376,
+      "used_bytes": 2159865856,
+      "percent_used": 12.882084601747168,
       "swap_total_bytes": 3221221376,
       "swap_used_bytes": 0,
       "swap_free_bytes": 3221221376,
@@ -667,55 +667,8 @@
     ],
     "network_interfaces": [
       {
-        "name": "enP56590s1",
-        "mac_address": "7c:ed:8d:de:60:b9",
-        "ipv4_addresses": [],
-        "ipv6_addresses": [],
-        "is_up": true,
-        "is_loopback": false,
-        "is_virtual": false,
-        "speed_mbps": 100000,
-        "mtu": 1500,
-        "driver": null,
-        "access_level": "SHARED"
-      },
-      {
-        "name": "eth0",
-        "mac_address": "7c:ed:8d:de:60:b9",
-        "ipv4_addresses": [
-          "10.1.0.192"
-        ],
-        "ipv6_addresses": [
-          "fe80::7eed:8dff:fede:60b9"
-        ],
-        "is_up": true,
-        "is_loopback": false,
-        "is_virtual": false,
-        "speed_mbps": 100000,
-        "mtu": 1500,
-        "driver": null,
-        "access_level": "SHARED"
-      },
-      {
-        "name": "lo",
-        "mac_address": null,
-        "ipv4_addresses": [
-          "127.0.0.1"
-        ],
-        "ipv6_addresses": [
-          "::1"
-        ],
-        "is_up": false,
-        "is_loopback": true,
-        "is_virtual": true,
-        "speed_mbps": null,
-        "mtu": 65536,
-        "driver": null,
-        "access_level": "SHARED"
-      },
-      {
         "name": "docker0",
-        "mac_address": "4e:1d:a6:67:e9:49",
+        "mac_address": "ee:50:11:73:50:30",
         "ipv4_addresses": [
           "172.17.0.1"
         ],
@@ -727,89 +680,19 @@
         "mtu": 1500,
         "driver": null,
         "access_level": "SHARED"
-      }
-    ],
-    "gpus": [],
-    "usb_devices": [],
-    "device_access_summary": {
-      "storage:sda": "NONE",
-      "network:enP56590s1": "SHARED",
-      "network:eth0": "SHARED",
-      "network:lo": "SHARED",
-      "network:docker0": "SHARED"
-    },
-    "is_virtual_machine": true,
-    "hypervisor": "microsoft",
-    "vm_type": "microsoft",
-    "collection_duration_ms": 232.02662899998927,
-    "errors": []
-  },
-  "network": {
-    "timestamp": "2026-04-10T01:55:09.949237",
-    "interfaces": [
+      },
       {
-        "name": "enP56590s1",
-        "mac_address": "7c:ed:8d:de:60:b9",
+        "name": "enP7830s1",
+        "mac_address": "00:0d:3a:59:07:34",
         "ipv4_addresses": [],
         "ipv6_addresses": [],
         "is_up": true,
         "is_loopback": false,
         "is_virtual": false,
-        "speed_mbps": 100000,
+        "speed_mbps": 50000,
         "mtu": 1500,
-        "driver": "mlx5_core",
-        "duplex": "full",
-        "carrier": true,
-        "statistics": {
-          "rx_bytes": 405857872,
-          "rx_packets": 287034,
-          "rx_errors": 0,
-          "rx_dropped": 0,
-          "tx_bytes": 5394360,
-          "tx_packets": 24229,
-          "tx_errors": 0,
-          "tx_dropped": 0,
-          "collisions": 0
-        },
-        "broadcast_address": null,
-        "netmask": null,
-        "gateway": null,
-        "dns_servers": []
-      },
-      {
-        "name": "eth0",
-        "mac_address": "7c:ed:8d:de:60:b9",
-        "ipv4_addresses": [
-          "10.1.0.192"
-        ],
-        "ipv6_addresses": [
-          "fe80::7eed:8dff:fede:60b9"
-        ],
-        "is_up": true,
-        "is_loopback": false,
-        "is_virtual": false,
-        "speed_mbps": 100000,
-        "mtu": 1500,
-        "driver": "hv_netvsc",
-        "duplex": "full",
-        "carrier": true,
-        "statistics": {
-          "rx_bytes": 396596406,
-          "rx_packets": 186083,
-          "rx_errors": 0,
-          "rx_dropped": 0,
-          "tx_bytes": 5251290,
-          "tx_packets": 22067,
-          "tx_errors": 0,
-          "tx_dropped": 0,
-          "collisions": 0
-        },
-        "broadcast_address": "10.1.15.255",
-        "netmask": "255.255.240.0",
-        "gateway": "10.1.0.1",
-        "dns_servers": [
-          "168.63.129.16"
-        ]
+        "driver": null,
+        "access_level": "SHARED"
       },
       {
         "name": "lo",
@@ -826,27 +709,47 @@
         "speed_mbps": null,
         "mtu": 65536,
         "driver": null,
-        "duplex": null,
-        "carrier": true,
-        "statistics": {
-          "rx_bytes": 7859490,
-          "rx_packets": 9178,
-          "rx_errors": 0,
-          "rx_dropped": 0,
-          "tx_bytes": 7859490,
-          "tx_packets": 9178,
-          "tx_errors": 0,
-          "tx_dropped": 0,
-          "collisions": 0
-        },
-        "broadcast_address": null,
-        "netmask": "255.0.0.0",
-        "gateway": null,
-        "dns_servers": []
+        "access_level": "SHARED"
       },
       {
+        "name": "eth0",
+        "mac_address": "00:0d:3a:59:07:34",
+        "ipv4_addresses": [
+          "10.1.0.161"
+        ],
+        "ipv6_addresses": [
+          "fe80::20d:3aff:fe59:734"
+        ],
+        "is_up": true,
+        "is_loopback": false,
+        "is_virtual": false,
+        "speed_mbps": 50000,
+        "mtu": 1500,
+        "driver": null,
+        "access_level": "SHARED"
+      }
+    ],
+    "gpus": [],
+    "usb_devices": [],
+    "device_access_summary": {
+      "storage:sda": "NONE",
+      "network:docker0": "SHARED",
+      "network:enP7830s1": "SHARED",
+      "network:lo": "SHARED",
+      "network:eth0": "SHARED"
+    },
+    "is_virtual_machine": true,
+    "hypervisor": "microsoft",
+    "vm_type": "microsoft",
+    "collection_duration_ms": 112.5673789999837,
+    "errors": []
+  },
+  "network": {
+    "timestamp": "2026-04-10T03:09:23.081578",
+    "interfaces": [
+      {
         "name": "docker0",
-        "mac_address": "4e:1d:a6:67:e9:49",
+        "mac_address": "ee:50:11:73:50:30",
         "ipv4_addresses": [
           "172.17.0.1"
         ],
@@ -874,6 +777,103 @@
         "netmask": "255.255.0.0",
         "gateway": null,
         "dns_servers": []
+      },
+      {
+        "name": "enP7830s1",
+        "mac_address": "00:0d:3a:59:07:34",
+        "ipv4_addresses": [],
+        "ipv6_addresses": [],
+        "is_up": true,
+        "is_loopback": false,
+        "is_virtual": false,
+        "speed_mbps": 50000,
+        "mtu": 1500,
+        "driver": "mlx5_core",
+        "duplex": "unknown",
+        "carrier": true,
+        "statistics": {
+          "rx_bytes": 194289090,
+          "rx_packets": 136153,
+          "rx_errors": 0,
+          "rx_dropped": 0,
+          "tx_bytes": 14302817,
+          "tx_packets": 16721,
+          "tx_errors": 0,
+          "tx_dropped": 0,
+          "collisions": 0
+        },
+        "broadcast_address": null,
+        "netmask": null,
+        "gateway": null,
+        "dns_servers": []
+      },
+      {
+        "name": "lo",
+        "mac_address": null,
+        "ipv4_addresses": [
+          "127.0.0.1"
+        ],
+        "ipv6_addresses": [
+          "::1"
+        ],
+        "is_up": false,
+        "is_loopback": true,
+        "is_virtual": true,
+        "speed_mbps": null,
+        "mtu": 65536,
+        "driver": null,
+        "duplex": null,
+        "carrier": true,
+        "statistics": {
+          "rx_bytes": 52152658,
+          "rx_packets": 23118,
+          "rx_errors": 0,
+          "rx_dropped": 0,
+          "tx_bytes": 52152658,
+          "tx_packets": 23118,
+          "tx_errors": 0,
+          "tx_dropped": 0,
+          "collisions": 0
+        },
+        "broadcast_address": null,
+        "netmask": "255.0.0.0",
+        "gateway": null,
+        "dns_servers": []
+      },
+      {
+        "name": "eth0",
+        "mac_address": "00:0d:3a:59:07:34",
+        "ipv4_addresses": [
+          "10.1.0.161"
+        ],
+        "ipv6_addresses": [
+          "fe80::20d:3aff:fe59:734"
+        ],
+        "is_up": true,
+        "is_loopback": false,
+        "is_virtual": false,
+        "speed_mbps": 50000,
+        "mtu": 1500,
+        "driver": "hv_netvsc",
+        "duplex": "unknown",
+        "carrier": true,
+        "statistics": {
+          "rx_bytes": 432100501,
+          "rx_packets": 188249,
+          "rx_errors": 0,
+          "rx_dropped": 0,
+          "tx_bytes": 14947993,
+          "tx_packets": 24005,
+          "tx_errors": 0,
+          "tx_dropped": 0,
+          "collisions": 0
+        },
+        "broadcast_address": "10.1.15.255",
+        "netmask": "255.255.240.0",
+        "gateway": "10.1.0.1",
+        "dns_servers": [
+          "168.63.129.16"
+        ]
       }
     ],
     "routes": [
@@ -886,7 +886,7 @@
         "route_type": "DEFAULT",
         "flags": [
           "proto=dhcp",
-          "src=10.1.0.192"
+          "src=10.1.0.161"
         ]
       },
       {
@@ -899,7 +899,7 @@
         "flags": [
           "proto=kernel",
           "scope=link",
-          "src=10.1.0.192"
+          "src=10.1.0.161"
         ]
       },
       {
@@ -912,7 +912,7 @@
         "flags": [
           "proto=dhcp",
           "scope=link",
-          "src=10.1.0.192"
+          "src=10.1.0.161"
         ]
       },
       {
@@ -924,7 +924,7 @@
         "route_type": "CONNECTED",
         "flags": [
           "proto=dhcp",
-          "src=10.1.0.192"
+          "src=10.1.0.161"
         ]
       },
       {
@@ -936,7 +936,7 @@
         "route_type": "CONNECTED",
         "flags": [
           "proto=dhcp",
-          "src=10.1.0.192"
+          "src=10.1.0.161"
         ]
       },
       {
@@ -971,7 +971,7 @@
         "127.0.0.53"
       ],
       "search_domains": [
-        "mgokf0vqiaxubakih0c3aj3fab.bx.internal.cloudapp.net"
+        "c5dam0qjnfsefkc3bjzldlum2d.dx.internal.cloudapp.net"
       ],
       "dns_options": [
         "edns0",
@@ -1011,7 +1011,7 @@
       },
       {
         "protocol": "UDP",
-        "local_address": "10.1.0.192%eth0",
+        "local_address": "10.1.0.161%eth0",
         "local_port": 68,
         "remote_address": "0.0.0.0",
         "remote_port": null,
@@ -1031,16 +1031,6 @@
       },
       {
         "protocol": "UDP",
-        "local_address": "*",
-        "local_port": 45592,
-        "remote_address": null,
-        "remote_port": null,
-        "state": "CLOSED",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "UDP",
         "local_address": "::1",
         "local_port": 323,
         "remote_address": "[::]",
@@ -1050,14 +1040,14 @@
         "process_name": null
       },
       {
-        "protocol": "TCP",
-        "local_address": "127.0.0.1",
-        "local_port": 2301,
-        "remote_address": "0.0.0.0",
+        "protocol": "UDP",
+        "local_address": "*",
+        "local_port": 35681,
+        "remote_address": null,
         "remote_port": null,
-        "state": "LISTEN",
-        "pid": 2239,
-        "process_name": "MainThread"
+        "state": "CLOSED",
+        "pid": null,
+        "process_name": null
       },
       {
         "protocol": "TCP",
@@ -1081,6 +1071,16 @@
       },
       {
         "protocol": "TCP",
+        "local_address": "127.0.0.1",
+        "local_port": 2301,
+        "remote_address": "0.0.0.0",
+        "remote_port": null,
+        "state": "LISTEN",
+        "pid": 2284,
+        "process_name": "MainThread"
+      },
+      {
+        "protocol": "TCP",
         "local_address": "127.0.0.53%lo",
         "local_port": 53,
         "remote_address": "0.0.0.0",
@@ -1091,128 +1091,38 @@
       },
       {
         "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 36434,
-        "remote_address": "140.82.113.21",
+        "local_address": "10.1.0.161",
+        "local_port": 50434,
+        "remote_address": "104.16.4.34",
         "remote_port": 443,
         "state": "ESTABLISHED",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 55316,
-        "remote_address": "151.101.192.223",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 55332,
-        "remote_address": "151.101.192.223",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 60690,
-        "remote_address": "140.82.113.21",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 34910,
-        "remote_address": "169.254.169.254",
-        "remote_port": 80,
-        "state": "ESTABLISHED",
-        "pid": 2098,
-        "process_name": "hosted-compute-"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 37678,
-        "remote_address": "104.16.10.34",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2914,
+        "pid": 3359,
         "process_name": "npm exec @playw"
       },
       {
         "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 37680,
-        "remote_address": "104.16.10.34",
+        "local_address": "10.1.0.161",
+        "local_port": 52884,
+        "remote_address": "104.16.4.34",
         "remote_port": 443,
         "state": "ESTABLISHED",
-        "pid": 2914,
+        "pid": 3359,
         "process_name": "npm exec @playw"
       },
       {
         "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 37682,
-        "remote_address": "104.16.10.34",
+        "local_address": "10.1.0.161",
+        "local_port": 52892,
+        "remote_address": "104.16.4.34",
         "remote_port": 443,
         "state": "ESTABLISHED",
-        "pid": 2914,
+        "pid": 3359,
         "process_name": "npm exec @playw"
       },
       {
         "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 52180,
-        "remote_address": "140.82.112.22",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2239,
-        "process_name": "MainThread"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 52194,
-        "remote_address": "140.82.112.22",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2239,
-        "process_name": "MainThread"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 52204,
-        "remote_address": "140.82.112.22",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2239,
-        "process_name": "MainThread"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "127.0.0.1",
-        "local_port": 55020,
-        "remote_address": "127.0.0.1",
-        "remote_port": 2301,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 33808,
+        "local_address": "10.1.0.161",
+        "local_port": 45910,
         "remote_address": "20.75.202.224",
         "remote_port": 443,
         "state": "ESTABLISHED",
@@ -1221,23 +1131,53 @@
       },
       {
         "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 40344,
+        "local_address": "10.1.0.161",
+        "local_port": 52634,
         "remote_address": "20.75.202.224",
         "remote_port": 443,
         "state": "ESTABLISHED",
-        "pid": 2098,
+        "pid": 2091,
         "process_name": "hosted-compute-"
       },
       {
         "protocol": "TCP",
-        "local_address": "10.1.0.192",
-        "local_port": 56690,
-        "remote_address": "20.75.202.224",
+        "local_address": "10.1.0.161",
+        "local_port": 45188,
+        "remote_address": "140.82.114.22",
         "remote_port": 443,
         "state": "ESTABLISHED",
-        "pid": 2098,
-        "process_name": "hosted-compute-"
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "10.1.0.161",
+        "local_port": 45198,
+        "remote_address": "140.82.114.22",
+        "remote_port": 443,
+        "state": "ESTABLISHED",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "10.1.0.161",
+        "local_port": 54960,
+        "remote_address": "151.101.64.223",
+        "remote_port": 443,
+        "state": "ESTABLISHED",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "10.1.0.161",
+        "local_port": 49550,
+        "remote_address": "151.101.0.223",
+        "remote_port": 443,
+        "state": "ESTABLISHED",
+        "pid": null,
+        "process_name": null
       },
       {
         "protocol": "TCP",
@@ -1252,7 +1192,7 @@
       {
         "protocol": "TCP",
         "local_address": "*",
-        "local_port": 41753,
+        "local_port": 40271,
         "remote_address": null,
         "remote_port": null,
         "state": "LISTEN",
@@ -1262,7 +1202,7 @@
       {
         "protocol": "TCP",
         "local_address": "*",
-        "local_port": 36955,
+        "local_port": 45867,
         "remote_address": null,
         "remote_port": null,
         "state": "LISTEN",
@@ -1272,9 +1212,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60530,
+        "remote_port": 60968,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -1282,9 +1222,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60290,
+        "remote_port": 53356,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -1292,1247 +1232,7 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45388,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36668,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36610,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60776,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60468,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60500,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60416,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60458,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36678,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 44062,
-        "remote_address": "::ffff:140.82.113.21",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2151,
-        "process_name": "Runner.Worker"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 44074,
-        "remote_address": "::ffff:140.82.113.21",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2151,
-        "process_name": "Runner.Worker"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36746,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60546,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60666,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60486,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60778,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36742,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45426,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54012,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60220,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45356,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60648,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45532,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54042,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60526,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60876,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60248,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 42630,
-        "remote_address": "::ffff:20.85.130.105",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2135,
-        "process_name": "Runner.Listener"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 42634,
-        "remote_address": "::ffff:20.85.130.105",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2135,
-        "process_name": "Runner.Listener"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 42644,
-        "remote_address": "::ffff:20.85.130.105",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2135,
-        "process_name": "Runner.Listener"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36538,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36554,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 60762,
-        "remote_address": "::ffff:140.82.113.21",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2151,
-        "process_name": "Runner.Worker"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45376,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60636,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60726,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36728,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60748,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36434,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36492,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60234,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60570,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60282,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60600,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60330,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60808,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60276,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60798,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36658,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 37934,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54044,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45438,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36462,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60658,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60888,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60442,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60204,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60906,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60852,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60542,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60682,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45386,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45514,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60406,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60696,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36698,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60498,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 53918,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36626,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36636,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45582,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45394,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36660,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60742,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36470,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60586,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60700,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60538,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 37902,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36596,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60908,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60502,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45342,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 46292,
-        "remote_address": "::ffff:140.82.114.22",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2151,
-        "process_name": "Runner.Worker"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60254,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60822,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36482,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60490,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60720,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36628,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60556,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54062,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45540,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60680,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60518,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45504,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45370,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:10.1.0.192",
-        "local_port": 56536,
-        "remote_address": "::ffff:20.209.227.33",
-        "remote_port": 443,
-        "state": "ESTABLISHED",
-        "pid": 2151,
-        "process_name": "Runner.Worker"
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60740,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45470,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54002,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36438,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60922,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36566,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60540,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36700,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60918,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45554,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54076,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36614,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36682,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36652,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 53896,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60392,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45424,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60318,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45526,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60366,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60864,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60620,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45408,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60424,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36460,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60342,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
         "remote_port": 60832,
         "state": "TIME_WAIT",
@@ -2542,9 +1242,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45494,
+        "remote_port": 39496,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2552,9 +1252,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60848,
+        "remote_port": 60684,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2562,9 +1262,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54050,
+        "remote_port": 60806,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2572,9 +1272,49 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60364,
+        "remote_port": 53366,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:10.1.0.161",
+        "local_port": 38986,
+        "remote_address": "::ffff:20.85.130.105",
+        "remote_port": 443,
+        "state": "ESTABLISHED",
+        "pid": 2182,
+        "process_name": "Runner.Listener"
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60670,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:10.1.0.161",
+        "local_port": 42270,
+        "remote_address": "::ffff:20.85.130.105",
+        "remote_port": 443,
+        "state": "ESTABLISHED",
+        "pid": 2182,
+        "process_name": "Runner.Listener"
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60658,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2582,9 +1322,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36714,
+        "remote_port": 60554,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2592,9 +1332,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45566,
+        "remote_port": 60518,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2602,9 +1342,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60558,
+        "remote_port": 60738,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2612,9 +1352,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60352,
+        "remote_port": 60570,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2622,9 +1362,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54054,
+        "remote_port": 60522,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2632,9 +1372,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60514,
+        "remote_port": 49662,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2642,9 +1382,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60454,
+        "remote_port": 53334,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2652,9 +1392,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 53910,
+        "remote_port": 60836,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2662,9 +1402,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60916,
+        "remote_port": 60926,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2672,307 +1412,7 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60794,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60356,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60896,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36428,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60478,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60612,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60764,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60430,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60412,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60488,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45530,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45452,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60706,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54026,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36450,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60592,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54024,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36548,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60574,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36676,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60302,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60376,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 53996,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60438,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54070,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45420,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45454,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60484,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60428,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
-        "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 54006,
-        "state": "TIME_WAIT",
-        "pid": null,
-        "process_name": null
-      },
-      {
-        "protocol": "TCP",
-        "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
         "remote_port": 60862,
         "state": "TIME_WAIT",
@@ -2982,9 +1422,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 36750,
+        "remote_port": 39522,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -2992,9 +1432,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45498,
+        "remote_port": 60520,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -3002,9 +1442,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60660,
+        "remote_port": 60982,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -3012,7 +1452,507 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53336,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53456,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53452,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53382,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60562,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60790,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 45800,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60560,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60716,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60750,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60582,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 54824,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53396,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60606,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60996,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60850,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60614,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53470,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 39486,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60956,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60768,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53312,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:10.1.0.161",
+        "local_port": 49170,
+        "remote_address": "::ffff:140.82.114.21",
+        "remote_port": 443,
+        "state": "ESTABLISHED",
+        "pid": 2197,
+        "process_name": "Runner.Worker"
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60858,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60792,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60878,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60594,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53426,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60828,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60540,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60822,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 45812,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53438,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60802,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53346,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60884,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60718,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60700,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60940,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60938,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60976,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60798,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60974,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60912,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60924,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60680,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60498,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 53318,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 49634,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 49646,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
         "remote_port": 60536,
         "state": "TIME_WAIT",
@@ -3022,9 +1962,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60762,
+        "remote_port": 53406,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -3032,9 +1972,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 60260,
+        "remote_port": 60504,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -3042,9 +1982,9 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 37918,
+        "remote_port": 60902,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -3052,9 +1992,69 @@
       {
         "protocol": "TCP",
         "local_address": "::ffff:127.0.0.1",
-        "local_port": 36955,
+        "local_port": 40271,
         "remote_address": "::ffff:127.0.0.1",
-        "remote_port": 45578,
+        "remote_port": 39506,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 39518,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60888,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60732,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60774,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 60574,
+        "state": "TIME_WAIT",
+        "pid": null,
+        "process_name": null
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "::ffff:127.0.0.1",
+        "local_port": 40271,
+        "remote_address": "::ffff:127.0.0.1",
+        "remote_port": 39536,
         "state": "TIME_WAIT",
         "pid": null,
         "process_name": null
@@ -3079,7 +2079,7 @@
       },
       {
         "protocol": "UDP",
-        "address": "10.1.0.192%eth0",
+        "address": "10.1.0.161%eth0",
         "port": 68,
         "pid": null,
         "process_name": null,
@@ -3095,14 +2095,6 @@
       },
       {
         "protocol": "UDP",
-        "address": "*",
-        "port": 45592,
-        "pid": null,
-        "process_name": null,
-        "service_name": null
-      },
-      {
-        "protocol": "UDP",
         "address": "::1",
         "port": 323,
         "pid": null,
@@ -3110,11 +2102,11 @@
         "service_name": null
       },
       {
-        "protocol": "TCP",
-        "address": "127.0.0.1",
-        "port": 2301,
-        "pid": 2239,
-        "process_name": "MainThread",
+        "protocol": "UDP",
+        "address": "*",
+        "port": 35681,
+        "pid": null,
+        "process_name": null,
         "service_name": null
       },
       {
@@ -3135,6 +2127,14 @@
       },
       {
         "protocol": "TCP",
+        "address": "127.0.0.1",
+        "port": 2301,
+        "pid": 2284,
+        "process_name": "MainThread",
+        "service_name": null
+      },
+      {
+        "protocol": "TCP",
         "address": "127.0.0.53%lo",
         "port": 53,
         "pid": null,
@@ -3152,7 +2152,7 @@
       {
         "protocol": "TCP",
         "address": "*",
-        "port": 41753,
+        "port": 40271,
         "pid": null,
         "process_name": null,
         "service_name": null
@@ -3160,23 +2160,23 @@
       {
         "protocol": "TCP",
         "address": "*",
-        "port": 36955,
+        "port": 45867,
         "pid": null,
         "process_name": null,
         "service_name": null
       }
     ],
     "firewall": null,
-    "total_rx_bytes": 802454278,
-    "total_tx_bytes": 10645650,
-    "active_connections_count": 22,
+    "total_rx_bytes": 626389591,
+    "total_tx_bytes": 29250810,
+    "active_connections_count": 12,
     "listening_ports_count": 13,
-    "collection_duration_ms": 444.87549299999785,
+    "collection_duration_ms": 171.8931139999995,
     "errors": [],
     "warnings": []
   },
   "software": {
-    "timestamp": "2026-04-10T01:55:09.949267",
+    "timestamp": "2026-04-10T03:09:23.081611",
     "os_info": {
       "name": "Ubuntu",
       "version": "24.04.4 LTS (Noble Numbat)",
@@ -3184,14 +2184,84 @@
       "codename": "noble",
       "kernel_version": "6.17.0-1010-azure",
       "architecture": "x86_64",
-      "boot_time": "2026-04-10T01:53:29.937999",
-      "uptime_seconds": 100.16
+      "boot_time": "2026-04-10T03:04:54.209992",
+      "uptime_seconds": 268.91
     },
     "kernel_modules": [
       {
+        "name": "tcp_diag",
+        "size_bytes": 12288,
+        "used_by": [],
+        "state": "Live"
+      },
+      {
+        "name": "udp_diag",
+        "size_bytes": 12288,
+        "used_by": [],
+        "state": "Live"
+      },
+      {
         "name": "inet_diag",
         "size_bytes": 24576,
+        "used_by": [
+          "tcp_diag",
+          "udp_diag"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "mlx5_ib",
+        "size_bytes": 524288,
         "used_by": [],
+        "state": "Live"
+      },
+      {
+        "name": "macsec",
+        "size_bytes": 73728,
+        "used_by": [
+          "mlx5_ib"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "ib_uverbs",
+        "size_bytes": 196608,
+        "used_by": [
+          "mlx5_ib"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "ib_core",
+        "size_bytes": 512000,
+        "used_by": [
+          "mlx5_ib",
+          "ib_uverbs"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "mlx5_core",
+        "size_bytes": 2846720,
+        "used_by": [
+          "mlx5_ib"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "mlxfw",
+        "size_bytes": 36864,
+        "used_by": [
+          "mlx5_core"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "psample",
+        "size_bytes": 20480,
+        "used_by": [
+          "mlx5_core"
+        ],
         "state": "Live"
       },
       {
@@ -3256,20 +2326,16 @@
         "state": "Live"
       },
       {
+        "name": "tls",
+        "size_bytes": 155648,
+        "used_by": [
+          "mlx5_core"
+        ],
+        "state": "Live"
+      },
+      {
         "name": "overlay",
         "size_bytes": 217088,
-        "used_by": [],
-        "state": "Live"
-      },
-      {
-        "name": "xt_owner",
-        "size_bytes": 12288,
-        "used_by": [],
-        "state": "Live"
-      },
-      {
-        "name": "xt_tcpudp",
-        "size_bytes": 16384,
         "used_by": [],
         "state": "Live"
       },
@@ -3285,12 +2351,6 @@
         "used_by": [
           "8021q"
         ],
-        "state": "Live"
-      },
-      {
-        "name": "xt_conntrack",
-        "size_bytes": 12288,
-        "used_by": [],
         "state": "Live"
       },
       {
@@ -3318,6 +2378,24 @@
           "garp",
           "stp"
         ],
+        "state": "Live"
+      },
+      {
+        "name": "xt_owner",
+        "size_bytes": 12288,
+        "used_by": [],
+        "state": "Live"
+      },
+      {
+        "name": "xt_tcpudp",
+        "size_bytes": 16384,
+        "used_by": [],
+        "state": "Live"
+      },
+      {
+        "name": "xt_conntrack",
+        "size_bytes": 12288,
+        "used_by": [],
         "state": "Live"
       },
       {
@@ -3374,37 +2452,6 @@
         "state": "Live"
       },
       {
-        "name": "mlx5_ib",
-        "size_bytes": 524288,
-        "used_by": [],
-        "state": "Live"
-      },
-      {
-        "name": "macsec",
-        "size_bytes": 73728,
-        "used_by": [
-          "mlx5_ib"
-        ],
-        "state": "Live"
-      },
-      {
-        "name": "ib_uverbs",
-        "size_bytes": 196608,
-        "used_by": [
-          "mlx5_ib"
-        ],
-        "state": "Live"
-      },
-      {
-        "name": "ib_core",
-        "size_bytes": 512000,
-        "used_by": [
-          "mlx5_ib",
-          "ib_uverbs"
-        ],
-        "state": "Live"
-      },
-      {
         "name": "kvm_amd",
         "size_bytes": 237568,
         "used_by": [],
@@ -3419,18 +2466,18 @@
         "state": "Live"
       },
       {
-        "name": "mlx5_core",
-        "size_bytes": 2846720,
-        "used_by": [
-          "mlx5_ib"
-        ],
-        "state": "Live"
-      },
-      {
         "name": "kvm",
         "size_bytes": 1404928,
         "used_by": [
           "kvm_amd"
+        ],
+        "state": "Live"
+      },
+      {
+        "name": "irqbypass",
+        "size_bytes": 12288,
+        "used_by": [
+          "kvm"
         ],
         "state": "Live"
       },
@@ -3441,47 +2488,15 @@
         "state": "Live"
       },
       {
-        "name": "mlxfw",
-        "size_bytes": 36864,
-        "used_by": [
-          "mlx5_core"
-        ],
-        "state": "Live"
-      },
-      {
         "name": "serio_raw",
         "size_bytes": 20480,
         "used_by": [],
         "state": "Live"
       },
       {
-        "name": "tls",
-        "size_bytes": 155648,
-        "used_by": [
-          "mlx5_core"
-        ],
-        "state": "Live"
-      },
-      {
-        "name": "psample",
-        "size_bytes": 20480,
-        "used_by": [
-          "mlx5_core"
-        ],
-        "state": "Live"
-      },
-      {
         "name": "hid_generic",
         "size_bytes": 12288,
         "used_by": [],
-        "state": "Live"
-      },
-      {
-        "name": "irqbypass",
-        "size_bytes": 12288,
-        "used_by": [
-          "kvm"
-        ],
         "state": "Live"
       },
       {
@@ -3503,8 +2518,14 @@
         "state": "Live"
       },
       {
-        "name": "hv_netvsc",
-        "size_bytes": 114688,
+        "name": "hid_hyperv",
+        "size_bytes": 16384,
+        "used_by": [],
+        "state": "Live"
+      },
+      {
+        "name": "hyperv_drm",
+        "size_bytes": 20480,
         "used_by": [],
         "state": "Live"
       },
@@ -3515,14 +2536,8 @@
         "state": "Live"
       },
       {
-        "name": "hid_hyperv",
-        "size_bytes": 16384,
-        "used_by": [],
-        "state": "Live"
-      },
-      {
-        "name": "hyperv_drm",
-        "size_bytes": 20480,
+        "name": "hv_netvsc",
+        "size_bytes": 114688,
         "used_by": [],
         "state": "Live"
       },
@@ -4169,6 +3184,15 @@
         "metadata_version": null
       },
       {
+        "name": "black",
+        "version": "26.3.1",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
         "name": "blinker",
         "version": "1.7.0",
         "location": "",
@@ -4268,6 +3292,15 @@
         "metadata_version": null
       },
       {
+        "name": "coverage",
+        "version": "7.13.5",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
         "name": "cryptography",
         "version": "41.0.7",
         "location": "",
@@ -4333,6 +3366,15 @@
       {
         "name": "incremental",
         "version": "22.10.0",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.0",
         "location": "",
         "requires": [],
         "required_by": [],
@@ -4412,6 +3454,15 @@
         "metadata_version": null
       },
       {
+        "name": "librt",
+        "version": "0.9.0",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
         "name": "markdown-it-py",
         "version": "3.0.0",
         "location": "",
@@ -4441,6 +3492,24 @@
       {
         "name": "mercurial",
         "version": "6.7.2",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "mypy",
+        "version": "1.20.0",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "mypy_extensions",
+        "version": "1.1.0",
         "location": "",
         "requires": [],
         "required_by": [],
@@ -4493,6 +3562,15 @@
         "metadata_version": null
       },
       {
+        "name": "pathspec",
+        "version": "1.0.4",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
         "name": "pexpect",
         "version": "4.9.0",
         "location": "",
@@ -4522,6 +3600,15 @@
       {
         "name": "platformdirs",
         "version": "4.9.4",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0",
         "location": "",
         "requires": [],
         "required_by": [],
@@ -4637,6 +3724,33 @@
         "metadata_version": null
       },
       {
+        "name": "pytest",
+        "version": "9.0.3",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "pytest-asyncio",
+        "version": "1.3.0",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "pytest-cov",
+        "version": "7.1.0",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
         "name": "python-apt",
         "version": "2.7.7+ubuntu5.2",
         "location": "",
@@ -4673,6 +3787,15 @@
         "metadata_version": null
       },
       {
+        "name": "pytokens",
+        "version": "0.4.1",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
         "name": "pytz",
         "version": "2024.1",
         "location": "",
@@ -4702,6 +3825,15 @@
       {
         "name": "rich",
         "version": "13.7.1",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "ruff",
+        "version": "0.15.10",
         "location": "",
         "requires": [],
         "required_by": [],
@@ -4782,7 +3914,7 @@
       },
       {
         "name": "typing_extensions",
-        "version": "4.10.0",
+        "version": "4.15.0",
         "location": "",
         "requires": [],
         "required_by": [],
@@ -4801,6 +3933,15 @@
       {
         "name": "ufw",
         "version": "0.36.2",
+        "location": "",
+        "requires": [],
+        "required_by": [],
+        "is_editable": false,
+        "metadata_version": null
+      },
+      {
+        "name": "ultimate-info-gather",
+        "version": "1.0.0",
         "location": "",
         "requires": [],
         "required_by": [],
@@ -4875,7 +4016,7 @@
     "pip_version": "24.0",
     "virtual_env_active": false,
     "virtual_env_path": null,
-    "system_services_count": 197,
+    "system_services_count": 196,
     "system_services_sample": [
       {
         "name": "apparmor",
@@ -5417,7 +4558,7 @@
       },
       {
         "pid": 9,
-        "name": "kworker/0:0-cgroup_release",
+        "name": "kworker/0:0-events",
         "cmdline": [],
         "user": "root",
         "status": "I",
@@ -5430,7 +4571,7 @@
       },
       {
         "pid": 10,
-        "name": "kworker/0:0H-events_highpri",
+        "name": "kworker/0:1-cgroup_release",
         "cmdline": [],
         "user": "root",
         "status": "I",
@@ -5443,7 +4584,7 @@
       },
       {
         "pid": 11,
-        "name": "kworker/0:1-cgroup_free",
+        "name": "kworker/0:0H-events_highpri",
         "cmdline": [],
         "user": "root",
         "status": "I",
@@ -5456,7 +4597,7 @@
       },
       {
         "pid": 12,
-        "name": "kworker/u16:0-flush-8:0",
+        "name": "kworker/u16:0-events_unbound",
         "cmdline": [],
         "user": "root",
         "status": "I",
@@ -5576,7 +4717,7 @@
     "can_manage_services": true,
     "can_load_modules": true,
     "can_manage_containers": true,
-    "collection_duration_ms": 830.4415120000073,
+    "collection_duration_ms": 784.8475950000307,
     "errors": []
   }
 }

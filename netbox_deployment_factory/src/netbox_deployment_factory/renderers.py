@@ -14,7 +14,6 @@ from .constants import (
   DIODE_INGESTER_IMAGE,
   DIODE_RECONCILER_IMAGE,
   GRAFANA_IMAGE,
-  IDENTITY_POSTGRES_IMAGE,
   LOKI_IMAGE,
   MONITORING_INIT_IMAGE,
   NODE_EXPORTER_IMAGE,
@@ -693,7 +692,7 @@ def render_compose(plan: DeploymentPlan) -> str:
   # ═══════════════════════════════════════════════════════════════════════
 
   authentik-postgres:
-    image: {IDENTITY_POSTGRES_IMAGE}
+    image: {plan.images.postgres_image}
     profiles: ["identity"]
     restart: unless-stopped
     environment:
@@ -796,7 +795,7 @@ def render_compose(plan: DeploymentPlan) -> str:
   # ═══════════════════════════════════════════════════════════════════════
 
   hydra-postgres:
-    image: {IDENTITY_POSTGRES_IMAGE}
+    image: {plan.images.postgres_image}
     restart: unless-stopped
     environment:
       POSTGRES_DB: hydra

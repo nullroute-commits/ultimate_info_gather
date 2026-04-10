@@ -15,7 +15,7 @@
 - WSL: False
 - Docker capable: True
 - Memory total: 16766431232
-- Memory available: 14628151296
+- Memory available: 14606565376
 
 ## Standards Alignment
 
@@ -174,8 +174,8 @@ and is available as an opt-in `identity` profile.
 
 ## Privacy Controls
 
-- Bootstrap username: bootstrap-2f7bc79d96
-- Bootstrap email: bootstrap-2f7bc79d96@invalid.local
+- Bootstrap username: bootstrap-2f402ed0ae
+- Bootstrap email: bootstrap-2f402ed0ae@invalid.local
 - Rotation required: True
 - Rationale: Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.
 
@@ -234,7 +234,7 @@ runs on every stack start.
 
 NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
 
-- **Username**: `bootstrap-2f7bc79d96`
+- **Username**: `bootstrap-2f402ed0ae`
 - **Password**: the value in `secrets/superuser_password`
 
 The bootstrap account is intended only for first login and RBAC setup — rotate or

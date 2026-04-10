@@ -58,7 +58,6 @@ OPENSSL_IMAGE = "alpine/openssl:3.5.5"
 # --- Identity ----------------------------------------------------------------
 AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.2"
 HYDRA_IMAGE = "oryd/hydra:v2.3.0"
-IDENTITY_POSTGRES_IMAGE = "postgres:18-alpine"
 
 # --- Security / Observability ------------------------------------------------
 WAZUH_AGENT_IMAGE = "wazuh/wazuh-agent:4.14.4"
