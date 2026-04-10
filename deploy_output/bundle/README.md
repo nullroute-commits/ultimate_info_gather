@@ -14,8 +14,8 @@
 - Architecture: x86_64
 - WSL: False
 - Docker capable: True
-- Memory total: 16766431232
-- Memory available: 14606565376
+- Memory total: 16770764800
+- Memory available: 14565257216
 
 ## Standards Alignment
 
@@ -134,7 +134,12 @@
 ### Start Authentik identity provider (optional)
 
 ```bash
+# 1. Enable the identity Compose profile
 docker compose --profile identity up -d
+
+# 2. Activate Authentik SSO in Traefik (rename the disabled overlay)
+mv configuration/traefik/dynamic-identity.yml.disabled \
+   configuration/traefik/dynamic-identity.yml
 ```
 
 Hydra starts automatically with the default stack because diode-auth is
@@ -143,7 +148,10 @@ The `hydra-bootstrap-clients` init container automatically registers the
 Diode and NetBox-to-Diode OAuth2 clients on first start.
 
 Authentik provides the user-facing SSO/OIDC identity provider for NetBox
-and is available as an opt-in `identity` profile.
+and is available as an opt-in `identity` profile.  The base Traefik
+config routes NetBox traffic directly to the WAF without SSO.  To enable
+Authentik forward-auth, rename `dynamic-identity.yml.disabled` to
+`dynamic-identity.yml` in the Traefik config directory (see above).
 
 ## Recommended Adjacent FOSS Services
 
@@ -174,8 +182,8 @@ and is available as an opt-in `identity` profile.
 
 ## Privacy Controls
 
-- Bootstrap username: bootstrap-2f402ed0ae
-- Bootstrap email: bootstrap-2f402ed0ae@invalid.local
+- Bootstrap username: bootstrap-01e0e9c49c
+- Bootstrap email: bootstrap-01e0e9c49c@invalid.local
 - Rotation required: True
 - Rationale: Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.
 
@@ -234,7 +242,7 @@ runs on every stack start.
 
 NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
 
-- **Username**: `bootstrap-2f402ed0ae`
+- **Username**: `bootstrap-01e0e9c49c`
 - **Password**: the value in `secrets/superuser_password`
 
 The bootstrap account is intended only for first login and RBAC setup — rotate or

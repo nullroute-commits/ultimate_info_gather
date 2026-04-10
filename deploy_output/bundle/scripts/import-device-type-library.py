@@ -135,6 +135,9 @@ def _download_library() -> Path:
 
     urlretrieve(archive_url, archive_path)
     with tarfile.open(archive_path, mode="r:gz") as archive:
+        for member in archive.getmembers():
+            if member.name.startswith("/") or ".." in member.name.split("/"):
+                raise RuntimeError(f"Unsafe archive member: {member.name}")
         archive.extractall(extract_dir)
 
     roots = sorted(p for p in extract_dir.iterdir() if p.is_dir())

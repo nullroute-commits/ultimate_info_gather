@@ -25,7 +25,7 @@ services:
       - --entrypoints.websecure.address=:443
       - --log.level=INFO
     ports:
-      - "10.1.0.161:443:443" 
+      - "10.1.0.214:443:443" 
     volumes:
       - traefik-certs:/certs:ro
       - ./configuration/traefik:/etc/traefik/dynamic:ro
@@ -455,7 +455,7 @@ services:
     env_file:
       - env/monitoring.env
     ports:
-      - "10.1.0.161:3000:3000"
+      - "10.1.0.214:3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - grafana-dashboards:/var/lib/grafana/dashboards:ro
@@ -501,7 +501,7 @@ services:
       - /etc/alloy/config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
-      - "10.1.0.161:1514:1514"
+      - "10.1.0.214:1514:1514"
       - "127.0.0.1:1514:1514"
     volumes:
       - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
@@ -648,7 +648,7 @@ services:
     env_file:
       - env/authentik.env
     environment:
-      NETBOX_PUBLIC_URL: https://10.1.0.161
+      NETBOX_PUBLIC_URL: https://10.1.0.214
       NETBOX_INTERNAL_URL: http://waf:8081
     secrets:
       - authentik_secret_key

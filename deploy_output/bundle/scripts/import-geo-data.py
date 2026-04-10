@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -26,7 +27,7 @@ CACHE_DIR = Path(os.environ.get("DATA_CACHE_DIR", "/app/cache"))
 BATCH_SIZE = int(os.environ.get("DATA_BATCH_SIZE", "1000"))
 MIN_CITY_POP = int(os.environ.get("DATA_MIN_CITY_POPULATION", "15000"))
 
-GEONAMES_API = "http://api.geonames.org"
+GEONAMES_API = "https://secure.geonames.org"
 
 # Continent codes → human names
 CONTINENTS = {
@@ -46,7 +47,7 @@ CONTINENTS = {
 def _geonames_get(endpoint: str, params: dict) -> dict:
     """Call a GeoNames JSON endpoint with rate-limit back-off."""
     params["username"] = GEONAMES_USERNAME
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
+    qs = urllib.parse.urlencode(params)
     url = f"{GEONAMES_API}/{endpoint}?{qs}"
     for attempt in range(1, 4):
         try:

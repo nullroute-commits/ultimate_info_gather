@@ -257,6 +257,9 @@ class PlannerTests(unittest.TestCase):
             compose_file = output_dir / "docker-compose.yml"
             plugins_file = output_dir / "configuration" / "plugins.py"
             traefik_dynamic_file = output_dir / "configuration" / "traefik" / "dynamic.yml"
+            traefik_identity_file = (
+                output_dir / "configuration" / "traefik" / "dynamic-identity.yml.disabled"
+            )
             waf_conf_file = output_dir / "configuration" / "waf" / "default.conf"
             orb_agent_config_file = output_dir / "configuration" / "orb" / "agent.yaml"
             orb_env_file = output_dir / "env" / "orb.env"
@@ -275,6 +278,7 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(compose_file.exists())
             self.assertTrue(plugins_file.exists())
             self.assertTrue(traefik_dynamic_file.exists())
+            self.assertTrue(traefik_identity_file.exists())
             self.assertTrue(waf_conf_file.exists())
             self.assertTrue(orb_agent_config_file.exists())
             self.assertTrue(orb_env_file.exists())
@@ -351,6 +355,10 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("https://10.0.0.50", netbox_env)  # CSRF_TRUSTED_ORIGINS
             self.assertNotIn('"8080:8080"', compose_text)
             self.assertIn("netbox-compress", traefik_dynamic_text)
+            self.assertNotIn("authentik-forward-auth", traefik_dynamic_text)
+            traefik_identity_text = traefik_identity_file.read_text(encoding="utf-8")
+            self.assertIn("authentik-forward-auth", traefik_identity_text)
+            self.assertIn("netbox-sso", traefik_identity_text)
             self.assertIn("proxy_pass $netbox_upstream", waf_conf_text)
             self.assertIn("CSRF_TRUSTED_ORIGINS=", netbox_env)
             self.assertEqual(rendered_plan["networks"]["cidr_mode"], "deterministic")
@@ -518,7 +526,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("loki:3100", alloy_config_text)
             self.assertIn("syslog", alloy_config_text)
             syslog_ng_text = monitoring_syslog_ng_config.read_text(encoding="utf-8")
-            self.assertIn("alloy", syslog_ng_text)
+            self.assertIn("127.0.0.1", syslog_ng_text)
             self.assertIn("1514", syslog_ng_text)
             grafana_prom_ds_text = grafana_prometheus_ds.read_text(encoding="utf-8")
             self.assertIn("prometheus:9090", grafana_prom_ds_text)

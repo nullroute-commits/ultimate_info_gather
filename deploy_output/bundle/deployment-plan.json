@@ -44,7 +44,7 @@
     }
   ],
   "admin_privacy": {
-    "bootstrap_email": "bootstrap-2f402ed0ae@invalid.local",
+    "bootstrap_email": "bootstrap-01e0e9c49c@invalid.local",
     "bootstrap_secret_files": [
       "api_token_pepper_1",
       "secret_key",
@@ -53,7 +53,7 @@
       "superuser_password",
       "superuser_api_token"
     ],
-    "bootstrap_username": "bootstrap-2f402ed0ae",
+    "bootstrap_username": "bootstrap-01e0e9c49c",
     "rationale": "Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.",
     "rotation_required": true
   },
@@ -93,7 +93,7 @@
   },
   "host": {
     "architecture": "x86_64",
-    "available_memory_bytes": 14606565376,
+    "available_memory_bytes": 14565257216,
     "can_install_packages": true,
     "default_gateway": "10.1.0.1",
     "docker_capable": true,
@@ -108,8 +108,8 @@
     ],
     "operating_system": "Ubuntu",
     "operating_system_version": "24.04.4 LTS (Noble Numbat)",
-    "service_ip": "10.1.0.161",
-    "total_memory_bytes": 16766431232
+    "service_ip": "10.1.0.214",
+    "total_memory_bytes": 16770764800
   },
   "identity": {
     "authentik_image": "ghcr.io/goauthentik/server:2026.2.2",

@@ -124,7 +124,7 @@ This page provides a complete listing of all files, services, and profiles produ
 | `node-exporter` | `monitoring` | `prom/node-exporter:v1.11.1` | Host system metrics |
 | `snmp-exporter` | `monitoring` | `prom/snmp-exporter:v0.30.1` | SNMP device metrics |
 | `cadvisor` | `monitoring` | `gcr.io/cadvisor/cadvisor:v0.52.1` | Container metrics |
-| `monitoring-dashboard-init` | `monitoring` | `alpine/git` | Grafana dashboard provisioning |
+| `monitoring-dashboard-init` | `monitoring` | `alpine:3.23` | Grafana dashboard provisioning |
 | `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | SSO/OIDC identity provider |
 | `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | Authentik background worker |
 | `authentik-postgres` | `identity` | Track-dependent | Dedicated Postgres for Authentik |

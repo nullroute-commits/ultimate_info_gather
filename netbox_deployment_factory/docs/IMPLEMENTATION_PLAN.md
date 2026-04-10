@@ -48,11 +48,11 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 
 - Topology: enable `netbox-topology-views`
 - BGP: enable `netbox-bgp`
-- DNS: enable `netbox-plugin-dns` 1.5.3 (explicit NetBox 4.5.0+ support, official netbox-community source)
-- Proxmox: include `netbox-proxbox` 0.0.6b2 in the plugin spec list but disable by default due to `max_version='4.2.99'` incompatibility with NetBox 4.5; document the NetBox Labs event-driven automation alternative
-- Config drift: enable `netbox-config-diff` 2.14.0 (`min_version=4.5.0`, `max_version=4.5.99`)
-- Floorplan: enable `netbox-floorplan-plugin` 0.9.0 (`min_version=4.5.0-beta1`, `max_version=4.5.99`)
-- Inventory: enable `netbox-inventory` 2.5.0 (`min_version=4.5.0`)
+- DNS: enable `netbox-plugin-dns` 1.5.5 (explicit NetBox 4.5.0+ support, official netbox-community source)
+- Proxmox: enable `netbox-proxbox` 0.0.10 (explicitly lists NetBox 4.5.x in requirements)
+- Config drift: enable `netbox-config-diff` 2.14.2 (`min_version=4.5.0`, `max_version=4.5.99`)
+- Floorplan: enable `netbox-floorplan-plugin` 0.9.1 (`min_version=4.5.0-beta1`, `max_version=4.5.99`)
+- Inventory: enable `netbox-inventory` 2.5.1 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
 - ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks
 - Traefik: generate `configuration/traefik/dynamic.yml`, `scripts/generate-traefik-cert.sh`, and Traefik v3.6 compose service with TLS termination on port 443; support Let's Encrypt ACME DNS-01 via Cloudflare as an alternative to self-signed certificates when `--fqdn` and `--acme-email` are provided
