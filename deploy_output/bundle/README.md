@@ -15,7 +15,7 @@
 - WSL: False
 - Docker capable: True
 - Memory total: 16770764800
-- Memory available: 14565257216
+- Memory available: 14546034688
 
 ## Standards Alignment
 
@@ -182,8 +182,8 @@ Authentik forward-auth, rename `dynamic-identity.yml.disabled` to
 
 ## Privacy Controls
 
-- Bootstrap username: bootstrap-01e0e9c49c
-- Bootstrap email: bootstrap-01e0e9c49c@invalid.local
+- Bootstrap username: bootstrap-f76ada8f17
+- Bootstrap email: bootstrap-f76ada8f17@invalid.local
 - Rotation required: True
 - Rationale: Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.
 
@@ -242,7 +242,7 @@ runs on every stack start.
 
 NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
 
-- **Username**: `bootstrap-01e0e9c49c`
+- **Username**: `bootstrap-f76ada8f17`
 - **Password**: the value in `secrets/superuser_password`
 
 The bootstrap account is intended only for first login and RBAC setup — rotate or
