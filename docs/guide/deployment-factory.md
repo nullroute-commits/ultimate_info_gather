@@ -38,14 +38,14 @@ graph LR
 | ORB agent | `netboxlabs/orb-agent:2.7.0` |
 | Authentik | `ghcr.io/goauthentik/server:2026.2.1` |
 | Ory Hydra | `oryd/hydra:v2.2.0` |
-| Grafana | `grafana/grafana:11.4.0` |
-| Prometheus | `prom/prometheus:v2.54.1` |
-| Loki | `grafana/loki:3.2.1` |
-| Promtail | `grafana/promtail:3.2.1` |
+| Grafana | `grafana/grafana:12.4.2` |
+| Prometheus | `prom/prometheus:v3.11.0` |
+| Loki | `grafana/loki:3.7.1` |
+| Alloy | `grafana/alloy:v1.15.0` |
 | syslog-ng | `balabit/syslog-ng:4.11.0` |
-| node-exporter | `prom/node-exporter:v1.8.2` |
-| snmp-exporter | `prom/snmp-exporter:v0.27.0` |
-| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.51.0` |
+| node-exporter | `prom/node-exporter:v1.11.1` |
+| snmp-exporter | `prom/snmp-exporter:v0.30.1` |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.52.1` |
 
 ## CLI Options
 
@@ -130,7 +130,7 @@ The deployment uses six isolated Docker bridge networks with explicit CIDR alloc
 | `app` | WAF ↔ NetBox | `172.30.0.32/27` |
 | `data` | NetBox, Postgres, Valkey, Diode, workers, imports | `172.30.0.64/27` |
 | `security` | Wazuh agent | `172.30.0.96/28` |
-| `monitoring` | Grafana, Prometheus, Loki, Promtail, syslog-ng, exporters | `172.30.0.128/27` |
+| `monitoring` | Grafana, Prometheus, Loki, Alloy, syslog-ng, exporters | `172.30.0.128/27` |
 | `identity` | Authentik, Ory Hydra, dedicated Postgres instances | `172.30.0.160/27` |
 
 In `deterministic` mode (default), fixed blocks from `172.30.0.0/24` are used. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
@@ -169,7 +169,7 @@ The renderer produces the following files:
 - `configuration/orb/agent.yaml` — ORB agent configuration
 - `configuration/monitoring/prometheus/prometheus.yml` — Prometheus scrape config
 - `configuration/monitoring/loki/loki-config.yml` — Loki log aggregation
-- `configuration/monitoring/promtail/promtail-config.yml` — Promtail log agent
+- `configuration/monitoring/alloy/config.alloy` — Alloy log agent
 - `configuration/monitoring/syslog-ng/syslog-ng.conf` — syslog-ng forwarding
 - `configuration/monitoring/grafana/provisioning/datasources/prometheus.yml`
 - `configuration/monitoring/grafana/provisioning/datasources/loki.yml`
@@ -238,7 +238,7 @@ The generated `docker-compose.yml` defines the following services:
 | `grafana` | `monitoring` | Dashboard visualization |
 | `prometheus` | `monitoring` | Metrics collection |
 | `loki` | `monitoring` | Log aggregation |
-| `promtail` | `monitoring` | Log shipping agent |
+| `alloy` | `monitoring` | Log shipping agent (syslog → Loki) |
 | `syslog-ng` | `monitoring` | Syslog forwarding |
 | `node-exporter` | `monitoring` | Host system metrics |
 | `snmp-exporter` | `monitoring` | SNMP device metrics |

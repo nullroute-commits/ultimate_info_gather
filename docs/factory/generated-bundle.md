@@ -26,7 +26,7 @@ This page provides a complete listing of all files, services, and profiles produ
 | `configuration/orb/agent.yaml` | ORB agent configuration |
 | `configuration/monitoring/prometheus/prometheus.yml` | Prometheus scrape targets |
 | `configuration/monitoring/loki/loki-config.yml` | Loki log aggregation |
-| `configuration/monitoring/promtail/promtail-config.yml` | Promtail log agent |
+| `configuration/monitoring/alloy/config.alloy` | Alloy log agent |
 | `configuration/monitoring/syslog-ng/syslog-ng.conf` | syslog-ng forwarding |
 | `configuration/monitoring/grafana/provisioning/datasources/prometheus.yml` | Grafana Prometheus datasource |
 | `configuration/monitoring/grafana/provisioning/datasources/loki.yml` | Grafana Loki datasource |
@@ -116,14 +116,14 @@ This page provides a complete listing of all files, services, and profiles produ
 | `device-type-library-import` | `device-type-library-import` | `<deployment-name>:local` | One-shot device-type library import |
 | `netbox-geo-foss` | `geo-foss-import` | Built locally | Geographic data import sidecar |
 | `orb-agent` | `orb-discovery` | `netboxlabs/orb-agent:2.7.0` | ORB network discovery agent |
-| `grafana` | `monitoring` | `grafana/grafana:11.4.0` | Dashboard visualization |
-| `prometheus` | `monitoring` | `prom/prometheus:v2.54.1` | Metrics collection |
-| `loki` | `monitoring` | `grafana/loki:3.2.1` | Log aggregation |
-| `promtail` | `monitoring` | `grafana/promtail:3.2.1` | Log shipping agent |
+| `grafana` | `monitoring` | `grafana/grafana:12.4.2` | Dashboard visualization |
+| `prometheus` | `monitoring` | `prom/prometheus:v3.11.0` | Metrics collection |
+| `loki` | `monitoring` | `grafana/loki:3.7.1` | Log aggregation |
+| `alloy` | `monitoring` | `grafana/alloy:v1.15.0` | Log shipping agent (syslog → Loki) |
 | `syslog-ng` | `monitoring` | `balabit/syslog-ng:4.11.0` | Syslog forwarding |
-| `node-exporter` | `monitoring` | `prom/node-exporter:v1.8.2` | Host system metrics |
-| `snmp-exporter` | `monitoring` | `prom/snmp-exporter:v0.27.0` | SNMP device metrics |
-| `cadvisor` | `monitoring` | `gcr.io/cadvisor/cadvisor:v0.51.0` | Container metrics |
+| `node-exporter` | `monitoring` | `prom/node-exporter:v1.11.1` | Host system metrics |
+| `snmp-exporter` | `monitoring` | `prom/snmp-exporter:v0.30.1` | SNMP device metrics |
+| `cadvisor` | `monitoring` | `gcr.io/cadvisor/cadvisor:v0.52.1` | Container metrics |
 | `monitoring-dashboard-init` | `monitoring` | `alpine/git` | Grafana dashboard provisioning |
 | `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2026.2.1` | SSO/OIDC identity provider |
 | `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2026.2.1` | Authentik background worker |
@@ -175,8 +175,8 @@ This page provides a complete listing of all files, services, and profiles produ
 │       │   └── prometheus.yml
 │       ├── loki/
 │       │   └── loki-config.yml
-│       ├── promtail/
-│       │   └── promtail-config.yml
+│       ├── alloy/
+│       │   └── config.alloy
 │       ├── syslog-ng/
 │       │   └── syslog-ng.conf
 │       └── grafana/
