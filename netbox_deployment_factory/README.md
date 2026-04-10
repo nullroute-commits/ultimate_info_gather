@@ -13,7 +13,7 @@ The generated bundle is opinionated:
 - The bootstrap superuser is pseudonymous and secret-file backed so the initial administrative identity is not tied to a human username.
 - The community device-type library is included as a separate pinned import workflow that uses the NetBox REST API for idempotent creation of manufacturers, device types (with component templates), module types, and rack types.
 - ORB Discovery is generated as an optional profile using the official `netboxlabs/orb-agent` image and an `agent.yaml` config.
-- A Traefik v3.2 reverse proxy terminates TLS at the edge and routes traffic through an OWASP ModSecurity CRS WAF sidecar before reaching NetBox.
+- A Traefik v3.6 reverse proxy terminates TLS at the edge and routes traffic through an OWASP ModSecurity CRS WAF sidecar before reaching NetBox.
 - Docker networks are scoped into isolated segments (edge, app, data, security, monitoring, identity) with explicit CIDR allocations sized for the required host counts.
 - Valkey replaces Redis as the cache and task-queue backend.
 - Diode is deployed as `diode-auth`, `diode-ingester`, and `diode-reconciler` companion services.
@@ -24,26 +24,29 @@ The generated bundle is opinionated:
 
 ## Version Pins
 
-- NetBox: `4.5.4` as the highest current stable `4.5.x` core patch release
-- netbox-docker workflow baseline: `4.0.1`
+- NetBox: `4.5.7` as the highest current stable `4.5.x` core patch release
+- netbox-docker workflow baseline: `4.0.2`
 - Alpine lifecycle reference: `3.23.3`
 - Debian lifecycle reference: `13.3 (Trixie)`
-- Traefik: `v3.2`
-- WAF: `owasp/modsecurity-crs:4.6.0-nginx` (OWASP Core Rule Set with nginx)
+- Traefik: `v3.6.13`
+- WAF: `owasp/modsecurity-crs:4.25.0-nginx-lts` (OWASP Core Rule Set with nginx)
 - Valkey: pinned per lifecycle track (replaces Redis)
 - Diode auth: `netboxlabs/diode-auth:1.12.0`
 - Diode ingester: `netboxlabs/diode-ingester:1.13.0`
 - Diode reconciler: `netboxlabs/diode-reconciler:1.13.0`
 - ORB agent: `netboxlabs/orb-agent:2.7.0`
-- Wazuh agent: `wazuh/wazuh-agent:4.14.3`
-- Authentik: `ghcr.io/goauthentik/server:2026.2.1`
-- Ory Hydra: `oryd/hydra:v2.2.0`
-- Topology plugin: `netbox-topology-views==4.5.0`
-- BGP plugin: `netbox-bgp==0.18.0`
-- DNS plugin: `netbox-plugin-dns==1.5.3`
-- Config diff plugin: `netbox-config-diff==2.14.0`
-- Floorplan plugin: `netbox-floorplan-plugin==0.9.0`
-- Inventory plugin: `netbox-inventory==2.5.0`
+- Wazuh agent: `wazuh/wazuh-agent:4.14.4`
+- Authentik: `ghcr.io/goauthentik/server:2026.2.2`
+- Ory Hydra: `oryd/hydra:v2.3.0`
+- Topology plugin: `netbox-topology-views==4.5.1`
+- BGP plugin: `netbox-bgp==0.18.1`
+- DNS plugin: `netbox-plugin-dns==1.5.5`
+- ACL plugin: `netbox-acls==2.0.0`
+- Config diff plugin: `netbox-config-diff==2.14.2`
+- Floorplan plugin: `netbox-floorplan-plugin==0.9.1`
+- Inventory plugin: `netbox-inventory==2.5.1`
+- Proxbox plugin: `netbox-proxbox==0.0.10`
+- Diode plugin: `netboxlabs-diode-netbox-plugin==1.9.0`
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
 - Monitoring stack: based on `enter-the-metrics` pinned at commit `706ed92`
@@ -434,8 +437,8 @@ Deploy these services adjacent to the generated NetBox stack behind the same rev
 
 The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack:
 
-- **Authentik** (`ghcr.io/goauthentik/server:2026.2.1`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
-- **Ory Hydra** (`oryd/hydra:v2.2.0`) — OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients` services with a dedicated `hydra-postgres` database.
+- **Authentik** (`ghcr.io/goauthentik/server:2026.2.2`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
+- **Ory Hydra** (`oryd/hydra:v2.3.0`) — OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients` services with a dedicated `hydra-postgres` database.
 
 All identity services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
 
