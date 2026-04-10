@@ -141,7 +141,7 @@ def test_bundle_compose_has_all_services(shared_result: DeploymentResult) -> Non
         "diode-credential-setup:",
         "device-type-library-import:", "netbox-geo-foss:",
         "orb-agent:", "wazuh-agent:",
-        "grafana:", "prometheus:", "loki:", "promtail:", "syslog-ng:",
+        "grafana:", "prometheus:", "loki:", "alloy:", "syslog-ng:",
         "node-exporter:", "snmp-exporter:", "cadvisor:",
         "authentik-server:", "authentik-worker:", "authentik-postgres:",
         "hydra:", "hydra-postgres:", "hydra-migrate:",

@@ -107,7 +107,7 @@ class MonitoringProfile:
     grafana_image: str
     prometheus_image: str
     loki_image: str
-    promtail_image: str
+    alloy_image: str
     syslog_ng_image: str
     node_exporter_image: str
     snmp_exporter_image: str

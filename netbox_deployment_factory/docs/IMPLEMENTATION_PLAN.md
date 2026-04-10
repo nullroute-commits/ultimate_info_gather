@@ -34,7 +34,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 16. Generate a superuser-sync one-shot service that creates the pseudonymous bootstrap superuser, mints a v2 API token, and writes the full token (`nbt_<key>.<plaintext>`) to a `token-store` volume for sidecar consumption.
 17. Support dual TLS modes: self-signed (default) via `traefik-certgen` init container, or Let's Encrypt ACME DNS-01 via Cloudflare when `--fqdn` and `--acme-email` are provided. The TLS profile is derived at plan time and stored on `DeploymentPlan` as a `TlsProfile` dataclass.
 18. Generate an identity profile with Authentik (SSO/OIDC) and Ory Hydra (OAuth2 for Diode client-credentials) under the `identity` Compose profile. Deploy with dedicated Postgres instances on an isolated `identity` network segment. Generate `configuration/extra.py` with remote-auth settings, `env/authentik.env`, `env/hydra.env`, `scripts/authentik-bootstrap-netbox.sh`, and `scripts/setup-diode-credential.sh`.
-19. Generate a complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics, with configuration files, Grafana datasource/dashboard provisioning, and a dashboard fetch script.
+19. Generate a complete monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics, with configuration files, Grafana datasource/dashboard provisioning, and a dashboard fetch script.
 
 ## Current Host Findings
 
@@ -63,4 +63,4 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Geographic data: include `netbox-geo-foss` as a profiled one-shot sidecar service pinned at commit `50c3c16` that imports a three-tier Region hierarchy (continent → country → city) via pynetbox, with embedded fallback data for 64 countries and ~215 cities
 - Superuser sync: generate `scripts/sync-superuser.sh` as a one-shot service that creates the bootstrap superuser, mints a v2 token, and writes the full token to the `token-store` volume
 - Identity: generate Authentik (`ghcr.io/goauthentik/server:2026.2.1`) and Ory Hydra (`oryd/hydra:v2.2.0`) under the `identity` Compose profile with dedicated Postgres instances, bootstrap scripts, and remote-auth configuration
-- Monitoring: generate a complete monitoring stack (Grafana, Prometheus, Loki, Promtail, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics pinned at `abb9825`
+- Monitoring: generate a complete monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics pinned at `706ed92`
