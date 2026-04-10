@@ -1,4 +1,23 @@
-"""Version pins and plugin defaults for NetBox 4.5 deployments."""
+"""Version pins and plugin defaults for NetBox 4.5 deployments.
+
+All infrastructure images are pinned to the latest stable major release.
+Components that have only a single active major line (e.g. node-exporter v1,
+cAdvisor v0) keep their current major and are pinned to the latest stable
+patch.
+
+Compatibility matrix:
+  - PostgreSQL 18 is the latest major and is supported by NetBox 4.5,
+    Authentik 2026, and Ory Hydra v2.
+  - Valkey 9 is the latest major and is supported by NetBox 4.5
+    (requires Redis/Valkey >= 6).
+  - Grafana 11 is the latest major and works with Prometheus v3 and
+    Loki 3 datasources.
+  - Loki 3.2 and Promtail 3.2 are version-matched.
+  - Prometheus v3 is the latest major.
+  - Authentik 2026 is the latest year-based major.
+  - Traefik v3, Hydra v2, syslog-ng 4 remain on their current major
+    because prior majors are end-of-life or API-incompatible.
+"""
 
 from __future__ import annotations
 
@@ -31,8 +50,14 @@ NODE_EXPORTER_IMAGE = "prom/node-exporter:v1.11.1"
 SNMP_EXPORTER_IMAGE = "prom/snmp-exporter:v0.30.1"
 CADVISOR_IMAGE = "gcr.io/cadvisor/cadvisor:v0.52.1"
 
+# --- Identity ----------------------------------------------------------------
 AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.1"
 HYDRA_IMAGE = "oryd/hydra:v2.2.0"
+IDENTITY_POSTGRES_IMAGE = "postgres:18-alpine"
+
+# --- Security / Observability ------------------------------------------------
+WAZUH_AGENT_IMAGE = "wazuh/wazuh-agent:4.14.3"
+MONITORING_INIT_IMAGE = "alpine:3.20"
 
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {

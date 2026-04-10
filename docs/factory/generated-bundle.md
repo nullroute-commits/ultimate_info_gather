@@ -93,8 +93,8 @@ This page provides a complete listing of all files, services, and profiles produ
 
 | Service | Image | Description |
 |---------|-------|-------------|
-| `traefik` | `traefik:v3.2` | TLS reverse proxy (port 443) |
-| `waf` | `owasp/modsecurity-crs:nginx` | OWASP ModSecurity CRS WAF sidecar |
+| `traefik` | `traefik:v3.2.3` | TLS reverse proxy (port 443) |
+| `waf` | `owasp/modsecurity-crs:4.6.0-nginx` | OWASP ModSecurity CRS WAF sidecar |
 | `postgres` | Track-dependent | PostgreSQL database |
 | `valkey` | Track-dependent | Valkey cache and task queue |
 | `netbox` | `<deployment-name>:local` | NetBox application |

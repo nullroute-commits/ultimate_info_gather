@@ -102,7 +102,7 @@ An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar betw
 
 | Property | Value |
 |----------|-------|
-| Image | `owasp/modsecurity-crs:nginx` |
+| Image | `owasp/modsecurity-crs:4.6.0-nginx` |
 | Internal port | 8081 |
 | Upstream | `http://netbox:8080` |
 | Networks | `edge`, `app` |

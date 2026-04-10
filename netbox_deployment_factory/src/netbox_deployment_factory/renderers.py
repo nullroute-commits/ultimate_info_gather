@@ -14,12 +14,18 @@ from .constants import (
   DIODE_INGESTER_IMAGE,
   DIODE_RECONCILER_IMAGE,
   GRAFANA_IMAGE,
+  IDENTITY_POSTGRES_IMAGE,
   LOKI_IMAGE,
+  MONITORING_INIT_IMAGE,
   NODE_EXPORTER_IMAGE,
+  OPENSSL_IMAGE,
   ORB_AGENT_IMAGE,
   PROMETHEUS_IMAGE,
   SNMP_EXPORTER_IMAGE,
   SYSLOG_NG_IMAGE,
+  TRAEFIK_IMAGE,
+  WAF_IMAGE,
+  WAZUH_AGENT_IMAGE,
 )
 from .models import DeploymentPlan
 
@@ -220,8 +226,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     environment:
       - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token"""
     else:
-        certgen_block = """  traefik-certgen:
-    image: alpine/openssl:latest
+        certgen_block = f"""  traefik-certgen:
+    image: {OPENSSL_IMAGE}
     restart: "no"
     entrypoint: ["/bin/sh"]
     command: ["/opt/scripts/generate-traefik-cert.sh"]
@@ -252,7 +258,7 @@ def render_compose(plan: DeploymentPlan) -> str:
 
     return f"""services:
 {certgen_block}  traefik:
-    image: traefik:v3.2
+    image: {TRAEFIK_IMAGE}
     restart: unless-stopped
 {traefik_depends}
 {traefik_command}
@@ -270,7 +276,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - identity
 
   waf:
-    image: owasp/modsecurity-crs:nginx
+    image: {WAF_IMAGE}
     restart: unless-stopped
     depends_on:
       netbox:
@@ -530,7 +536,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - data
 
   wazuh-agent:
-    image: wazuh/wazuh-agent:4.14.3
+    image: {WAZUH_AGENT_IMAGE}
     profiles: ["security-observability"]
     restart: unless-stopped
     network_mode: host
@@ -557,7 +563,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - ./configuration/orb:/opt/orb:ro
 
   monitoring-dashboard-init:
-    image: alpine:3.20
+    image: {MONITORING_INIT_IMAGE}
     profiles: ["monitoring"]
     restart: "no"
     entrypoint: ["/bin/sh"]
@@ -687,7 +693,7 @@ def render_compose(plan: DeploymentPlan) -> str:
   # ═══════════════════════════════════════════════════════════════════════
 
   authentik-postgres:
-    image: postgres:16-alpine
+    image: {IDENTITY_POSTGRES_IMAGE}
     profiles: ["identity"]
     restart: unless-stopped
     environment:
@@ -790,7 +796,7 @@ def render_compose(plan: DeploymentPlan) -> str:
   # ═══════════════════════════════════════════════════════════════════════
 
   hydra-postgres:
-    image: postgres:16-alpine
+    image: {IDENTITY_POSTGRES_IMAGE}
     restart: unless-stopped
     environment:
       POSTGRES_DB: hydra

@@ -183,7 +183,7 @@ The self-signed certificate includes SAN entries for `localhost`, `traefik`, `ne
 
 An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar between Traefik and NetBox:
 
-- Image: `owasp/modsecurity-crs:nginx`
+- Image: `owasp/modsecurity-crs:4.6.0-nginx`
 - Listens on port 8081 (internal only)
 - Proxies validated requests to `http://netbox:8080`
 - Sets `X-Forwarded-Proto`, `X-Forwarded-Host`, and `X-Forwarded-Port` headers so NetBox sees the correct external origin

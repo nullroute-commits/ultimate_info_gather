@@ -29,7 +29,7 @@ The generated bundle is opinionated:
 - Alpine lifecycle reference: `3.23.3`
 - Debian lifecycle reference: `13.3 (Trixie)`
 - Traefik: `v3.2`
-- WAF: `owasp/modsecurity-crs:nginx` (OWASP Core Rule Set with nginx)
+- WAF: `owasp/modsecurity-crs:4.6.0-nginx` (OWASP Core Rule Set with nginx)
 - Valkey: pinned per lifecycle track (replaces Redis)
 - Diode auth: `netboxlabs/diode-auth:1.12.0`
 - Diode ingester: `netboxlabs/diode-ingester:1.13.0`

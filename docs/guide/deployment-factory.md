@@ -30,7 +30,7 @@ graph LR
 | Alpine reference | `3.23.3` |
 | Debian reference | `13.3 (Trixie)` |
 | Traefik | `v3.2` |
-| WAF | `owasp/modsecurity-crs:nginx` |
+| WAF | `owasp/modsecurity-crs:4.6.0-nginx` |
 | Valkey | pinned per lifecycle track |
 | Diode auth | `netboxlabs/diode-auth:1.12.0` |
 | Diode ingester | `netboxlabs/diode-ingester:1.13.0` |
