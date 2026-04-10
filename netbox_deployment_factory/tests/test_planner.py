@@ -668,17 +668,16 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("valkey/valkey:9-alpine", compose_text)
             self.assertEqual(plan.images.valkey_image, "valkey/valkey:9-alpine")
 
-            # --- Grafana pinned to 11.x (latest major) ---
-            self.assertIn("grafana/grafana:11.", compose_text)
+            # --- Grafana pinned to 12.x (latest major) ---
+            self.assertIn("grafana/grafana:12.", compose_text)
 
-            # --- Loki and Promtail pinned to 3.x (latest major) ---
+            # --- Loki and Alloy pinned to latest stable ---
             self.assertIn("grafana/loki:3.", compose_text)
-            self.assertIn("grafana/promtail:3.", compose_text)
+            self.assertIn("grafana/alloy:v1.", compose_text)
 
-            # --- Loki and Promtail versions must match ---
-            self.assertEqual(
-                plan.monitoring.loki_image.split(":")[1],
-                plan.monitoring.promtail_image.split(":")[1],
+            # --- Alloy image is pinned ---
+            self.assertTrue(
+                plan.monitoring.alloy_image.startswith("grafana/alloy:v"),
             )
 
             # --- Prometheus pinned to v3.x (latest major) ---
