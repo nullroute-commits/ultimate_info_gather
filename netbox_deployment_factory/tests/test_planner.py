@@ -675,10 +675,9 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("grafana/loki:3.", compose_text)
             self.assertIn("grafana/alloy:v1.", compose_text)
 
-            # --- Alloy image is pinned ---
-            self.assertTrue(
-                plan.monitoring.alloy_image.startswith("grafana/alloy:v"),
-            )
+            # --- Alloy image is pinned to exact version ---
+            from netbox_deployment_factory.constants import ALLOY_IMAGE
+            self.assertEqual(plan.monitoring.alloy_image, ALLOY_IMAGE)
 
             # --- Prometheus pinned to v3.x (latest major) ---
             self.assertIn("prom/prometheus:v3.", compose_text)
