@@ -702,7 +702,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     secrets:
       - authentik_pg_password
     volumes:
-      - authentik-pg-data:/var/lib/postgresql/data
+      - authentik-pg-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 15s
@@ -804,7 +804,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     secrets:
       - hydra_pg_password
     volumes:
-      - hydra-pg-data:/var/lib/postgresql/data
+      - hydra-pg-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 15s
