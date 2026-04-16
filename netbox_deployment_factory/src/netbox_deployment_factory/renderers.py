@@ -2959,7 +2959,7 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
 
 - Worker containers: {max(1, plan.sizing.netbox_worker_containers)}
 - ORB config: `configuration/orb/agent.yaml`
-- ORB default schedule: `@every 60m`
+- ORB default schedule: `@every 120m`
 - ORB agent: optional `orb-discovery` profile using `netboxlabs/orb-agent` in host networking mode.
 - Diode stack: `diode-auth`, `diode-ingester`, and `diode-reconciler` services.
 - Diode credential setup: `diode-credential-setup` one-shot service

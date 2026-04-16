@@ -22,6 +22,7 @@ This page provides a complete listing of all files, services, and profiles produ
 | `configuration/plugins.py` | NetBox `PLUGINS` and `PLUGINS_CONFIG` |
 | `configuration/extra.py` | NetBox remote-auth settings for Authentik SSO |
 | `configuration/traefik/dynamic.yml` | Traefik TLS certificates and routing rules |
+| `configuration/traefik/dynamic-identity.yml.disabled` | Traefik Authentik forward-auth overlay (rename to enable) |
 | `configuration/waf/default.conf` | OWASP ModSecurity CRS nginx reverse proxy |
 | `configuration/orb/agent.yaml` | ORB agent configuration |
 | `configuration/monitoring/prometheus/prometheus.yml` | Prometheus scrape targets |
@@ -104,7 +105,10 @@ This page provides a complete listing of all files, services, and profiles produ
 | `diode-ingester` | `netboxlabs/diode-ingester:1.13.0` | Diode ingestion service |
 | `diode-reconciler` | `netboxlabs/diode-reconciler:1.13.0` | Diode reconciliation service |
 | `diode-credential-setup` | `<deployment-name>:local` | Diode OAuth2 credential provisioning (init) |
-| `wazuh-agent` | `wazuh/wazuh-agent:4.14.4` | Security observability agent |
+| `hydra-postgres` | Track-dependent | Dedicated Postgres for Hydra |
+| `hydra-migrate` | `oryd/hydra:v2.3.0` | Hydra database migration |
+| `hydra` | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode |
+| `hydra-bootstrap-clients` | `oryd/hydra:v2.3.0` | Diode OAuth2 client provisioning |
 
 !!! note "Self-signed mode only"
     In self-signed mode, a `traefik-certgen` init container runs before Traefik to generate the TLS certificate.
@@ -116,6 +120,7 @@ This page provides a complete listing of all files, services, and profiles produ
 | `device-type-library-import` | `device-type-library-import` | `<deployment-name>:local` | One-shot device-type library import |
 | `netbox-geo-foss` | `geo-foss-import` | Built locally | Geographic data import sidecar |
 | `orb-agent` | `orb-discovery` | `netboxlabs/orb-agent:2.7.0` | ORB network discovery agent |
+| `wazuh-agent` | `security-observability` | `wazuh/wazuh-agent:4.14.4` | Security observability agent |
 | `grafana` | `monitoring` | `grafana/grafana:12.4.2` | Dashboard visualization |
 | `prometheus` | `monitoring` | `prom/prometheus:v3.11.0` | Metrics collection |
 | `loki` | `monitoring` | `grafana/loki:3.7.1` | Log aggregation |
@@ -128,28 +133,27 @@ This page provides a complete listing of all files, services, and profiles produ
 | `authentik-server` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | SSO/OIDC identity provider |
 | `authentik-worker` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | Authentik background worker |
 | `authentik-postgres` | `identity` | Track-dependent | Dedicated Postgres for Authentik |
-| `authentik-bootstrap-netbox` | `identity` | `<deployment-name>:local` | NetBox OAuth2 app configuration |
-| `hydra` | `identity` | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode |
-| `hydra-postgres` | `identity` | Track-dependent | Dedicated Postgres for Hydra |
-| `hydra-migrate` | `identity` | `oryd/hydra:v2.3.0` | Hydra database migration |
-| `hydra-bootstrap-clients` | `identity` | `<deployment-name>:local` | Diode OAuth2 client provisioning |
+| `authentik-bootstrap-netbox` | `identity` | `ghcr.io/goauthentik/server:2026.2.2` | NetBox OAuth2 app configuration |
 
 ## Docker Volumes
 
 | Volume | Purpose |
 |--------|---------|
-| `netbox-media-files` | NetBox uploaded media |
-| `netbox-reports-files` | NetBox generated reports |
-| `netbox-scripts-files` | NetBox custom scripts |
+| `netbox-media` | NetBox uploaded media |
+| `netbox-reports` | NetBox generated reports |
+| `netbox-scripts` | NetBox custom scripts |
 | `postgres-data` | PostgreSQL data |
 | `valkey-data` | Valkey persistent data |
 | `token-store` | Shared v2 API token for sidecars |
 | `traefik-certs` | Self-signed TLS certificates (self-signed mode) |
 | `acme-data` | ACME account and certificates (Let's Encrypt mode) |
 | `geo-foss-cache` | Downloaded geographic datasets |
-| `loki-data` | Loki log storage (monitoring profile) |
-| `prometheus-data` | Prometheus metrics storage (monitoring profile) |
 | `grafana-data` | Grafana dashboard and settings storage (monitoring profile) |
+| `grafana-dashboards` | Provisioned Grafana dashboards (monitoring profile) |
+| `prometheus-data` | Prometheus metrics storage (monitoring profile) |
+| `authentik-pg-data` | Authentik PostgreSQL data (identity profile) |
+| `authentik-data` | Authentik application data (identity profile) |
+| `hydra-pg-data` | Hydra PostgreSQL data |
 
 ## Directory Structure
 
@@ -165,7 +169,8 @@ This page provides a complete listing of all files, services, and profiles produ
 │   ├── extra.py
 │   ├── plugins.py
 │   ├── traefik/
-│   │   └── dynamic.yml
+│   │   ├── dynamic.yml
+│   │   └── dynamic-identity.yml.disabled
 │   ├── waf/
 │   │   └── default.conf
 │   ├── orb/

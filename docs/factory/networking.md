@@ -8,16 +8,18 @@ The generated deployment uses six isolated Docker bridge networks with explicit 
 graph TB
     subgraph edge["Edge Network"]
         T[Traefik<br/>port 443]
-        W[WAF<br/>ModSecurity]
     end
 
     subgraph app["App Network"]
-        W
-        NB[NetBox<br/>port 8080]
+        T
+        W[WAF<br/>ModSecurity]
+        AK[Authentik Server]
+        ABN[Authentik Bootstrap]
     end
 
     subgraph data["Data Network"]
-        NB
+        W
+        NB[NetBox<br/>port 8080]
         PG[PostgreSQL]
         VK[Valkey]
         DA[Diode Auth]
@@ -28,10 +30,7 @@ graph TB
         DTI[Device-Type Import]
         GF[Geo-Foss Import]
         PM[Prometheus<br/>scraping]
-    end
-
-    subgraph security["Security Network"]
-        WZ[Wazuh Agent]
+        HY2[Ory Hydra]
     end
 
     subgraph monitoring["Monitoring Network"]
@@ -39,17 +38,29 @@ graph TB
         PM2[Prometheus]
         LK[Loki]
         AL[Alloy]
+        CA[cAdvisor]
+        MDI[Monitoring Init]
+    end
+
+    subgraph host_net["Host Networking"]
         SNG[syslog-ng]
         NE[node-exporter]
         SE[snmp-exporter]
-        CA[cAdvisor]
+        WZ[Wazuh Agent]
+        ORB[ORB Agent]
     end
 
     subgraph identity["Identity Network"]
-        AK[Authentik]
-        HY[Ory Hydra]
+        T
+        DA
+        AK
+        ABN
+        HY2
         APG[Authentik PG]
         HPG[Hydra PG]
+        HM[Hydra Migrate]
+        HBC[Hydra Bootstrap]
+        AW[Authentik Worker]
     end
 
     T -->|HTTPS| W
@@ -63,12 +74,12 @@ graph TB
 
 | Network | Purpose | Deterministic CIDR | Services |
 |---------|---------|-------------------|----------|
-| `edge` | TLS termination and WAF | `172.30.0.0/27` | Traefik, WAF |
-| `app` | Application layer | `172.30.0.32/27` | WAF, NetBox |
-| `data` | Data plane | `172.30.0.64/27` | NetBox, PostgreSQL, Valkey, Diode, workers, imports, Prometheus |
-| `security` | Security observability | `172.30.0.96/28` | Wazuh agent |
-| `monitoring` | Monitoring stack | `172.30.0.128/27` | Grafana, Prometheus, Loki, Alloy, syslog-ng, exporters, cAdvisor |
-| `identity` | Identity providers | `172.30.0.160/27` | Authentik, Ory Hydra, dedicated PostgreSQL instances |
+| `edge` | TLS termination | `172.30.0.0/27` | Traefik |
+| `app` | Application layer | `172.30.0.32/27` | Traefik, WAF, Authentik server, Authentik bootstrap |
+| `data` | Data plane | `172.30.0.64/27` | WAF, NetBox, PostgreSQL, Valkey, Diode, workers, imports, Prometheus, Hydra |
+| `security` | Security observability | `172.30.0.96/28` | *(reserved; Wazuh uses host networking)* |
+| `monitoring` | Monitoring stack | `172.30.0.128/27` | Grafana, Prometheus, Loki, Alloy, cAdvisor, monitoring-dashboard-init |
+| `identity` | Identity providers | `172.30.0.160/27` | Traefik, Authentik, Ory Hydra, Diode auth, dedicated PostgreSQL instances |
 
 ## CIDR Planning Modes
 
@@ -110,39 +121,54 @@ python -m netbox_deployment_factory \
 
 The following table shows which networks each service connects to:
 
-| Service | edge | app | data | security | monitoring | identity |
-|---------|------|-----|------|----------|------------|----------|
-| Traefik | ✅ | | | | | |
-| WAF | ✅ | ✅ | | | | |
-| NetBox | | ✅ | ✅ | | | |
+| Service | edge | app | data | monitoring | identity | Host networking |
+|---------|------|-----|------|------------|----------|-----------------|
+| Traefik | ✅ | ✅ | | | ✅ | |
+| WAF | | ✅ | ✅ | | | |
+| NetBox | | | ✅ | | | |
 | PostgreSQL | | | ✅ | | | |
 | Valkey | | | ✅ | | | |
 | Workers | | | ✅ | | | |
-| Diode auth | | | ✅ | | | ✅ |
+| Diode auth | | | ✅ | | ✅ | |
 | Diode ingester | | | ✅ | | | |
 | Diode reconciler | | | ✅ | | | |
 | Superuser sync | | | ✅ | | | |
+| Diode credential setup | | | ✅ | | | |
 | Device-type import | | | ✅ | | | |
 | Geo-foss import | | | ✅ | | | |
-| Wazuh agent | | | | ✅ | | |
-| Grafana | | | | | ✅ | |
-| Prometheus | | | ✅ | | ✅ | |
-| Loki | | | | | ✅ | |
-| Alloy | | | | | ✅ | |
-| syslog-ng | | | | | ✅ | |
-| node-exporter | | | | | ✅ | |
-| snmp-exporter | | | | | ✅ | |
-| cAdvisor | | | | | ✅ | |
-| Authentik | | | | | | ✅ |
-| Ory Hydra | | | | | | ✅ |
+| Wazuh agent | | | | | | ✅ |
+| ORB agent | | | | | | ✅ |
+| Grafana | | | | ✅ | | |
+| Prometheus | | | ✅ | ✅ | | |
+| Loki | | | | ✅ | | |
+| Alloy | | | | ✅ | | |
+| syslog-ng | | | | | | ✅ |
+| node-exporter | | | | | | ✅ |
+| snmp-exporter | | | | | | ✅ |
+| cAdvisor | | | | ✅ | | |
+| Monitoring init | | | | ✅ | | |
+| Authentik server | | ✅ | | | ✅ | |
+| Authentik worker | | | | | ✅ | |
+| Authentik PostgreSQL | | | | | ✅ | |
+| Authentik bootstrap | | ✅ | | | ✅ | |
+| Ory Hydra | | | ✅ | | ✅ | |
+| Hydra PostgreSQL | | | | | ✅ | |
+| Hydra migrate | | | | | ✅ | |
+| Hydra bootstrap clients | | | | | ✅ | |
 
 !!! note "Cross-network services"
-    - **WAF** bridges `edge` and `app` to forward validated traffic from Traefik to NetBox.
+    - **Traefik** bridges `edge`, `app`, and `identity` to route traffic to the WAF and enable Authentik forward-auth.
+    - **WAF** bridges `app` and `data` to forward validated traffic from Traefik to NetBox.
     - **Prometheus** bridges `monitoring` and `data` to scrape metrics from NetBox stack services.
     - **Diode auth** bridges `data` and `identity` so diode services can reach Hydra for OAuth2 token exchange.
+    - **Ory Hydra** bridges `identity` and `data` for Diode OAuth2 integration.
+    - **Authentik server** and **Authentik bootstrap** bridge `identity` and `app` for SSO forward-auth with Traefik.
+
+!!! note "Host-networked services"
+    The following services use `network_mode: host` and are not attached to any Docker bridge network: **syslog-ng**, **node-exporter**, **snmp-exporter**, **Wazuh agent**, and **ORB agent**. These services require direct host access for system-level metrics, syslog reception, or network discovery.
 
 ## Security Properties
 
-- **Port exposure**: Only Traefik has published host ports (443 always; 80 added in Let's Encrypt mode for HTTP→HTTPS redirect).
+- **Port exposure**: Traefik publishes port 443 (always) and port 80 (Let's Encrypt mode). The monitoring profile publishes Grafana on port 3000 and Alloy on port 1514. Diode auth binds to `127.0.0.1:18080`. Host-networked services (syslog-ng, node-exporter, snmp-exporter, Wazuh, ORB) expose their native ports directly on the host.
 - **Isolation**: Each network segment is an isolated Docker bridge network. Services cannot communicate across segments unless explicitly attached to multiple networks.
 - **Capability dropping**: NetBox application services drop all Linux capabilities and enable `no-new-privileges`.

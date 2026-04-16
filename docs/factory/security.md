@@ -90,9 +90,10 @@ The factory uses the NetBox v2 API token format:
 
 ### Network Isolation
 
-- Only Traefik has published host ports (443 always; 80 in Let's Encrypt mode).
-- All other services communicate only over internal Docker networks.
+- Traefik publishes port 443 (always) and port 80 (Let's Encrypt mode). Diode auth binds to loopback (`127.0.0.1:18080`). The monitoring profile publishes Grafana (port 3000) and Alloy (port 1514).
+- All other Docker-networked services communicate only over internal Docker networks.
 - Six isolated network segments prevent lateral movement between service tiers.
+- Services requiring host-level access (syslog-ng, node-exporter, snmp-exporter, Wazuh, ORB) use `network_mode: host`.
 - See [Network Segmentation](networking.md) for the full network topology.
 
 ### Device-Type Import Permissions
@@ -124,9 +125,13 @@ For stricter RBAC, create a dedicated NetBox user with only these permissions an
 
 ## Published Port Summary
 
-| Port | Service | Protocol | Condition |
-|------|---------|----------|-----------|
-| 443 | Traefik | HTTPS | Always |
-| 80 | Traefik | HTTP (redirect) | Let's Encrypt mode only |
+| Port | Service | Protocol | Bind Address | Condition |
+|------|---------|----------|--------------|-----------|
+| 443 | Traefik | HTTPS | `<host-ip>` | Always |
+| 80 | Traefik | HTTP (redirect) | `<host-ip>` | Let's Encrypt mode only |
+| 18080 | Diode auth | HTTP | `127.0.0.1` | Always (loopback only) |
+| 3000 | Grafana | HTTP | `<host-ip>` | Monitoring profile |
+| 1514 | Alloy | TCP (syslog) | `<host-ip>` + `127.0.0.1` | Monitoring profile |
 
-No other services expose ports to the host.
+!!! note "Host-networked services"
+    Services running with `network_mode: host` (syslog-ng, node-exporter, snmp-exporter, Wazuh agent, ORB agent) expose their native ports directly on the host without Docker port mapping. For example, syslog-ng listens on UDP/514 and TCP/601, node-exporter on TCP/9100, and snmp-exporter on TCP/9116.

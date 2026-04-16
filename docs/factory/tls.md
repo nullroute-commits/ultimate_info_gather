@@ -105,7 +105,7 @@ An OWASP ModSecurity Core Rule Set (CRS) WAF runs as an nginx-based sidecar betw
 | Image | `owasp/modsecurity-crs:4.25.0-nginx-lts` |
 | Internal port | 8081 |
 | Upstream | `http://netbox:8080` |
-| Networks | `edge`, `app` |
+| Networks | `app`, `data` |
 
 The WAF sets `X-Forwarded-Proto`, `X-Forwarded-Host`, and `X-Forwarded-Port` headers so NetBox sees the correct external origin.
 

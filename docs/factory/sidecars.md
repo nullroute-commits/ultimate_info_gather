@@ -127,7 +127,7 @@ The ORB agent provides network discovery using the official NetBox Labs Orb agen
 
 1. The ORB agent runs with host networking and elevated capabilities for active network discovery.
 2. Discovery targets RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`) by default.
-3. The scan schedule defaults to `@every 60m` to reduce scan churn.
+3. The scan schedule defaults to `@every 120m` to reduce scan churn.
 4. Discovery starts with `dry_run: true` for safer first-boot behavior.
 
 ### Usage
@@ -216,7 +216,7 @@ The superuser sync service creates the pseudonymous bootstrap superuser and mint
 
 ## Wazuh Agent
 
-A Wazuh security observability agent runs on the `security` network.
+A Wazuh security observability agent runs with host networking for full host-level visibility.
 
 ### Configuration
 
@@ -225,4 +225,4 @@ A Wazuh security observability agent runs on the `security` network.
 | Compose service | `wazuh-agent` |
 | Compose profile | `security-observability` |
 | Image | `wazuh/wazuh-agent:4.14.4` |
-| Network | `security` |
+| Network | `network_mode: host` |

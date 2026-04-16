@@ -84,7 +84,7 @@ Ory Hydra provides the OAuth2/OIDC server required by `diode-auth` for client-cr
 
 ### Bootstrap Process
 
-The `hydra-bootstrap-clients` init container automatically registers the Diode and NetBox-to-Diode OAuth2 clients on first start using `scripts/setup-diode-credential.sh`.
+The `hydra-bootstrap-clients` init container automatically registers the Diode and NetBox-to-Diode OAuth2 clients on first start using inline Hydra CLI commands.
 
 ### Database Migration
 

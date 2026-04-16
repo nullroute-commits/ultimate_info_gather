@@ -116,7 +116,7 @@ A NetBox plugin selection with compatibility metadata.
 | `module_name` | `str` | Python module name for `PLUGINS` list |
 | `version` | `str` | Pinned version |
 | `enabled` | `bool` | Whether the plugin is enabled in the generated bundle |
-| `support_tier` | `str` | Compatibility tier (e.g. `supported-community`, `community-beta`) |
+| `support_tier` | `str` | Compatibility tier (e.g. `supported-community`, `community`) |
 | `rationale` | `str` | Why the plugin is enabled or disabled |
 | `install_when_disabled` | `bool` | Whether to install the package even when disabled (default: `False`) |
 | `config` | `dict[str, Any]` | Plugin configuration for `PLUGINS_CONFIG` |

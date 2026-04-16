@@ -106,17 +106,17 @@ The factory includes 11 plugin specifications with explicit compatibility metada
 
 | Plugin | Version | Enabled | Support Tier | Compatibility |
 |--------|---------|---------|-------------|---------------|
-| `netbox-topology-views` | 4.5.0 | ✅ | supported-community | NetBox 4.5.x |
-| `netbox-bgp` | 0.18.0 | ✅ | supported-community | NetBox 4.5.x |
-| `netbox-plugin-dns` | 1.5.3 | ✅ | supported-community | min_version='4.5.0' |
-| `netbox-acls` | 1.9.1 | ❌ | supported-community | max_version='4.4.99' |
+| `netbox-topology-views` | 4.5.1 | ✅ | supported-community | NetBox 4.5.x |
+| `netbox-bgp` | 0.18.1 | ✅ | supported-community | NetBox 4.5.x |
+| `netbox-plugin-dns` | 1.5.5 | ✅ | supported-community | min_version='4.5.0' |
+| `netbox-acls` | 2.0.0 | ✅ | supported-community | NetBox 4.5.x |
 | `netbox-reorder-rack` | 1.1.4 | ✅ | community | >=4.0.0 |
 | `netbox-prometheus-sd` | 0.5 | ❌ | community-legacy | Legacy API, fails on 4.5.x |
-| `netboxlabs-diode-netbox-plugin` | 1.7.1 | ✅ | supported-netboxlabs | min='4.4.10', max='4.5.99' |
-| `netbox-proxbox` | 0.0.6b2 | ❌ | community-beta | max_version='4.2.99' |
-| `netbox-config-diff` | 2.14.0 | ✅ | community | min='4.5.0', max='4.5.99' |
-| `netbox-floorplan-plugin` | 0.9.0 | ✅ | community | min='4.5.0-beta1', max='4.5.99' |
-| `netbox-inventory` | 2.5.0 | ✅ | community | min='4.5.0' |
+| `netboxlabs-diode-netbox-plugin` | 1.9.0 | ✅ | supported-netboxlabs | NetBox >= 4.5.0 |
+| `netbox-proxbox` | 0.0.10 | ✅ | community | NetBox 4.5.x |
+| `netbox-config-diff` | 2.14.2 | ✅ | community | min='4.5.0', max='4.5.99' |
+| `netbox-floorplan-plugin` | 0.9.1 | ✅ | community | min='4.5.0-beta1', max='4.5.99' |
+| `netbox-inventory` | 2.5.1 | ✅ | community | min='4.5.0' |
 
 Disabled plugins are included in the spec list for documentation but are not installed in the generated image.
 
@@ -126,12 +126,12 @@ The deployment uses six isolated Docker bridge networks with explicit CIDR alloc
 
 | Network | Purpose | Deterministic CIDR |
 |---------|---------|-------------------|
-| `edge` | Traefik ↔ WAF | `172.30.0.0/27` |
-| `app` | WAF ↔ NetBox | `172.30.0.32/27` |
-| `data` | NetBox, Postgres, Valkey, Diode, workers, imports | `172.30.0.64/27` |
-| `security` | Wazuh agent | `172.30.0.96/28` |
-| `monitoring` | Grafana, Prometheus, Loki, Alloy, syslog-ng, exporters | `172.30.0.128/27` |
-| `identity` | Authentik, Ory Hydra, dedicated Postgres instances | `172.30.0.160/27` |
+| `edge` | Traefik TLS termination | `172.30.0.0/27` |
+| `app` | Traefik ↔ WAF ↔ Authentik | `172.30.0.32/27` |
+| `data` | NetBox, Postgres, Valkey, Diode, workers, imports, Hydra | `172.30.0.64/27` |
+| `security` | Reserved (Wazuh uses host networking) | `172.30.0.96/28` |
+| `monitoring` | Grafana, Prometheus, Loki, Alloy, cAdvisor | `172.30.0.128/27` |
+| `identity` | Authentik, Ory Hydra, Diode auth, dedicated Postgres | `172.30.0.160/27` |
 
 In `deterministic` mode (default), fixed blocks from `172.30.0.0/24` are used. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
 
@@ -226,7 +226,10 @@ The generated `docker-compose.yml` defines the following services:
 | `diode-ingester` | Diode ingestion service |
 | `diode-reconciler` | Diode reconciliation service |
 | `diode-credential-setup` | Diode OAuth2 credential provisioning |
-| `wazuh-agent` | Security observability agent |
+| `hydra-postgres` | Dedicated Postgres for Hydra |
+| `hydra-migrate` | Hydra database migration |
+| `hydra` | OAuth2/OIDC server for Diode |
+| `hydra-bootstrap-clients` | Diode OAuth2 client provisioning |
 
 ### Profiled Services (opt-in)
 
@@ -235,6 +238,7 @@ The generated `docker-compose.yml` defines the following services:
 | `device-type-library-import` | `device-type-library-import` | One-shot device-type library import |
 | `netbox-geo-foss` | `geo-foss-import` | Geographic data import sidecar |
 | `orb-agent` | `orb-discovery` | ORB network discovery agent |
+| `wazuh-agent` | `security-observability` | Security observability agent |
 | `grafana` | `monitoring` | Dashboard visualization |
 | `prometheus` | `monitoring` | Metrics collection |
 | `loki` | `monitoring` | Log aggregation |
@@ -248,10 +252,6 @@ The generated `docker-compose.yml` defines the following services:
 | `authentik-worker` | `identity` | Authentik background worker |
 | `authentik-postgres` | `identity` | Dedicated Postgres for Authentik |
 | `authentik-bootstrap-netbox` | `identity` | NetBox OAuth2 app configuration |
-| `hydra` | `identity` | OAuth2/OIDC server for Diode |
-| `hydra-postgres` | `identity` | Dedicated Postgres for Hydra |
-| `hydra-migrate` | `identity` | Hydra database migration |
-| `hydra-bootstrap-clients` | `identity` | Diode OAuth2 client provisioning |
 
 ## Privacy Model
 

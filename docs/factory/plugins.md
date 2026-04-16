@@ -6,23 +6,23 @@ The factory includes 11 plugin specifications with explicit compatibility metada
 
 | Plugin | Package | Version | Enabled | Support Tier | NetBox Compatibility |
 |--------|---------|---------|---------|-------------|---------------------|
-| Topology Views | `netbox-topology-views` | 4.5.0 | ✅ | supported-community | NetBox 4.5.x |
-| BGP | `netbox-bgp` | 0.18.0 | ✅ | supported-community | NetBox 4.5.x |
-| DNS | `netbox-plugin-dns` | 1.5.3 | ✅ | supported-community | min_version='4.5.0' |
-| ACLs | `netbox-acls` | 1.9.1 | ❌ | supported-community | max_version='4.4.99' |
+| Topology Views | `netbox-topology-views` | 4.5.1 | ✅ | supported-community | NetBox 4.5.x |
+| BGP | `netbox-bgp` | 0.18.1 | ✅ | supported-community | NetBox 4.5.x |
+| DNS | `netbox-plugin-dns` | 1.5.5 | ✅ | supported-community | min_version='4.5.0' |
+| ACLs | `netbox-acls` | 2.0.0 | ✅ | supported-community | NetBox 4.5.x |
 | Reorder Rack | `netbox-reorder-rack` | 1.1.4 | ✅ | community | >=4.0.0 |
 | Prometheus SD | `netbox-prometheus-sd` | 0.5 | ❌ | community-legacy | Legacy API, fails on 4.5.x |
-| Diode | `netboxlabs-diode-netbox-plugin` | 1.7.1 | ✅ | supported-netboxlabs | min='4.4.10', max='4.5.99' |
-| Proxbox | `netbox-proxbox` | 0.0.6b2 | ❌ | community-beta | max_version='4.2.99' |
-| Config Diff | `netbox-config-diff` | 2.14.0 | ✅ | community | min='4.5.0', max='4.5.99' |
-| Floorplan | `netbox-floorplan-plugin` | 0.9.0 | ✅ | community | min='4.5.0-beta1', max='4.5.99' |
-| Inventory | `netbox-inventory` | 2.5.0 | ✅ | community | min='4.5.0' |
+| Diode | `netboxlabs-diode-netbox-plugin` | 1.9.0 | ✅ | supported-netboxlabs | NetBox >= 4.5.0 |
+| Proxbox | `netbox-proxbox` | 0.0.10 | ✅ | community | NetBox 4.5.x |
+| Config Diff | `netbox-config-diff` | 2.14.2 | ✅ | community | min='4.5.0', max='4.5.99' |
+| Floorplan | `netbox-floorplan-plugin` | 0.9.1 | ✅ | community | min='4.5.0-beta1', max='4.5.99' |
+| Inventory | `netbox-inventory` | 2.5.1 | ✅ | community | min='4.5.0' |
 
 ## Enabled Plugins
 
 ### Topology Views
 
-- **Package**: `netbox-topology-views==4.5.0`
+- **Package**: `netbox-topology-views==4.5.1`
 - **Module**: `netbox_topology_views`
 - **Support Tier**: supported-community
 
@@ -42,7 +42,7 @@ PLUGINS_CONFIG = {
 
 ### BGP
 
-- **Package**: `netbox-bgp==0.18.0`
+- **Package**: `netbox-bgp==0.18.1`
 - **Module**: `netbox_bgp`
 - **Support Tier**: supported-community
 
@@ -61,7 +61,7 @@ PLUGINS_CONFIG = {
 
 ### DNS
 
-- **Package**: `netbox-plugin-dns==1.5.3`
+- **Package**: `netbox-plugin-dns==1.5.5`
 - **Module**: `netbox_dns`
 - **Support Tier**: supported-community
 
@@ -82,13 +82,31 @@ Exposes drag-and-drop rack reordering. Upstream compatibility matrix states `>=4
 
 **Generated Configuration:** Uses package defaults.
 
+### ACLs
+
+- **Package**: `netbox-acls==2.0.0`
+- **Module**: `netbox_acls`
+- **Support Tier**: supported-community
+
+Official netbox-community plugin. Version 2.0.0 explicitly targets NetBox 4.5.x in the upstream compatibility matrix.
+
+**Generated Configuration:**
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_acls": {
+        "top_level_menu": True,
+    }
+}
+```
+
 ### Diode
 
-- **Package**: `netboxlabs-diode-netbox-plugin==1.7.1`
+- **Package**: `netboxlabs-diode-netbox-plugin==1.9.0`
 - **Module**: `netbox_diode_plugin`
 - **Support Tier**: supported-netboxlabs
 
-Official NetBox Labs Diode plugin providing reconciliation APIs for automated network state ingestion. Upstream declares `min_version='4.4.10'` and `max_version='4.5.99'`.
+Official NetBox Labs Diode plugin providing reconciliation APIs for automated network state ingestion. Upstream compatibility table shows NetBox >= 4.5.0 support.
 
 **Generated Configuration:**
 
@@ -106,9 +124,19 @@ PLUGINS_CONFIG = {
 
 The `diode_target_override` points at the generated `diode-auth` Compose service so plugin and reconciler endpoints resolve within the composed deployment.
 
+### Proxbox
+
+- **Package**: `netbox-proxbox==0.0.10`
+- **Module**: `netbox_proxbox`
+- **Support Tier**: community
+
+Integrates Proxmox VE inventory (clusters, nodes, VMs, containers) with NetBox as the network source of truth. Version 0.0.10 explicitly lists NetBox 4.5.x in its requirements.
+
+**Generated Configuration:** Uses package defaults.
+
 ### Config Diff
 
-- **Package**: `netbox-config-diff==2.14.0`
+- **Package**: `netbox-config-diff==2.14.2`
 - **Module**: `netbox_config_diff`
 - **Support Tier**: community
 
@@ -130,7 +158,7 @@ PLUGINS_CONFIG = {
 
 ### Floorplan
 
-- **Package**: `netbox-floorplan-plugin==0.9.0`
+- **Package**: `netbox-floorplan-plugin==0.9.1`
 - **Module**: `netbox_floorplan`
 - **Support Tier**: community
 
@@ -140,7 +168,7 @@ Provides visual floorplan management for sites and locations. From [netbox-commu
 
 ### Inventory
 
-- **Package**: `netbox-inventory==2.5.0`
+- **Package**: `netbox-inventory==2.5.1`
 - **Module**: `netbox_inventory`
 - **Support Tier**: community
 
@@ -151,17 +179,6 @@ Extends NetBox with asset lifecycle tracking, purchase, and warranty management.
 ## Disabled Plugins
 
 Disabled plugins are included in the specification list for documentation and future enablement, but are not installed in the generated image.
-
-### ACLs
-
-- **Package**: `netbox-acls==1.9.1`
-- **Module**: `netbox_acls`
-- **Support Tier**: supported-community
-- **Reason**: Plugin config declares `max_version='4.4.99'`, incompatible with NetBox 4.5.x.
-
-Enable once a compatible release targeting NetBox 4.5 is published.
-
-**Prepared Configuration:** `top_level_menu: True`
 
 ### Prometheus Service Discovery
 
@@ -174,18 +191,6 @@ Enable once an updated release targets modern NetBox plugin APIs.
 
 **Prepared Configuration:** `custom_field_name: "monitored"`, `target_port: 9100`, `gnmic_target_port: 32767`
 
-### Proxbox
-
-- **Package**: `netbox-proxbox==0.0.6b2`
-- **Module**: `netbox_proxbox`
-- **Support Tier**: community-beta
-- **Reason**: Current release declares `max_version='4.2.99'`, incompatible with NetBox 4.5.x.
-
-Two integration paths are available:
-
-1. **Plugin path**: Enable once an officially supported release targeting NetBox 4.5 is available.
-2. **Webhook path**: Use the [netboxlabs/netbox-proxmox-automation](https://github.com/netboxlabs/netbox-proxmox-automation) project for event-driven Proxmox VM provisioning without a plugin.
-
 ## Support Tiers
 
 | Tier | Description |
@@ -194,7 +199,6 @@ Two integration paths are available:
 | `supported-netboxlabs` | Official NetBox Labs plugin |
 | `community` | Community plugin with upstream compatibility metadata |
 | `community-legacy` | Community plugin with outdated or broken compatibility |
-| `community-beta` | Community plugin in beta with version restrictions |
 
 ## Adding a Plugin
 
