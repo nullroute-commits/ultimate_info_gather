@@ -202,11 +202,15 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
         package_name="netbox-config-diff",
         module_name="netbox_config_diff",
         version="2.14.2",
-        enabled=True,
+        enabled=False,
         support_tier="community",
         rationale=(
             "Requested integration from https://github.com/miaow2/netbox-config-diff. "
-            "Upstream PluginConfig declares min_version='4.5.0' and max_version='4.5.99'."
+            "Upstream PluginConfig declares min_version='4.5.0' and max_version='4.5.99'. "
+            "Disabled by default: v2.14.2 triggers a strawberry "
+            "DuplicatedTypeName('StrFilterLookup') error on NetBox 4.5.7 that "
+            "prevents the application from starting. Re-enable when upstream "
+            "releases a compatible version."
         ),
         config={
             "USERNAME": "replace-me",

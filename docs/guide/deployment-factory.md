@@ -114,7 +114,7 @@ The factory includes 11 plugin specifications with explicit compatibility metada
 | `netbox-prometheus-sd` | 0.5 | ❌ | community-legacy | Legacy API, fails on 4.5.x |
 | `netboxlabs-diode-netbox-plugin` | 1.9.0 | ✅ | supported-netboxlabs | NetBox >= 4.5.0 |
 | `netbox-proxbox` | 0.0.10 | ✅ | community | NetBox 4.5.x |
-| `netbox-config-diff` | 2.14.2 | ✅ | community | min='4.5.0', max='4.5.99' |
+| `netbox-config-diff` | 2.14.2 | ❌ | community | min='4.5.0', max='4.5.99'; disabled — DuplicatedTypeName crash on 4.5.7 |
 | `netbox-floorplan-plugin` | 0.9.1 | ✅ | community | min='4.5.0-beta1', max='4.5.99' |
 | `netbox-inventory` | 2.5.1 | ✅ | community | min='4.5.0' |
 

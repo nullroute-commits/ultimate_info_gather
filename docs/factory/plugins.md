@@ -14,7 +14,7 @@ The factory includes 11 plugin specifications with explicit compatibility metada
 | Prometheus SD | `netbox-prometheus-sd` | 0.5 | ❌ | community-legacy | Legacy API, fails on 4.5.x |
 | Diode | `netboxlabs-diode-netbox-plugin` | 1.9.0 | ✅ | supported-netboxlabs | NetBox >= 4.5.0 |
 | Proxbox | `netbox-proxbox` | 0.0.10 | ✅ | community | NetBox 4.5.x |
-| Config Diff | `netbox-config-diff` | 2.14.2 | ✅ | community | min='4.5.0', max='4.5.99' |
+| Config Diff | `netbox-config-diff` | 2.14.2 | ❌ | community | min='4.5.0', max='4.5.99'; DuplicatedTypeName crash on 4.5.7 |
 | Floorplan | `netbox-floorplan-plugin` | 0.9.1 | ✅ | community | min='4.5.0-beta1', max='4.5.99' |
 | Inventory | `netbox-inventory` | 2.5.1 | ✅ | community | min='4.5.0' |
 
@@ -134,28 +134,6 @@ Integrates Proxmox VE inventory (clusters, nodes, VMs, containers) with NetBox a
 
 **Generated Configuration:** Uses package defaults.
 
-### Config Diff
-
-- **Package**: `netbox-config-diff==2.14.2`
-- **Module**: `netbox_config_diff`
-- **Support Tier**: community
-
-Provides configuration drift detection and compliance reporting for network devices. From [miaow2/netbox-config-diff](https://github.com/miaow2/netbox-config-diff). Upstream declares `min_version='4.5.0'` and `max_version='4.5.99'`.
-
-**Generated Configuration:**
-
-```python
-PLUGINS_CONFIG = {
-    "netbox_config_diff": {
-        "USERNAME": "replace-me",
-        "PASSWORD": "replace-me",
-    }
-}
-```
-
-!!! warning "Credential Placeholders"
-    The operator must replace `USERNAME` and `PASSWORD` with valid device credentials for configuration retrieval.
-
 ### Floorplan
 
 - **Package**: `netbox-floorplan-plugin==0.9.1`
@@ -188,6 +166,15 @@ Disabled plugins are included in the specification list for documentation and fu
 - **Reason**: Current release imports the legacy `extras.plugins` API and fails to load on NetBox 4.5.x.
 
 Enable once an updated release targets modern NetBox plugin APIs.
+
+### Config Diff
+
+- **Package**: `netbox-config-diff==2.14.2`
+- **Module**: `netbox_config_diff`
+- **Support Tier**: community
+- **Reason**: Version 2.14.2 triggers a `DuplicatedTypeName('StrFilterLookup')` error in the strawberry GraphQL layer on NetBox 4.5.7, preventing the application from starting.
+
+Enable once upstream releases a version that resolves the GraphQL schema conflict.
 
 **Prepared Configuration:** `custom_field_name: "monitored"`, `target_port: 9100`, `gnmic_target_port: 32767`
 

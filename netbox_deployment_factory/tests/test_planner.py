@@ -116,9 +116,10 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(diode_plugin.package_name, "netboxlabs-diode-netbox-plugin")
         self.assertIn("Diode auth/ingester/reconciler", diode_plugin.rationale)
 
-        self.assertTrue(config_diff_plugin.enabled)
+        self.assertFalse(config_diff_plugin.enabled)
         self.assertEqual(config_diff_plugin.package_name, "netbox-config-diff")
         self.assertEqual(config_diff_plugin.version, "2.14.2")
+        self.assertIn("DuplicatedTypeName", config_diff_plugin.rationale)
 
         self.assertTrue(floorplan_plugin.enabled)
         self.assertEqual(floorplan_plugin.package_name, "netbox-floorplan-plugin")
