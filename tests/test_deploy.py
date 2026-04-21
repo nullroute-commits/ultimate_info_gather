@@ -178,13 +178,33 @@ def test_bundle_plugins_enabled(shared_result: DeploymentResult) -> None:
         "netbox-topology-views",
         "netbox-bgp",
         "netbox-plugin-dns",
+        "netbox-acls",
         "netbox-reorder-rack",
         "netboxlabs-diode-netbox-plugin",
-        "netbox-config-diff",
+        "netbox-proxbox",
         "netbox-floorplan-plugin",
         "netbox-inventory",
     ):
         assert pkg in reqs, f"plugin_requirements.txt missing: {pkg}"
+    assert "netbox-config-diff" not in reqs
+
+
+@pytest.mark.asyncio
+async def test_host_ip_override_updates_operator_urls() -> None:
+    """Host IP overrides should flow into rendered operator-facing bundle docs."""
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = await run_deployment(output_dir=tmpdir, host_ip="192.168.1.179")
+        assert result.success
+        assert result.bundle_dir is not None
+
+        bundle_readme = (result.bundle_dir / "README.md").read_text(encoding="utf-8")
+        compose = (result.bundle_dir / "docker-compose.yml").read_text(encoding="utf-8")
+
+        assert "https://192.168.1.179" in bundle_readme
+        assert "http://192.168.1.179:3000" in bundle_readme
+        assert '192.168.1.179:443:443' in compose
+        assert '192.168.1.179:3000:3000' in compose
 
 
 @pytest.mark.asyncio

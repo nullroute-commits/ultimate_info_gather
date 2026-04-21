@@ -143,12 +143,12 @@ On embedded hardware:
 
 1. **Limit output formats**: Use only JSON to reduce processing
    ```bash
-   python main.py -f json
+   python3 main.py -f json
    ```
 
 2. **Disable verbose mode**: Reduces memory for progress tracking
    ```bash
-   python main.py -q
+   python3 main.py -q
    ```
 
 3. **Target specific collections**: Future feature for selective collection
@@ -195,7 +195,7 @@ setcap cap_sys_admin+ep /opt/bin/python3.11
 
 1. **Use verbose mode** initially to understand your system
    ```bash
-   python main.py -v
+   python3 main.py -v
    ```
 
 2. **Check warnings** - they indicate missing features
@@ -241,4 +241,4 @@ If you use Ultimate Info Gather on embedded systems, please:
 3. Contribute support for additional package managers
 4. Suggest embedded-specific features
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+See the [contributing guide](../development/contributing.md) for details.

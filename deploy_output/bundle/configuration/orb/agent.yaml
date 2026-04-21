@@ -15,7 +15,7 @@ orb:
           - "-T4"
           - "--min-rate=300"
           - "--max-retries=3"
-        timeout: 30m
+        timeout: 1800
     common:
       diode:
         target: grpc://127.0.0.1:18080
@@ -28,7 +28,7 @@ orb:
       default:
         config:
           schedule: "@every 120m"
-          timeout: 30m
+          timeout: 1800
         scope:
           targets:
             - 10.0.0.0/8

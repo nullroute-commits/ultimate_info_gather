@@ -194,5 +194,5 @@ To add a new plugin to the factory:
 1. Add a `PluginSpec` entry to `DEFAULT_PLUGIN_SPECS` in `constants.py`.
 2. Verify upstream compatibility metadata (`min_version`, `max_version`) against the pinned `NETBOX_VERSION`.
 3. Set `enabled=True` only if compatibility is confirmed.
-4. Document the plugin in `netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md`.
+4. Document the plugin in this catalog.
 5. Update the version pins table in `netbox_deployment_factory/README.md`.

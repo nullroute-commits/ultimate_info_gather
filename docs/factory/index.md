@@ -2,6 +2,9 @@
 
 The **NetBox Deployment Factory** is a subproject of Ultimate Info Gather that transforms JSON system reports into reproducible, production-ready NetBox deployment bundles.
 
+!!! note "Execution paths"
+    The factory can be run either through the Docker-local workflow documented in this section or through an installed subproject environment using `netbox-deployment-factory` / `python3 -m netbox_deployment_factory`. The root repository's `python3 -m src.deploy` command is a separate end-to-end pipeline.
+
 ## What It Does
 
 The factory consumes a JSON report produced by `ultimate_info_gather` and generates a complete Docker Compose deployment bundle for NetBox 4.5.x. The bundle follows the official [netbox-docker](https://github.com/netbox-community/netbox-docker) plugin workflow and includes:

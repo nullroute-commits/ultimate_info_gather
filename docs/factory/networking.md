@@ -51,7 +51,6 @@ graph TB
     end
 
     subgraph identity["Identity Network"]
-        T
         DA
         AK
         ABN
@@ -79,7 +78,7 @@ graph TB
 | `data` | Data plane | `172.30.0.64/27` | WAF, NetBox, PostgreSQL, Valkey, Diode, workers, imports, Prometheus, Hydra |
 | `security` | Security observability | `172.30.0.96/28` | *(reserved; Wazuh uses host networking)* |
 | `monitoring` | Monitoring stack | `172.30.0.128/27` | Grafana, Prometheus, Loki, Alloy, cAdvisor, monitoring-dashboard-init |
-| `identity` | Identity providers | `172.30.0.160/27` | Traefik, Authentik, Ory Hydra, Diode auth, dedicated PostgreSQL instances |
+| `identity` | Identity providers | `172.30.0.160/27` | Authentik, Ory Hydra, Diode auth, dedicated PostgreSQL instances |
 
 ## CIDR Planning Modes
 
@@ -123,7 +122,7 @@ The following table shows which networks each service connects to:
 
 | Service | edge | app | data | monitoring | identity | Host networking |
 |---------|------|-----|------|------------|----------|-----------------|
-| Traefik | ✅ | ✅ | | | ✅ | |
+| Traefik | ✅ | ✅ | | | | |
 | WAF | | ✅ | ✅ | | | |
 | NetBox | | | ✅ | | | |
 | PostgreSQL | | | ✅ | | | |
@@ -157,7 +156,7 @@ The following table shows which networks each service connects to:
 | Hydra bootstrap clients | | | | | ✅ | |
 
 !!! note "Cross-network services"
-    - **Traefik** bridges `edge`, `app`, and `identity` to route traffic to the WAF and enable Authentik forward-auth.
+    - **Traefik** bridges `edge` and `app`; Authentik SSO traffic stays on `app` via `authentik-server`.
     - **WAF** bridges `app` and `data` to forward validated traffic from Traefik to NetBox.
     - **Prometheus** bridges `monitoring` and `data` to scrape metrics from NetBox stack services.
     - **Diode auth** bridges `data` and `identity` so diode services can reach Hydra for OAuth2 token exchange.

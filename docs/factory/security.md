@@ -42,8 +42,8 @@ The generated bundle creates `.example` files in `secrets/` with a `.gitignore` 
 | `netbox_to_diode` | NetBox-to-Diode client secret |
 | `authentik_secret_key` | Authentik secret key (identity profile) |
 | `authentik_pg_password` | Authentik PostgreSQL password (identity profile) |
-| `hydra_pg_password` | Hydra PostgreSQL password (identity profile) |
-| `hydra_system_secret` | Hydra system secret (identity profile) |
+| `hydra_pg_password` | Hydra PostgreSQL password (core stack, identity network) |
+| `hydra_system_secret` | Hydra system secret (core stack, identity network) |
 | `cf_dns_api_token` | Cloudflare DNS API token (Let's Encrypt mode only) |
 
 ### Secret Separation
@@ -52,7 +52,7 @@ Secrets are separated by concern:
 
 - **Core stack**: `api_token_pepper_1`, `db_password`, `secret_key`, `superuser_*`
 - **Diode**: `diode_redis_password`, `diode_client_id`, `diode_client_secret`, `netbox_to_diode`
-- **Identity**: `authentik_secret_key`, `authentik_pg_password`, `hydra_pg_password`, `hydra_system_secret`
+- **Identity services**: `authentik_secret_key`, `authentik_pg_password`, `hydra_pg_password`, `hydra_system_secret`
 - **TLS**: `cf_dns_api_token`
 
 ### Diode Environment Placeholders

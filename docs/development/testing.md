@@ -17,27 +17,27 @@ tests/
 ## Running Tests
 
 ```bash
-# All tests
-pytest --tb=short -q
+# Root package tests
+python3 -m pytest tests/ -o addopts=""
 
-# With coverage
-pytest --cov=src --cov-report=html
+# Root package with coverage
+python3 -m pytest tests/ --cov=src --cov-report=html -o addopts=""
 
 # Lint and type-check the root package
-ruff check src/ tests/ main.py
+ruff check src/ tests/ main.py install_github_copilot.py
 mypy src/
 
 # Specific file
-pytest tests/test_environment.py
+python3 -m pytest tests/test_environment.py -o addopts=""
 
 # Specific test
-pytest tests/test_environment.py::test_platform_detection
+python3 -m pytest tests/test_environment.py::test_platform_detection -o addopts=""
 
 # Verbose
-pytest -v
+python3 -m pytest -v tests/ -o addopts=""
 
 # Show print output
-pytest -s
+python3 -m pytest -s tests/ -o addopts=""
 ```
 
 ## Factory Validation
@@ -70,16 +70,16 @@ Without Docker, run the factory unit tests directly:
 
 ```bash
 cd netbox_deployment_factory
-PYTHONPATH=src python -m unittest tests.test_planner tests.test_cli
+PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
 ```
 
 ### Full Test Suite
 
-Run all tests across both the root package and the factory:
+Run the maintained root and factory commands separately:
 
 ```bash
-PYTHONPATH=.:netbox_deployment_factory/src python -m pytest tests/ -o addopts="" && \
-cd netbox_deployment_factory && PYTHONPATH=src python -m unittest tests.test_planner tests.test_cli
+python3 -m pytest tests/ -o addopts="" && \
+cd netbox_deployment_factory && PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
 ```
 
 ## Writing Tests

@@ -229,15 +229,12 @@ async def _verify_bundle(bundle_dir: Path) -> list[str]:
     req_path = bundle_dir / "plugin_requirements.txt"
     if req_path.exists():
         req_text = req_path.read_text(encoding="utf-8")
+        from netbox_deployment_factory.constants import DEFAULT_PLUGIN_SPECS  # type: ignore[import-untyped]
+
         expected_pkgs = [
-            "netbox-topology-views",
-            "netbox-bgp",
-            "netbox-plugin-dns",
-            "netbox-reorder-rack",
-            "netboxlabs-diode-netbox-plugin",
-            "netbox-config-diff",
-            "netbox-floorplan-plugin",
-            "netbox-inventory",
+            spec.package_name
+            for spec in DEFAULT_PLUGIN_SPECS
+            if spec.enabled
         ]
         for pkg in expected_pkgs:
             if pkg not in req_text:

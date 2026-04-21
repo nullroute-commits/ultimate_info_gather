@@ -3,271 +3,175 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An async Python 3.11+ OOP framework for comprehensive system information collection, permission analysis, and hardware/software inventory.
+Async Python 3.11+ system inspection for environment, permissions, hardware, network, and software inventory, plus an end-to-end deployment pipeline that can feed the bundled NetBox factory.
 
-## Features
+## What is here
 
-- **🔍 Environment Detection**: Captures Python runtime, process info, and execution context
-- **🔐 Permission Analysis**: Determines permission levels, capabilities, and resource access
-- **🖥️ Hardware Inventory**: Collects CPU, memory, storage, network, and GPU information  
-- **📦 Software Inventory**: Catalogs OS, packages, services, containers, and processes
-- **⚡ Fully Async**: Built on asyncio for efficient parallel data collection
-- **📊 Multiple Output Formats**: JSON, Markdown, and text reports
-- **🏗️ OOP Architecture**: Clean, extensible collector-based design
+- **Collector framework**: async collectors for environment, permissions, hardware, network, and software data
+- **Report generation**: JSON, Markdown, and text outputs from a unified `SystemReport`
+- **Deployment pipeline**: `src/deploy.py` runs collect -> save -> plan -> render -> verify
+- **NetBox factory subproject**: `netbox_deployment_factory/` turns a report into a reproducible deployment bundle
 
 ## Requirements
 
-- Python 3.11 or higher
-- Linux operating system (primary target)
+- Python 3.11+
+- Linux as the primary target platform
 
-## Installation
+## Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/nullroute-commits/ultimate_info_gather.git
 cd ultimate_info_gather
-
-# Create virtual environment
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
-
-# Install in development mode
 pip install -e ".[dev,docs]"
 ```
 
-## Quick Start
-
-### Command Line
+## Run the collector
 
 ```bash
-# Run full collection
-python main.py
+# Full collection to ./output
+python3 main.py
 
-# Specify output directory
-python main.py -o ./reports
+# Custom output directory
+python3 main.py -o ./reports
 
-# Select output formats
-python main.py -f json markdown
+# Only selected formats
+python3 main.py -f json markdown
 
-# Verbose output
-python main.py -v
+# Full summary to stdout
+python3 main.py -v
 
-# Quiet mode (no progress)
-python main.py -q
+# Suppress progress output
+python3 main.py -q
 ```
 
-### Programmatic Usage
+## Use it from Python
 
 ```python
 import asyncio
 from src.orchestrator import InfoGatherOrchestrator
 
+
 async def main():
-    # Create orchestrator
-    orchestrator = InfoGatherOrchestrator(output_dir='./output')
-    
-    # Collect all information
+    orchestrator = InfoGatherOrchestrator(output_dir="./output")
     report = await orchestrator.collect_all()
-    
-    # Access stored data (Objectives 1-3)
-    env = orchestrator.environment_state      # Objective 1
-    perms = orchestrator.permissions_info     # Objective 2
-    hw = orchestrator.hardware_info           # Objective 3
-    net = orchestrator.network_info           # Objective 3 (intensive network analysis)
-    sw = orchestrator.software_info           # Objective 3
-    
-    # Generate outputs
-    outputs = await orchestrator.generate_outputs(report)
-    
-    # Print summary
+
     print(report.get_full_summary())
 
-asyncio.run(main())
-```
+    # Stored phase results remain available on the orchestrator
+    env = orchestrator.environment_state
+    perms = orchestrator.permissions_info
+    hw = orchestrator.hardware_info
+    net = orchestrator.network_info
+    sw = orchestrator.software_info
 
-### Using Individual Collectors
+    await orchestrator.generate_outputs(report, ["json", "markdown"])
 
-```python
-import asyncio
-from src.collectors import EnvironmentCollector, PermissionsCollector
-
-async def main():
-    # Collect environment info
-    env_collector = EnvironmentCollector()
-    env_result = await env_collector.safe_collect()
-    
-    if env_result.success:
-        env_state = env_result.data
-        print(env_state.get_summary())
-        
-        # Use environment state for permissions collection
-        perm_collector = PermissionsCollector(environment_state=env_state)
-        perm_result = await perm_collector.safe_collect()
-        
-        if perm_result.success:
-            print(perm_result.data.get_summary())
 
 asyncio.run(main())
 ```
 
-## GitHub Copilot Setup
+## Report shape caveats
 
-Install and configure GitHub Copilot CLI for AI-powered command-line assistance:
+The in-memory dataclasses are richer than the JSON output in a few places:
+
+- `EnvironmentState.environment_variables` is collected in memory but not currently serialized by `EnvironmentState.to_dict()`.
+- `SoftwareInfo.to_dict()` emits counts and samples (`installed_packages_sample`, `system_services_sample`, `running_processes_sample`) rather than the full lists.
+- `SoftwareInfo.process_count` currently reflects the number of captured processes, and process capture is capped at 100 entries.
+
+See `docs/guide/reports.md` for the current serialized shape.
+
+## End-to-end deployment pipeline
+
+The root package also ships an async deployment wrapper in `src/deploy.py`:
+
+```bash
+# collect -> save report -> plan -> render -> verify
+python3 -m src.deploy
+
+# custom output directory
+python3 -m src.deploy --output-dir ./deploy_output
+
+# alternate track and deployment name
+python3 -m src.deploy --track alpine --deployment-name lab-stack
+
+# Let's Encrypt mode
+python3 -m src.deploy --fqdn netbox.example.com --acme-email admin@example.com
+```
+
+This root deployment CLI is distinct from the standalone factory CLI in `netbox_deployment_factory/`.
+
+## Repository layout
+
+```text
+ultimate_info_gather/
+├── src/
+│   ├── collectors/
+│   ├── models/
+│   ├── deploy.py
+│   └── orchestrator.py
+├── tests/
+├── docs/
+├── netbox_deployment_factory/
+│   ├── src/netbox_deployment_factory/
+│   ├── tests/
+│   └── README.md
+├── install_github_copilot.py
+├── main.py
+└── pyproject.toml
+```
+
+## NetBox deployment factory
+
+`netbox_deployment_factory/` is a separate subproject with its own packaging, tests, and Docker-local workflow. It consumes `ultimate_info_gather` JSON output and generates a NetBox deployment bundle with Compose files, configuration, env files, scripts, and secret placeholders.
+
+Use the subproject README for factory-specific usage:
+
+- [`netbox_deployment_factory/README.md`](netbox_deployment_factory/README.md)
+- [`docs/factory/`](docs/factory/index.md)
+
+## GitHub Copilot installer
+
+The repository includes `install_github_copilot.py` for installing GitHub CLI/Copilot helpers across several package-manager environments.
 
 ```bash
 python3 install_github_copilot.py
 ```
 
-### Prerequisites
+It looks for an `id_player1` credential file in:
 
-- Python 3.11 or higher
-- GitHub Personal Access Token or SSH key in `id_player1` file
-- Supported package managers: opkg, apt, dnf, yum, pacman, apk, brew
+1. `./id_player1`
+2. `~/id_player1`
+3. `~/.ssh/id_player1`
 
-### Credential File
+A personal access token is the most reliable option for gh CLI authentication. An SSH private key can configure git-over-SSH, but it does not fully replace token-based gh authentication.
 
-Create an `id_player1` file containing either:
-- GitHub Personal Access Token (recommended)
-- SSH private key
-
-Save to one of these locations:
-- `./id_player1` (current directory)
-- `~/id_player1` (home directory)
-- `~/.ssh/id_player1` (SSH directory)
-
-Example:
-```bash
-# Save token to file
-echo "ghp_YourPersonalAccessTokenHere" > ~/id_player1
-chmod 600 ~/id_player1
-```
-
-### Features
-
-- **Multi-platform support**: Automatically detects and uses the appropriate package manager
-- **OpenWrt optimized**: Prioritizes opkg and downloads GitHub CLI binary
-- **Async operations**: Fast, efficient installation using Python async/await
-- **Authentication**: Automatically configures GitHub authentication
-- **Verification**: Validates installation before completing
-
-### Usage
-
-After installation:
-```bash
-# Get command suggestions
-gh copilot suggest "list all files larger than 100MB"
-
-# Explain commands
-gh copilot explain "tar -xzf archive.tar.gz"
-```
-
-For detailed instructions, see [GitHub Copilot Setup Guide](docs/tools/github-copilot-setup.md).
-
-## Architecture
-
-```
-ultimate_info_gather/
-├── src/
-│   ├── __init__.py
-│   ├── orchestrator.py          # Main coordinator
-│   ├── models/                   # Data models
-│   │   ├── environment.py       # Environment state model
-│   │   ├── permissions.py       # Permissions model
-│   │   ├── hardware.py          # Hardware model
-│   │   ├── network.py           # Network info model
-│   │   ├── software.py          # Software model
-│   │   └── report.py            # Report aggregation
-│   └── collectors/               # Async collectors
-│       ├── base.py              # Base collector class
-│       ├── environment_collector.py
-│       ├── permissions_collector.py
-│       ├── hardware_collector.py
-│       ├── network_collector.py
-│       └── software_collector.py
-├── docs/                         # MkDocs documentation
-├── tests/                        # Test suite
-├── netbox_deployment_factory/    # NetBox deployment bundle generator
-├── main.py                       # CLI entry point
-└── pyproject.toml               # Project configuration
-```
-
-## NetBox Deployment Factory
-
-The [`netbox_deployment_factory/`](netbox_deployment_factory/README.md) subproject is a downstream consumer of `ultimate_info_gather` JSON report output. It generates reproducible NetBox deployment bundles — including Docker Compose configurations, plugin configs, secrets, and bootstrap scripts — from the system information collected by this agent. Refer to [netbox_deployment_factory/README.md](netbox_deployment_factory/README.md) for full usage and configuration details.
-
-## Collection Phases
-
-The orchestrator executes collection in a specific sequence to satisfy data dependencies:
-
-1. **Phase 1 - Environment** (Objective 1)
-   - Python environment details
-   - Process information
-   - Execution mode detection
-   - Platform identification
-
-2. **Phase 2 - Permissions** (Objective 2)
-   - User/group analysis
-   - Linux capabilities
-   - File system access levels
-   - Security context (SELinux/AppArmor)
-   - Resource limits
-
-3. **Phase 3 - Hardware, Network & Software** (Objective 3)
-   - Run in parallel for efficiency
-   - Hardware: CPU, memory, storage, network, GPU, USB
-   - Network: Interfaces, routes, connections, DNS, firewall rules
-   - Software: OS, packages, services, containers, processes
-
-## Data Storage
-
-All collected data is stored for later use as specified:
-
-```python
-orchestrator = InfoGatherOrchestrator()
-report = await orchestrator.collect_all()
-
-# Access stored data
-stored = orchestrator.get_stored_data()
-# {
-#     'environment': EnvironmentState,
-#     'permissions': PermissionsInfo,
-#     'hardware': HardwareInfo,
-#     'network': NetworkInfo,
-#     'software': SoftwareInfo,
-# }
-```
-
-## Documentation
-
-Generate and serve documentation:
+## Docs
 
 ```bash
-# Install docs dependencies
 pip install -e ".[docs]"
-
-# Build documentation
 mkdocs build
-
-# Serve locally
 mkdocs serve
 ```
 
-## Testing
+## Validation
+
+Root package:
 
 ```bash
-# Run the full root test suite
-pytest --tb=short -q
-
-# With coverage details
-pytest --cov=src --cov-report=html
-
-# Type checking
+python3 -m pytest tests/ -o addopts=""
+ruff check src/ tests/ main.py install_github_copilot.py
 mypy src/
+```
 
-# Linting
-ruff check src/ tests/ main.py
+Factory unit tests:
+
+```bash
+cd netbox_deployment_factory
+PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
 ```
 
 ## License
 
-MIT License (declared in `pyproject.toml`).
+MIT.

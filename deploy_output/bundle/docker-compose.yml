@@ -25,7 +25,7 @@ services:
       - --entrypoints.websecure.address=:443
       - --log.level=INFO
     ports:
-      - "10.1.0.214:443:443" 
+      - "192.168.1.179:443:443" 
     volumes:
       - traefik-certs:/certs:ro
       - ./configuration/traefik:/etc/traefik/dynamic:ro
@@ -58,7 +58,7 @@ services:
       - data
 
   postgres:
-    image: postgres:18-alpine
+    image: postgres:18
     restart: unless-stopped
     entrypoint:
       - /bin/sh
@@ -82,7 +82,7 @@ services:
       - data
 
   valkey:
-    image: valkey/valkey:9-alpine
+    image: valkey/valkey:9
     restart: unless-stopped
     command: ["valkey-server", "--appendonly", "yes"]
     volumes:
@@ -147,7 +147,7 @@ services:
       dockerfile: Dockerfile-Plugins
       args:
         NETBOX_IMAGE: netboxcommunity/netbox:v4.5.7
-    image: netbox-prod:local
+    image: netbox-deploy:local
     restart: unless-stopped
     depends_on:
       postgres:
@@ -190,7 +190,7 @@ services:
       - data
 
   netbox-worker:
-    image: netbox-prod:local
+    image: netbox-deploy:local
     restart: unless-stopped
     depends_on:
       postgres:
@@ -217,61 +217,7 @@ services:
       - data
 
   netbox-worker-2:
-    image: netbox-prod:local
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
-      netbox:
-        condition: service_healthy
-    env_file:
-      - env/netbox.env
-    secrets:
-      - db_password
-      - api_token_pepper_1
-      - secret_key
-      - superuser_name
-      - superuser_password
-      - superuser_api_token
-    command: ["/opt/netbox/venv/bin/python", "/opt/netbox/netbox/manage.py", "rqworker"]
-    cap_drop: ["ALL"]
-    security_opt: ["no-new-privileges:true"]
-    tmpfs:
-      - /tmp
-    networks:
-      - data
-
-  netbox-worker-3:
-    image: netbox-prod:local
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
-      netbox:
-        condition: service_healthy
-    env_file:
-      - env/netbox.env
-    secrets:
-      - db_password
-      - api_token_pepper_1
-      - secret_key
-      - superuser_name
-      - superuser_password
-      - superuser_api_token
-    command: ["/opt/netbox/venv/bin/python", "/opt/netbox/netbox/manage.py", "rqworker"]
-    cap_drop: ["ALL"]
-    security_opt: ["no-new-privileges:true"]
-    tmpfs:
-      - /tmp
-    networks:
-      - data
-
-  netbox-worker-4:
-    image: netbox-prod:local
+    image: netbox-deploy:local
     restart: unless-stopped
     depends_on:
       postgres:
@@ -298,7 +244,7 @@ services:
       - data
 
   netbox-superuser-sync:
-    image: netbox-prod:local
+    image: netbox-deploy:local
     restart: "no"
     depends_on:
       netbox:
@@ -325,7 +271,7 @@ services:
       - data
 
   diode-credential-setup:
-    image: netbox-prod:local
+    image: netbox-deploy:local
     restart: "no"
     depends_on:
       netbox:
@@ -351,7 +297,7 @@ services:
 
   device-type-library-import:
     profiles: ["device-type-library-import"]
-    image: netbox-prod:local
+    image: netbox-deploy:local
     restart: "no"
     depends_on:
       netbox:
@@ -383,7 +329,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-GeoFoss
-    image: netbox-prod-geo-foss:local
+    image: netbox-deploy-geo-foss:local
     restart: "no"
     depends_on:
       netbox:
@@ -412,8 +358,8 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      WAZUH_MANAGER: "wazuh-manager"
-      WAZUH_AGENT_NAME: "netbox-prod-wazuh-agent"
+      WAZUH_MANAGER_SERVER: "127.0.0.1"
+      WAZUH_AGENT_NAME: "netbox-deploy-wazuh-agent"
 
   orb-agent:
     image: netboxlabs/orb-agent:2.7.0
@@ -455,7 +401,7 @@ services:
     env_file:
       - env/monitoring.env
     ports:
-      - "10.1.0.214:3000:3000"
+      - "192.168.1.179:3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - grafana-dashboards:/var/lib/grafana/dashboards:ro
@@ -501,7 +447,7 @@ services:
       - /etc/alloy/config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
-      - "10.1.0.214:1514:1514"
+      - "192.168.1.179:1514:1514"
       - "127.0.0.1:1514:1514"
     volumes:
       - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
@@ -564,7 +510,7 @@ services:
   # ═══════════════════════════════════════════════════════════════════════
 
   authentik-postgres:
-    image: postgres:18-alpine
+    image: postgres:18
     profiles: ["identity"]
     restart: unless-stopped
     environment:
@@ -574,7 +520,7 @@ services:
     secrets:
       - authentik_pg_password
     volumes:
-      - authentik-pg-data:/var/lib/postgresql/data
+      - authentik-pg-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 15s
@@ -648,7 +594,7 @@ services:
     env_file:
       - env/authentik.env
     environment:
-      NETBOX_PUBLIC_URL: https://10.1.0.214
+      NETBOX_PUBLIC_URL: https://192.168.1.179
       NETBOX_INTERNAL_URL: http://waf:8081
     secrets:
       - authentik_secret_key
@@ -667,7 +613,7 @@ services:
   # ═══════════════════════════════════════════════════════════════════════
 
   hydra-postgres:
-    image: postgres:18-alpine
+    image: postgres:18
     restart: unless-stopped
     environment:
       POSTGRES_DB: hydra
@@ -676,7 +622,7 @@ services:
     secrets:
       - hydra_pg_password
     volumes:
-      - hydra-pg-data:/var/lib/postgresql/data
+      - hydra-pg-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 15s

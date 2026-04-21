@@ -9,7 +9,7 @@ This guide will help you get started with Ultimate Info Gather quickly.
 The simplest way to use Ultimate Info Gather is via the command line:
 
 ```bash
-python main.py
+python3 main.py
 ```
 
 This will:
@@ -21,16 +21,16 @@ This will:
 
 ```bash
 # Specify output directory
-python main.py -o ./my-reports
+python3 main.py -o ./my-reports
 
 # Select specific output formats
-python main.py -f json markdown
+python3 main.py -f json markdown
 
 # Verbose output with full summary
-python main.py -v
+python3 main.py -v
 
 # Quiet mode (no progress output)
-python main.py -q
+python3 main.py -q
 ```
 
 ## Programmatic Usage
@@ -158,7 +158,10 @@ Structured data suitable for programmatic processing:
   "report_metadata": {
     "report_id": "uuid",
     "generated_at": "2024-01-01T00:00:00",
-    "generator_version": "1.0.0"
+    "generator_version": "1.0.0",
+    "total_collection_time_ms": 1234.56,
+    "collection_errors": [],
+    "warnings": []
   },
   "environment": { ... },
   "permissions": { ... },
@@ -167,6 +170,9 @@ Structured data suitable for programmatic processing:
   "software": { ... }
 }
 ```
+
+!!! note
+    The serialized JSON report is not a lossless dump of every in-memory dataclass field. For example, `EnvironmentState.environment_variables` is not currently serialized, and `SoftwareInfo` emits counts and samples instead of full package, service, and process lists.
 
 ### Markdown Report
 

@@ -244,19 +244,19 @@ result = await run_deployment(
 
 ```bash
 # Basic execution (outputs to ./output in json, markdown, text)
-python main.py
+python3 main.py
 
 # Specify output directory
-python main.py -o ./reports
+python3 main.py -o ./reports
 
 # Select output formats
-python main.py -f json markdown
+python3 main.py -f json markdown
 
 # Verbose output
-python main.py -v
+python3 main.py -v
 
 # Quiet mode (no progress)
-python main.py -q
+python3 main.py -q
 ```
 
 | Flag | Long Form | Default | Description |
@@ -270,22 +270,22 @@ python main.py -q
 
 ```bash
 # End-to-end deployment: collect → plan → render → verify
-python -m src.deploy
+python3 -m src.deploy
 
 # Specify output directory
-python -m src.deploy -o ./deploy_output
+python3 -m src.deploy -o ./deploy_output
 
 # Set deployment name and image track
-python -m src.deploy --deployment-name my-stack --track debian
+python3 -m src.deploy --deployment-name my-stack --track debian
 
 # Override worker containers and host IP
-python -m src.deploy --worker-containers 4 --host-ip 10.0.0.1
+python3 -m src.deploy --worker-containers 4 --host-ip 10.0.0.1
 
 # Let's Encrypt TLS mode
-python -m src.deploy --fqdn netbox.example.com --acme-email admin@example.com
+python3 -m src.deploy --fqdn netbox.example.com --acme-email admin@example.com
 
 # Quiet mode
-python -m src.deploy -q
+python3 -m src.deploy -q
 ```
 
 | Flag | Long Form | Default | Description |
@@ -299,6 +299,8 @@ python -m src.deploy -q
 | | `--fqdn` | none | FQDN for Let's Encrypt TLS |
 | | `--acme-email` | none | ACME email (required with `--fqdn`) |
 | `-q` | `--quiet` | off | Suppress progress output |
+
+The standalone factory CLI is separate: it lives under `netbox_deployment_factory/`, requires `--report` and `--output-dir`, and exposes the per-network sizing flags (`--edge-hosts`, `--app-hosts`, `--data-hosts`, `--security-hosts`) that are not part of the root `src.deploy` CLI.
 
 ### Output Formats
 
@@ -476,7 +478,7 @@ result = await run_deployment(
 # result.verification_failures, result.elapsed_ms
 ```
 
-The pipeline generates deployment bundles for [NetBox Deployment Factory](../netbox_deployment_factory/README.md), producing production-ready infrastructure including Docker Compose services, Traefik reverse proxy, monitoring stack, and security hardening.
+The pipeline generates deployment bundles for the [NetBox Deployment Factory](factory/index.md), producing production-ready infrastructure including Docker Compose services, Traefik reverse proxy, monitoring stack, and security hardening.
 
 ---
 
@@ -503,7 +505,7 @@ The pipeline generates deployment bundles for [NetBox Deployment Factory](../net
 - [ ] **WebSocket Streaming**: Real-time data streaming
 - [ ] **Database Storage**: PostgreSQL/SQLite persistence
 - [ ] **Prometheus Metrics**: Monitoring system integration
-- [x] **NetBox Integration**: Fully realized via [`netbox_deployment_factory/`](../netbox_deployment_factory/README.md) with end-to-end deployment pipeline (`src/deploy.py`)
+- [x] **NetBox Integration**: Fully realized via the [`netbox_deployment_factory/`](factory/index.md) docs and the end-to-end deployment pipeline (`src/deploy.py`)
 
 ### Phase 3: Intelligence Features
 
@@ -546,7 +548,7 @@ response = llm.query(
 )
 ```
 
-> **Real-world downstream integration**: The [`netbox_deployment_factory/`](../netbox_deployment_factory/README.md) subproject already consumes this JSON output to generate reproducible NetBox deployment bundles, demonstrating how the agent's structured data can drive infrastructure automation.
+> **Real-world downstream integration**: The [`netbox_deployment_factory/`](factory/index.md) subproject already consumes this JSON output to generate reproducible NetBox deployment bundles, demonstrating how the agent's structured data can drive infrastructure automation.
 
 ### Structured Outputs
 

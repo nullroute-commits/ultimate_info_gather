@@ -7,13 +7,11 @@ PLUGINS = [   'netbox_topology_views',
     'netbox_reorder_rack',
     'netbox_diode_plugin',
     'netbox_proxbox',
-    'netbox_config_diff',
     'netbox_floorplan',
     'netbox_inventory']
 
 PLUGINS_CONFIG = {   'netbox_acls': {'top_level_menu': True},
     'netbox_bgp': {'device_ext_page': 'tab', 'top_level_menu': True},
-    'netbox_config_diff': {'PASSWORD': 'replace-me', 'USERNAME': 'replace-me'},
     'netbox_diode_plugin': {   'diode_target_override': 'grpc://diode-auth:8080/diode',
                                'diode_username': 'diode',
                                'netbox_to_diode_client_id': 'netbox-to-diode',

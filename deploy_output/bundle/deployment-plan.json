@@ -44,7 +44,7 @@
     }
   ],
   "admin_privacy": {
-    "bootstrap_email": "bootstrap-f76ada8f17@invalid.local",
+    "bootstrap_email": "bootstrap-e689e3717a@invalid.local",
     "bootstrap_secret_files": [
       "api_token_pepper_1",
       "secret_key",
@@ -53,11 +53,11 @@
       "superuser_password",
       "superuser_api_token"
     ],
-    "bootstrap_username": "bootstrap-f76ada8f17",
+    "bootstrap_username": "bootstrap-e689e3717a",
     "rationale": "Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.",
     "rotation_required": true
   },
-  "deployment_name": "netbox-prod",
+  "deployment_name": "netbox-deploy",
   "device_type_library": {
     "import_service_name": "device-type-library-import",
     "least_privilege_permissions": [
@@ -93,35 +93,35 @@
   },
   "host": {
     "architecture": "x86_64",
-    "available_memory_bytes": 14546034688,
-    "can_install_packages": true,
-    "default_gateway": "10.1.0.1",
+    "available_memory_bytes": 2952966144,
+    "can_install_packages": false,
+    "default_gateway": "172.30.176.1",
     "docker_capable": true,
-    "hostname": "runnervm35a4x",
-    "hypervisor": "microsoft",
+    "hostname": "DESKTOP-BSUBRIF",
+    "hypervisor": "wsl",
     "is_virtual_machine": true,
-    "is_wsl": false,
-    "kernel_version": "6.17.0-1010-azure",
+    "is_wsl": true,
+    "kernel_version": "6.6.87.2-microsoft-standard-WSL2",
     "logical_cores": 4,
     "nameservers": [
-      "127.0.0.53"
+      "10.255.255.254"
     ],
     "operating_system": "Ubuntu",
     "operating_system_version": "24.04.4 LTS (Noble Numbat)",
-    "service_ip": "10.1.0.214",
-    "total_memory_bytes": 16770764800
+    "service_ip": "192.168.1.179",
+    "total_memory_bytes": 8329089024
   },
   "identity": {
     "authentik_image": "ghcr.io/goauthentik/server:2026.2.2",
     "hydra_image": "oryd/hydra:v2.3.0",
-    "rationale": "Authentik provides a self-hosted OIDC/SAML identity provider for NetBox SSO. Ory Hydra provides the OAuth2/OIDC server required by diode-auth for client-credentials grants. Both are deployed under the 'identity' Compose profile with dedicated Postgres instances and an isolated identity network segment."
+    "rationale": "Authentik provides a self-hosted OIDC/SAML identity provider for NetBox SSO and is exposed through the optional 'identity' Compose profile. Ory Hydra provides the OAuth2/OIDC server required by diode-auth for client-credentials grants and starts with the core stack. Both use the isolated identity network segment; Authentik adds a dedicated Postgres instance when the profile is enabled, while Hydra keeps its own dedicated Postgres service in the default stack."
   },
   "images": {
     "netbox_image": "netboxcommunity/netbox:v4.5.7",
-    "postgres_image": "postgres:18-alpine",
-    "release_reference": "Alpine Linux 3.23.3",
-    "track": "alpine",
-    "valkey_image": "valkey/valkey:9-alpine"
+    "postgres_image": "postgres:18",
+    "release_reference": "Debian 13.3 (Trixie)",
+    "track": "debian",
+    "valkey_image": "valkey/valkey:9"
   },
   "monitoring": {
     "alloy_image": "grafana/alloy:v1.15.0",
@@ -173,14 +173,14 @@
   },
   "notes": [
     "Deployment follows the official netbox-docker plugin workflow baseline pinned to release 4.0.2.",
-    "Track 'alpine' is tied to Alpine Linux 3.23.3 for OS lifecycle alignment.",
+    "Track 'debian' is tied to Debian 13.3 (Trixie) for OS lifecycle alignment.",
     "Topology, BGP, and DNS plugins are enabled because they have current NetBox 4.5 compatibility evidence from official NetBox Community sources. The DNS plugin (netbox-plugin-dns 1.5.5) explicitly declares min_version='4.5.0'.",
     "The Diode plugin (netboxlabs-diode-netbox-plugin 1.9.0) is enabled by default and paired with generated diode-auth, diode-ingester, and diode-reconciler services so plugin and reconciler endpoints resolve in the composed deployment.",
     "netbox-prometheus-sd 0.5 remains disabled by default until its compatibility requirements are satisfied for this generated bundle. netbox-acls 2.0.0 and netbox-proxbox 0.0.10 are now enabled with confirmed NetBox 4.5.x compatibility.",
     "Requested plugins netbox-config-diff 2.14.2, netbox-floorplan-plugin 0.9.1, and netbox-inventory 2.5.1 are integrated by default using upstream compatibility metadata.",
     "netbox-reorder-rack 1.1.4 is enabled as a community integration; validate in staging before production because upstream metadata does not publish a strict NetBox 4.5 compatibility matrix.",
     "Worker-container orchestration is generated explicitly so RQ workers can scale as independent containers while preserving a deterministic startup dependency on NetBox health.",
-    "ORB is generated as an optional discovery profile using the official netboxlabs/orb-agent image and an agent.yaml config, with host networking, a default @every 60m scan cadence, RFC1918 targets, and diode client credential placeholders in configuration/orb/agent.yaml.",
+    "ORB is generated as an optional discovery profile using the official netboxlabs/orb-agent image and an agent.yaml config, with host networking, a default @every 120m scan cadence, RFC1918 targets, and diode client credential placeholders in configuration/orb/agent.yaml.",
     "DNS management is provided by netbox-plugin-dns 1.5.5, which explicitly targets NetBox 4.5.0+ and handles zones, records, nameservers, and DNSSEC key templates natively inside NetBox.",
     "The Proxmox plugin (netbox-proxbox) version 0.0.10 is enabled with confirmed NetBox 4.5.x compatibility. For event-driven Proxmox automation without a plugin, see the NetBox Labs netbox-proxmox-automation project.",
     "The NetBox community device-type library is pinned by commit and imported through NetBox core bulk-import views rather than an external helper script.",
@@ -189,7 +189,7 @@
     "A full monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is generated as an optional 'monitoring' Compose profile based on enter-the-metrics. Prometheus scrapes the NetBox data plane and monitoring services; Grafana dashboards are provisioned from the pinned upstream repository.",
     "The netbox-geo-foss companion service integrates open-source geographic data (GeoNames, Natural Earth, OpenStreetMap) into NetBox via the REST API. It runs as a profiled one-shot service after the device-type-library import and requires a GeoNames username and the bootstrap API token.",
     "The generated plan now includes adjacent FOSS service recommendations for identity, password, link, and cloud workflows; deploy them beside the core stack rather than inside the generated NetBox Compose bundle.",
-    "An identity profile is generated with Authentik (SSO/OIDC identity provider) and Ory Hydra (OAuth2 server for Diode client-credentials). Both are deployed under the 'identity' Compose profile with dedicated Postgres instances and an isolated identity network segment (172.30.0.160/27). Start with: docker compose --profile identity up -d"
+    "Authentik (SSO/OIDC identity provider) is generated as the opt-in 'identity' Compose profile, while Ory Hydra (OAuth2 server for Diode client-credentials) starts with the default stack because diode-auth depends on it. Both use the isolated identity network segment (172.30.0.160/27). Start Authentik with: docker compose --profile identity up -d"
   ],
   "plugins": [
     {
@@ -326,15 +326,15 @@
     }
   ],
   "sizing": {
-    "housekeeping_interval_minutes": 15,
-    "netbox_worker_containers": 4,
-    "netbox_workers": 4,
-    "postgres_max_connections": 500,
-    "postgres_shared_buffers": "1GB",
-    "profile_name": "large"
+    "housekeeping_interval_minutes": 20,
+    "netbox_worker_containers": 2,
+    "netbox_workers": 2,
+    "postgres_max_connections": 300,
+    "postgres_shared_buffers": "512MB",
+    "profile_name": "medium"
   },
   "source_generator_version": "1.0.0",
-  "source_report": "deploy_output/reports/report.json",
+  "source_report": "/host-root/generated-report/report_20260410_232353.json",
   "tls": {
     "acme_email": null,
     "dns_provider": null,
@@ -342,6 +342,7 @@
     "mode": "self_signed"
   },
   "warnings": [
+    "Host is WSL-based. Prefer persistent Docker volumes and explicit backups over host package assumptions.",
     "The Proxmox plugin (netbox-proxbox) is enabled in this bundle using version 0.0.10 which explicitly targets NetBox 4.5.x. Validate in staging before production. For event-driven Proxmox automation without a plugin, the NetBox Labs netbox-proxmox-automation project (https://github.com/netboxlabs/netbox-proxmox-automation) provides a webhook-based alternative.",
     "The ACL plugin (netbox-acls) version 2.0.0 is enabled and explicitly targets NetBox 4.5.x in the upstream compatibility matrix.",
     "The Prometheus discovery plugin (netbox-prometheus-sd) is included but disabled because version 0.5 still imports the legacy extras.plugins API and fails on NetBox 4.5.x."

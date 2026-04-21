@@ -540,7 +540,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     restart: unless-stopped
     network_mode: host
     environment:
-      WAZUH_MANAGER: "wazuh-manager"
+      WAZUH_MANAGER_SERVER: "127.0.0.1"
       WAZUH_AGENT_NAME: "{plan.deployment_name}-wazuh-agent"
 
   orb-agent:
@@ -1033,6 +1033,24 @@ PG_MAX_CONNECTIONS={plan.sizing.postgres_max_connections}
 """
 
 
+def _render_public_netbox_url(plan: DeploymentPlan) -> str:
+    """Return the primary operator-facing NetBox URL."""
+
+    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
+        return f"https://{plan.tls.fqdn}"
+    if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
+        return f"https://{plan.host.service_ip}"
+    return "https://localhost"
+
+
+def _render_public_grafana_url(plan: DeploymentPlan) -> str:
+    """Return the primary operator-facing Grafana URL."""
+
+    if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
+        return f"http://{plan.host.service_ip}:3000"
+    return "http://localhost:3000"
+
+
 def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
     """Render the base Traefik dynamic config (works without identity profile).
 
@@ -1429,7 +1447,7 @@ def render_orb_agent_config() -> str:
           - "-T4"
           - "--min-rate=300"
           - "--max-retries=3"
-        timeout: 30m
+        timeout: 1800
     common:
       diode:
         target: grpc://127.0.0.1:18080
@@ -1442,7 +1460,7 @@ def render_orb_agent_config() -> str:
       default:
         config:
           schedule: "@every 120m"
-          timeout: 30m
+          timeout: 1800
         scope:
           targets:
             - 10.0.0.0/8
@@ -2894,6 +2912,8 @@ def render_summary_markdown(plan: DeploymentPlan) -> str:
     ]
     warning_lines = [f"- {warning}" for warning in plan.warnings] or ["- None"]
     note_lines = [f"- {note}" for note in plan.notes]
+    public_netbox_url = _render_public_netbox_url(plan)
+    public_grafana_url = _render_public_grafana_url(plan)
     permission_lines = [
         f"- {permission}" for permission in plan.device_type_library.least_privilege_permissions
     ]
@@ -3096,7 +3116,7 @@ runs on every stack start.
 
 ### 4. Access NetBox
 
-NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
+NetBox is available at **{public_netbox_url}** (port 443 in self-signed mode).
 
 - **Username**: `{plan.admin_privacy.bootstrap_username}`
 - **Password**: the value in `secrets/superuser_password`
@@ -3135,7 +3155,7 @@ docker compose --profile monitoring up -d
 The monitoring profile starts Grafana, Prometheus, Loki, Alloy, syslog-ng,
 node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once
 to download the Grafana performance overview dashboards from the pinned upstream
-repository. Grafana is then available at **http://localhost:3000** with the default
+repository. Grafana is then available at **{public_grafana_url}** with the default
 `admin`/`admin` credentials.
 
 ## Native Import Workflow

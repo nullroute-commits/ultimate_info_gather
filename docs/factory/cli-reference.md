@@ -1,11 +1,11 @@
 # CLI Reference
 
-The factory CLI is invoked via `python -m netbox_deployment_factory` or through the Docker CI workflow. This page documents all available flags.
+The factory CLI is invoked via an installed subproject environment (`netbox-deployment-factory` or `python3 -m netbox_deployment_factory`) or through the Docker CI workflow. This page documents the standalone factory flags.
 
 ## Usage
 
 ```bash
-python -m netbox_deployment_factory \
+python3 -m netbox_deployment_factory \
   --report <path> \
   --output-dir <path> \
   [options]
@@ -43,7 +43,7 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 ### Basic Debian Bundle
 
 ```bash
-python -m netbox_deployment_factory \
+python3 -m netbox_deployment_factory \
   --report report.json \
   --output-dir ./deploy \
   --host-ip 192.168.1.100 \
@@ -53,7 +53,7 @@ python -m netbox_deployment_factory \
 ### Alpine Track
 
 ```bash
-python -m netbox_deployment_factory \
+python3 -m netbox_deployment_factory \
   --report report.json \
   --output-dir ./deploy \
   --host-ip 192.168.1.100 \
@@ -64,7 +64,7 @@ python -m netbox_deployment_factory \
 ### Dynamic Network Sizing
 
 ```bash
-python -m netbox_deployment_factory \
+python3 -m netbox_deployment_factory \
   --report report.json \
   --output-dir ./deploy \
   --cidr-mode dynamic \
@@ -77,7 +77,7 @@ python -m netbox_deployment_factory \
 ### Let's Encrypt TLS with Custom Workers
 
 ```bash
-python -m netbox_deployment_factory \
+python3 -m netbox_deployment_factory \
   --report report.json \
   --output-dir ./deploy \
   --host-ip 203.0.113.10 \
@@ -99,6 +99,9 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 ```
 
 Setting `LOCAL_UID` and `LOCAL_GID` keeps generated files owned by the invoking host user instead of container root.
+
+!!! note
+    The root repository also contains `python3 -m src.deploy`, which is a separate end-to-end wrapper that performs collection before planning/rendering. Its flag set is different from the standalone factory CLI documented here.
 
 ## Environment Variables
 

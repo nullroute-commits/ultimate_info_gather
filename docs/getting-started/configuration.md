@@ -9,7 +9,7 @@ from src.orchestrator import InfoGatherOrchestrator
 
 orchestrator = InfoGatherOrchestrator(
     output_dir='./output',           # Output directory for reports
-    progress_callback=my_callback,    # Progress notification callback
+    progress_callback=my_callback,   # Progress notification callback
 )
 ```
 
@@ -101,12 +101,12 @@ Some data collection requires elevated privileges:
 !!! tip
     Run with `sudo` for complete information collection:
     ```bash
-    sudo python main.py
+    sudo python3 main.py
     ```
 
 ## Environment Variables
 
-The framework respects standard environment variables:
+The collectors inspect standard environment variables such as:
 
 | Variable | Purpose |
 |----------|---------|
@@ -115,3 +115,6 @@ The framework respects standard environment variables:
 | `TERM` | Terminal type |
 | `USER` | Current user |
 | `PATH` | Executable search paths |
+
+!!! note
+    These values are available on the in-memory models, but the current JSON serializers do not emit every captured environment-derived field.

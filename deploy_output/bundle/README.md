@@ -2,20 +2,20 @@
 
 ## Source
 
-- Report: deploy_output/reports/report.json
+- Report: /host-root/generated-report/report_20260410_232353.json
 - Generator version: 1.0.0
-- Deployment name: netbox-prod
+- Deployment name: netbox-deploy
 
 ## Host Summary
 
-- Hostname: runnervm35a4x
+- Hostname: DESKTOP-BSUBRIF
 - OS: Ubuntu 24.04.4 LTS (Noble Numbat)
-- Kernel: 6.17.0-1010-azure
+- Kernel: 6.6.87.2-microsoft-standard-WSL2
 - Architecture: x86_64
-- WSL: False
+- WSL: True
 - Docker capable: True
-- Memory total: 16770764800
-- Memory available: 14546034688
+- Memory total: 8329089024
+- Memory available: 2952966144
 
 ## Standards Alignment
 
@@ -31,10 +31,10 @@
 ## Images
 
 - NetBox: netboxcommunity/netbox:v4.5.7
-- PostgreSQL: postgres:18-alpine
-- Valkey: valkey/valkey:9-alpine
-- Track: alpine
-- Lifecycle reference: Alpine Linux 3.23.3
+- PostgreSQL: postgres:18
+- Valkey: valkey/valkey:9
+- Track: debian
+- Lifecycle reference: Debian 13.3 (Trixie)
 
 ## Enabled Plugins
 
@@ -61,9 +61,9 @@
 
 ## Container Orchestration
 
-- Worker containers: 4
+- Worker containers: 2
 - ORB config: `configuration/orb/agent.yaml`
-- ORB default schedule: `@every 60m`
+- ORB default schedule: `@every 120m`
 - ORB agent: optional `orb-discovery` profile using `netboxlabs/orb-agent` in host networking mode.
 - Diode stack: `diode-auth`, `diode-ingester`, and `diode-reconciler` services.
 - Diode credential setup: `diode-credential-setup` one-shot service
@@ -129,7 +129,7 @@
 - Network: identity (172.30.0.160/27)
 - Default services: hydra, hydra-migrate, hydra-bootstrap-clients, hydra-postgres
 - Profile services: authentik-server, authentik-worker, authentik-postgres
-- Rationale: Authentik provides a self-hosted OIDC/SAML identity provider for NetBox SSO. Ory Hydra provides the OAuth2/OIDC server required by diode-auth for client-credentials grants. Both are deployed under the 'identity' Compose profile with dedicated Postgres instances and an isolated identity network segment.
+- Rationale: Authentik provides a self-hosted OIDC/SAML identity provider for NetBox SSO and is exposed through the optional 'identity' Compose profile. Ory Hydra provides the OAuth2/OIDC server required by diode-auth for client-credentials grants and starts with the core stack. Both use the isolated identity network segment; Authentik adds a dedicated Postgres instance when the profile is enabled, while Hydra keeps its own dedicated Postgres service in the default stack.
 
 ### Start Authentik identity provider (optional)
 
@@ -182,8 +182,8 @@ Authentik forward-auth, rename `dynamic-identity.yml.disabled` to
 
 ## Privacy Controls
 
-- Bootstrap username: bootstrap-f76ada8f17
-- Bootstrap email: bootstrap-f76ada8f17@invalid.local
+- Bootstrap username: bootstrap-e689e3717a
+- Bootstrap email: bootstrap-e689e3717a@invalid.local
 - Rotation required: True
 - Rationale: Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.
 
@@ -228,7 +228,7 @@ This typically takes 2–5 minutes. Monitor progress with:
 
 ```bash
 docker compose ps
-docker logs netbox-prod-netbox-1 --tail 20
+docker logs netbox-deploy-netbox-1 --tail 20
 ```
 
 Once NetBox shows `(healthy)`, all dependent containers start automatically. If any
@@ -242,7 +242,7 @@ runs on every stack start.
 
 NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
 
-- **Username**: `bootstrap-f76ada8f17`
+- **Username**: `bootstrap-e689e3717a`
 - **Password**: the value in `secrets/superuser_password`
 
 The bootstrap account is intended only for first login and RBAC setup — rotate or
@@ -294,6 +294,7 @@ repository. Grafana is then available at **http://localhost:3000** with the defa
 
 ## Warnings
 
+- Host is WSL-based. Prefer persistent Docker volumes and explicit backups over host package assumptions.
 - The Proxmox plugin (netbox-proxbox) is enabled in this bundle using version 0.0.10 which explicitly targets NetBox 4.5.x. Validate in staging before production. For event-driven Proxmox automation without a plugin, the NetBox Labs netbox-proxmox-automation project (https://github.com/netboxlabs/netbox-proxmox-automation) provides a webhook-based alternative.
 - The ACL plugin (netbox-acls) version 2.0.0 is enabled and explicitly targets NetBox 4.5.x in the upstream compatibility matrix.
 - The Prometheus discovery plugin (netbox-prometheus-sd) is included but disabled because version 0.5 still imports the legacy extras.plugins API and fails on NetBox 4.5.x.
@@ -301,14 +302,14 @@ repository. Grafana is then available at **http://localhost:3000** with the defa
 ## Notes
 
 - Deployment follows the official netbox-docker plugin workflow baseline pinned to release 4.0.2.
-- Track 'alpine' is tied to Alpine Linux 3.23.3 for OS lifecycle alignment.
+- Track 'debian' is tied to Debian 13.3 (Trixie) for OS lifecycle alignment.
 - Topology, BGP, and DNS plugins are enabled because they have current NetBox 4.5 compatibility evidence from official NetBox Community sources. The DNS plugin (netbox-plugin-dns 1.5.5) explicitly declares min_version='4.5.0'.
 - The Diode plugin (netboxlabs-diode-netbox-plugin 1.9.0) is enabled by default and paired with generated diode-auth, diode-ingester, and diode-reconciler services so plugin and reconciler endpoints resolve in the composed deployment.
 - netbox-prometheus-sd 0.5 remains disabled by default until its compatibility requirements are satisfied for this generated bundle. netbox-acls 2.0.0 and netbox-proxbox 0.0.10 are now enabled with confirmed NetBox 4.5.x compatibility.
 - Requested plugins netbox-config-diff 2.14.2, netbox-floorplan-plugin 0.9.1, and netbox-inventory 2.5.1 are integrated by default using upstream compatibility metadata.
 - netbox-reorder-rack 1.1.4 is enabled as a community integration; validate in staging before production because upstream metadata does not publish a strict NetBox 4.5 compatibility matrix.
 - Worker-container orchestration is generated explicitly so RQ workers can scale as independent containers while preserving a deterministic startup dependency on NetBox health.
-- ORB is generated as an optional discovery profile using the official netboxlabs/orb-agent image and an agent.yaml config, with host networking, a default @every 60m scan cadence, RFC1918 targets, and diode client credential placeholders in configuration/orb/agent.yaml.
+- ORB is generated as an optional discovery profile using the official netboxlabs/orb-agent image and an agent.yaml config, with host networking, a default @every 120m scan cadence, RFC1918 targets, and diode client credential placeholders in configuration/orb/agent.yaml.
 - DNS management is provided by netbox-plugin-dns 1.5.5, which explicitly targets NetBox 4.5.0+ and handles zones, records, nameservers, and DNSSEC key templates natively inside NetBox.
 - The Proxmox plugin (netbox-proxbox) version 0.0.10 is enabled with confirmed NetBox 4.5.x compatibility. For event-driven Proxmox automation without a plugin, see the NetBox Labs netbox-proxmox-automation project.
 - The NetBox community device-type library is pinned by commit and imported through NetBox core bulk-import views rather than an external helper script.
@@ -317,4 +318,4 @@ repository. Grafana is then available at **http://localhost:3000** with the defa
 - A full monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) is generated as an optional 'monitoring' Compose profile based on enter-the-metrics. Prometheus scrapes the NetBox data plane and monitoring services; Grafana dashboards are provisioned from the pinned upstream repository.
 - The netbox-geo-foss companion service integrates open-source geographic data (GeoNames, Natural Earth, OpenStreetMap) into NetBox via the REST API. It runs as a profiled one-shot service after the device-type-library import and requires a GeoNames username and the bootstrap API token.
 - The generated plan now includes adjacent FOSS service recommendations for identity, password, link, and cloud workflows; deploy them beside the core stack rather than inside the generated NetBox Compose bundle.
-- An identity profile is generated with Authentik (SSO/OIDC identity provider) and Ory Hydra (OAuth2 server for Diode client-credentials). Both are deployed under the 'identity' Compose profile with dedicated Postgres instances and an isolated identity network segment (172.30.0.160/27). Start with: docker compose --profile identity up -d
+- Authentik (SSO/OIDC identity provider) is generated as the opt-in 'identity' Compose profile, while Ory Hydra (OAuth2 server for Diode client-credentials) starts with the default stack because diode-auth depends on it. Both use the isolated identity network segment (172.30.0.160/27). Start Authentik with: docker compose --profile identity up -d

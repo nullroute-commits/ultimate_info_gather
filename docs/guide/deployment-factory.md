@@ -5,6 +5,9 @@
 
 The `netbox_deployment_factory` subproject consumes JSON reports produced by Ultimate Info Gather and generates reproducible NetBox deployment bundles following current NetBox Labs and official netbox-docker practices.
 
+!!! note
+    This page documents the standalone factory subproject. The root repository also ships `python3 -m src.deploy`, which first collects live host data and then invokes planning/rendering/verification with a different CLI surface.
+
 ## Overview
 
 The factory operates as a **planner → renderer** pipeline:
@@ -264,7 +267,7 @@ The deployment uses a pseudonymous bootstrap admin identity:
 - Database, admin, Diode, and identity secrets are separated into distinct files.
 - The bootstrap account is intended only for first login, RBAC setup, and immediate rotation.
 
-See [`netbox_deployment_factory/docs/PRIVACY.md`](../../netbox_deployment_factory/docs/PRIVACY.md) for the full privacy model.
+See the [factory security and privacy guide](../factory/security.md) for the current privacy model.
 
 ## Adjacent Services
 
@@ -281,7 +284,7 @@ These are not included in the generated Compose bundle. Deploy them adjacent to 
 
 ## Further Reading
 
-- [netbox_deployment_factory/README.md](../../netbox_deployment_factory/README.md) — full deployment walkthrough and operational details
-- [netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md](../../netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md) — plugin compatibility evidence and feature rationale
-- [netbox_deployment_factory/docs/IMPLEMENTATION_PLAN.md](../../netbox_deployment_factory/docs/IMPLEMENTATION_PLAN.md) — execution plan and feature mapping
-- [netbox_deployment_factory/docs/PRIVACY.md](../../netbox_deployment_factory/docs/PRIVACY.md) — bootstrap admin privacy controls
+- [Factory quickstart](../factory/quickstart.md) — full deployment walkthrough and operational details
+- [Plugin catalog](../factory/plugins.md) — enabled and disabled plugin compatibility details
+- [Architecture](../factory/architecture.md) — planner/renderer pipeline and generated bundle structure
+- [Security & privacy](../factory/security.md) — bootstrap admin privacy controls

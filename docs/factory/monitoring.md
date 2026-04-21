@@ -31,7 +31,7 @@ docker compose --profile monitoring up -d
 
 | Service | URL | Default Credentials |
 |---------|-----|-------------------|
-| Grafana | `http://localhost:3000` | `admin` / `admin` |
+| Grafana | `http://<host-ip>:3000` | `admin` / `admin` |
 
 !!! warning "Change Grafana Password"
     Change the default Grafana password on first login.
@@ -100,7 +100,7 @@ The `scripts/fetch-monitoring-dashboards.sh` script downloads five preconfigured
 - Prometheus self-monitoring dashboard
 - Node Exporter host metrics dashboard
 
-These dashboards are stored in `configuration/monitoring/grafana/dashboards/performance_overview/` and provisioned automatically via the Grafana dashboard provisioner.
+These dashboards are stored in the generated Grafana dashboards directory and provisioned automatically via the Grafana dashboard provisioner.
 
 ## Prometheus Scrape Targets
 

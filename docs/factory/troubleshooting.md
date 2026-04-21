@@ -83,24 +83,11 @@ done
    docker compose up -d
    ```
 
-### Config Diff plugin credential placeholders
+### Config Diff plugin is not present
 
-**Symptom**: The config diff plugin shows errors about authentication.
+**Symptom**: You expect `netbox-config-diff` settings in `configuration/plugins.py`, but they are missing from the generated bundle.
 
-**Resolution**: Replace the `replace-me` placeholders in `configuration/plugins.py`:
-
-```python
-"netbox_config_diff": {
-    "USERNAME": "your-device-username",
-    "PASSWORD": "your-device-password",
-}
-```
-
-Then rebuild:
-```bash
-docker compose build netbox
-docker compose up -d
-```
+**Resolution**: This is expected. `netbox-config-diff==2.14.2` is intentionally disabled by default because it crashes NetBox 4.5.7 with a Strawberry `DuplicatedTypeName` error, so its runtime config is not rendered into `configuration/plugins.py`. Treat the absence of config as confirmation that the compatibility gate is active, not as a broken deployment.
 
 ## Diode Issues
 

@@ -4,6 +4,9 @@ This repository turns `ultimate_info_gather` JSON output into a reproducible Net
 
 All local CI/CD operations are Docker-localized. The host only needs Docker Compose; linting, type checking, tests, and bundle generation run inside the CI image defined in this repository.
 
+!!! note
+    From a plain checkout, the Docker-local workflow is the most reliable way to run the factory. The standalone Python module/entrypoint is intended for an installed subproject environment.
+
 The generated bundle is opinionated:
 
 - NetBox is treated as the source of truth for topology, IPAM, and network automation data.
@@ -38,15 +41,19 @@ The generated bundle is opinionated:
 - Wazuh agent: `wazuh/wazuh-agent:4.14.4`
 - Authentik: `ghcr.io/goauthentik/server:2026.2.2`
 - Ory Hydra: `oryd/hydra:v2.3.0`
-- Topology plugin: `netbox-topology-views==4.5.1`
-- BGP plugin: `netbox-bgp==0.18.1`
-- DNS plugin: `netbox-plugin-dns==1.5.5`
-- ACL plugin: `netbox-acls==2.0.0`
-- Config diff plugin: `netbox-config-diff==2.14.2`
-- Floorplan plugin: `netbox-floorplan-plugin==0.9.1`
-- Inventory plugin: `netbox-inventory==2.5.1`
-- Proxbox plugin: `netbox-proxbox==0.0.10`
-- Diode plugin: `netboxlabs-diode-netbox-plugin==1.9.0`
+- Enabled plugins:
+  - `netbox-topology-views==4.5.1`
+  - `netbox-bgp==0.18.1`
+  - `netbox-plugin-dns==1.5.5`
+  - `netbox-acls==2.0.0`
+  - `netbox-reorder-rack==1.1.4`
+  - `netboxlabs-diode-netbox-plugin==1.9.0`
+  - `netbox-proxbox==0.0.10`
+  - `netbox-floorplan-plugin==0.9.1`
+  - `netbox-inventory==2.5.1`
+- Disabled plugin specs kept for documentation and future enablement:
+  - `netbox-prometheus-sd==0.5` — disabled because the current release still imports the legacy `extras.plugins` API and does not load on NetBox 4.5.x
+  - `netbox-config-diff==2.14.2` — disabled because it triggers the strawberry `DuplicatedTypeName` crash on NetBox 4.5.7
 - Device type library repository: `netbox-community/devicetype-library` pinned by commit `cf50cfe`
 - Geographic data sidecar: built locally from `netbox-geo-foss` pinned at commit `50c3c16`
 - Monitoring stack: based on `enter-the-metrics` pinned at commit `706ed92`
@@ -119,6 +126,14 @@ docker compose -f docker-compose.ci.yml run --rm factory \
 ```
 
 The `/host-root/` prefix maps to the parent of `netbox_deployment_factory/` via the CI Compose bind mount.
+
+If you install the subproject as a package, the standalone CLI entrypoints are:
+
+```bash
+netbox-deployment-factory --report ./report.json --output-dir ./generated/netbox-deploy
+# or
+python3 -m netbox_deployment_factory --report ./report.json --output-dir ./generated/netbox-deploy
+```
 
 ### Step 4 — Populate secrets
 
@@ -242,7 +257,7 @@ docker compose --profile monitoring up -d
 
 This starts the full monitoring stack: Grafana, Prometheus, Loki, Alloy, syslog-ng, node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once to download the Grafana performance overview dashboards from the pinned upstream repository.
 
-Grafana is available at **http://localhost:3000** with the default `admin`/`admin` credentials. Change the password on first login.
+Grafana is available at **http://<host-ip>:3000** with the default `admin`/`admin` credentials. Change the password on first login.
 
 Prometheus scrapes metrics from the monitoring services and NetBox stack services on the `data` network. To forward syslogs to syslog-ng, configure the source device to send to `<host-ip>:514` (UDP) or `<host-ip>:601` (TCP).
 
@@ -381,7 +396,7 @@ Before the first `docker compose up -d`:
 4. Run `docker compose up -d`. On first boot, NetBox runs migrations before
    becoming healthy (2–5 minutes). Dependent services start automatically
    once the health check passes.
-5. Access NetBox at **https://localhost** (port 443, self-signed TLS certificate).
+5. Access NetBox at **https://<host-ip>** (port 443, self-signed TLS certificate by default, or `https://<fqdn>` in Let's Encrypt mode).
    Log in with the pseudonymous bootstrap credentials from `secrets/superuser_name`
    and `secrets/superuser_password`.
 
@@ -414,7 +429,7 @@ client_id: netbox-to-diode
 client_secret: replace-me
 ```
 
-The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 60m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
+The generated ORB defaults target RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), use `schedule: "@every 120m"` in `configuration/orb/agent.yaml`, and keep `dry_run: true` to stabilize discovery when Diode auth endpoints are unavailable.
 - Each network has an explicit CIDR allocation sized for its required host count (deterministic mode uses `172.30.0.0/27` through `172.30.0.160/27`; dynamic mode allocates from `172.31.0.0/16`).
 - NetBox application services drop all Linux capabilities and enable `no-new-privileges`.
 - The device-type-library import runs as a separate one-shot profile inside the NetBox image.
@@ -433,22 +448,22 @@ The generator now emits adjacent-service recommendations into the generated depl
 
 Deploy these services adjacent to the generated NetBox stack behind the same reverse proxy and chosen identity provider, then link them operationally through NetBox RBAC, runbooks, and exported artifacts.
 
-## Identity Profile (Authentik + Ory Hydra)
+## Identity Services (Authentik profile + core Ory Hydra)
 
-The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack:
+The generated bundle splits identity concerns between:
 
-- **Authentik** (`ghcr.io/goauthentik/server:2026.2.2`) — SSO/OIDC identity provider for NetBox remote authentication. Provides `authentik-server`, `authentik-worker`, and `authentik-bootstrap-netbox` services with a dedicated `authentik-postgres` database.
-- **Ory Hydra** (`oryd/hydra:v2.3.0`) — OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients` services with a dedicated `hydra-postgres` database.
+- **Authentik** (`ghcr.io/goauthentik/server:2026.2.2`) — optional `identity` profile for NetBox SSO/OIDC remote authentication. Provides `authentik-server`, `authentik-worker`, `authentik-bootstrap-netbox`, and a dedicated `authentik-postgres` database.
+- **Ory Hydra** (`oryd/hydra:v2.3.0`) — always-on OAuth2/OIDC server for Diode client-credentials grants. Provides `hydra`, `hydra-migrate`, `hydra-bootstrap-clients`, and a dedicated `hydra-postgres` database in the default stack.
 
-All identity services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
+These services use the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
 
-Start the identity stack:
+Start the optional Authentik profile:
 
 ```bash
 docker compose --profile identity up -d
 ```
 
-The NetBox `configuration/extra.py` enables `REMOTE_AUTH_ENABLED` with the `RemoteUserBackend` and reads the Authentik-forwarded username from `HTTP_X_AUTHENTIK_USERNAME` and email from `HTTP_X_AUTHENTIK_EMAIL`. The `authentik-bootstrap-netbox` init container runs `scripts/authentik-bootstrap-netbox.sh` to configure NetBox as an OAuth2 application in the Authentik instance. The `hydra-bootstrap-clients` init container provisions the Diode client-credentials OAuth2 client.
+The NetBox `configuration/extra.py` enables `REMOTE_AUTH_ENABLED` with the `RemoteUserBackend` and reads the Authentik-forwarded username from `HTTP_X_AUTHENTIK_USERNAME` and email from `HTTP_X_AUTHENTIK_EMAIL`. The `authentik-bootstrap-netbox` init container runs `scripts/authentik-bootstrap-netbox.sh` to configure NetBox as an OAuth2 application in the Authentik instance. The `hydra-bootstrap-clients` init container provisions the Diode client-credentials OAuth2 client, and Hydra starts automatically with the base stack because `diode-auth` depends on it.
 
 ## Device-Type Library Import
 
@@ -506,7 +521,7 @@ Start the monitoring stack:
 docker compose --profile monitoring up -d
 ```
 
-The dashboard fetch script downloads five preconfigured Grafana performance overview dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter) from the pinned upstream repository. Grafana is available at **http://localhost:3000** with default credentials `admin`/`admin`.
+The dashboard fetch script downloads five preconfigured Grafana performance overview dashboards (Docker, Grafana, Loki, Prometheus, Node Exporter) from the pinned upstream repository. Grafana is available at **http://<host-ip>:3000** with default credentials `admin`/`admin`.
 
 All monitoring services run on the isolated `monitoring` Docker network. Prometheus also joins the `data` network so it can scrape metrics from NetBox stack services. To add custom Prometheus scrape targets, edit `configuration/monitoring/prometheus/prometheus.yml`. To configure SNMP monitoring, add your device targets to the Prometheus config and set the appropriate community string in the snmp-exporter configuration.
 

@@ -25,6 +25,9 @@ class EnvironmentState:
     errors: list[str] = field(default_factory=list)
 ```
 
+!!! note
+    `environment_variables` is collected on the in-memory dataclass but is not currently included in `EnvironmentState.to_dict()`, so it does not appear in the serialized JSON report.
+
 ## Python Environment
 
 Captured Python runtime details:

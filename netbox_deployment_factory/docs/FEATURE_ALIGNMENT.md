@@ -87,7 +87,7 @@ The generated bundle includes an ORB discovery profile using the official NetBox
 - Config: `configuration/orb/agent.yaml`
 - Image: `netboxlabs/orb-agent:2.7.0`
 
-This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The generated default policy targets RFC1918 ranges, uses `schedule: "@every 60m"` to reduce default scan churn, and starts with `dry_run: true` for safer first boot behavior.
+This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The generated default policy targets RFC1918 ranges, uses `schedule: "@every 120m"` to reduce default scan churn, and starts with `dry_run: true` for safer first boot behavior.
 
 ## Adjacent FOSS Services
 
@@ -201,13 +201,13 @@ The generated compose file defines six isolated bridge networks with explicit CI
 In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28` block from `172.30.0.0/24`. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
 
 Services are placed on the minimum set of networks needed:
-- Traefik: `edge` + `app`
+- Traefik: `edge` + `app` (Authentik forward-auth remains reachable through the `app` network)
 - WAF: `app` + `data`
 - NetBox, workers, Postgres, Valkey, Diode, imports: `data`
 - ORB: host networking mode (`network_mode: host`)
-- Wazuh agent: `security`
+- Wazuh agent: host networking mode (`network_mode: host`)
 - Monitoring services: `monitoring` (Prometheus also joins `data` for scraping)
-- Authentik, Hydra, identity Postgres instances: `identity` (Diode services on `data` connect to Hydra through `identity`)
+- Authentik, Hydra, and their Postgres instances: `identity` (Diode services on `data` connect to Hydra through `identity`)
 
 ## Valkey
 
@@ -279,9 +279,9 @@ Operators enable the monitoring profile when they want self-contained observabil
 - Pinned ref: `706ed92`
 - License: BSD (compatible with MIT)
 
-## Identity Profile (Authentik + Ory Hydra)
+## Identity Services (Authentik profile + core Ory Hydra)
 
-The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack for SSO and OAuth2 client-credentials grants. The profile is optional and all services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode).
+The generated bundle splits identity services between an optional Authentik `identity` profile for SSO and an always-on Hydra core stack for Diode OAuth2 client-credentials grants. These services share the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode).
 
 ### Included Services
 
@@ -312,9 +312,9 @@ Authentik forwards the authenticated username and email via HTTP headers through
 
 Ory Hydra provides the OAuth2/OIDC server required by `diode-auth` for client-credentials grants. The `hydra-bootstrap-clients` init container provisions the Diode client using `scripts/setup-diode-credential.sh`. The `diode-auth` service on the `data` network connects to Hydra through the `identity` network for OAuth2 token exchange.
 
-### Why Profile-Gated
+### Why the Authentik Profile Is Optional
 
-The identity stack is optional because:
+The Authentik profile is optional because:
 1. Not all deployments need self-hosted SSO (some organizations use existing IdPs).
-2. Running Authentik and Hydra adds additional Postgres instances and resource overhead.
-3. The core NetBox stack works without SSO using the pseudonymous bootstrap account.
+2. Enabling Authentik adds another Postgres-backed application and extra resource overhead.
+3. The core NetBox stack still boots with the pseudonymous bootstrap account, while Hydra remains available for Diode.

@@ -18,7 +18,7 @@ cd ultimate_info_gather
 ### Create Virtual Environment
 
 ```bash
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 ```
 
@@ -45,7 +45,8 @@ source venv/bin/activate
 ## Verify Installation
 
 ```bash
-python -c "from src import InfoGatherOrchestrator; print('Installation successful!')"
+python3 -c "from src import InfoGatherOrchestrator; print('Installation successful!')"
+python3 main.py -q -f json
 ```
 
 ## Optional Dependencies
@@ -57,7 +58,7 @@ python -c "from src import InfoGatherOrchestrator; print('Installation successfu
 - `pytest-cov` - Coverage reporting
 - `mypy` - Type checking
 - `ruff` - Linting
-- `black` - Code formatting
+- `black` - Optional local formatting tool (configured, but not required by every workflow)
 
 ### For Documentation
 

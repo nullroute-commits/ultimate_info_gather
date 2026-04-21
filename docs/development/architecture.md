@@ -178,7 +178,7 @@ No single failure prevents overall collection.
 
 ## NetBox Deployment Factory Architecture
 
-The [`netbox_deployment_factory/`](../../netbox_deployment_factory/README.md) subproject is a downstream consumer of agent JSON output. It follows a planner–renderer pipeline architecture:
+The [`netbox_deployment_factory/`](../factory/index.md) subproject is a downstream consumer of agent JSON output. It follows a planner-renderer pipeline architecture:
 
 ```
 ┌──────────────────────────────────┐

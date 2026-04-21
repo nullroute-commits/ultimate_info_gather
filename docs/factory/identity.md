@@ -1,16 +1,16 @@
 # Identity Stack
 
-The generated bundle includes an `identity` Compose profile that deploys a self-hosted identity stack for SSO and OAuth2 integration with NetBox.
+The generated bundle splits identity services between an **optional Authentik `identity` profile** for NetBox SSO and an **always-on Ory Hydra core stack** that Diode depends on for OAuth2 client-credentials grants.
 
 ## Components
 
-| Service | Image | Purpose |
-|---------|-------|---------|
-| Authentik server | `ghcr.io/goauthentik/server:2026.2.2` | SSO/OIDC identity provider |
-| Authentik worker | Same as server | Background task worker |
-| Authentik PostgreSQL | Track-dependent | Dedicated database |
-| Ory Hydra | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode |
-| Hydra PostgreSQL | Track-dependent | Dedicated database |
+| Service | Image | Lifecycle | Purpose |
+|---------|-------|-----------|---------|
+| Authentik server | `ghcr.io/goauthentik/server:2026.2.2` | `identity` profile | SSO/OIDC identity provider |
+| Authentik worker | Same as server | `identity` profile | Background task worker |
+| Authentik PostgreSQL | Track-dependent | `identity` profile | Dedicated database |
+| Ory Hydra | `oryd/hydra:v2.3.0` | Core stack | OAuth2/OIDC server for Diode |
+| Hydra PostgreSQL | Track-dependent | Core stack | Dedicated database |
 
 ## Architecture
 
@@ -90,11 +90,11 @@ The `hydra-bootstrap-clients` init container automatically registers the Diode a
 
 The `hydra-migrate` init container runs Hydra database migrations before the main Hydra service starts.
 
-## Starting the Identity Stack
+## Starting the Authentik Profile
 
 ### Prerequisites
 
-Populate the identity secrets before starting:
+Populate the Authentik identity secrets before starting the optional profile:
 
 ```bash
 cd secrets
@@ -110,6 +110,8 @@ cd ..
 ```bash
 docker compose --profile identity up -d
 ```
+
+Hydra and its database/migration/bootstrap services start with the default stack because `diode-auth` depends on them.
 
 ## Generated Artifacts
 
@@ -127,7 +129,7 @@ docker compose --profile identity up -d
 
 ## Network Isolation
 
-All identity services run on the isolated `identity` network segment (`172.30.0.160/27` in deterministic mode). Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
+The isolated `identity` network segment (`172.30.0.160/27` in deterministic mode) carries Hydra core services plus the optional Authentik profile. Diode services on the `data` network connect to Hydra through the `identity` network for OAuth2 token exchange.
 
 ## Compose Services
 

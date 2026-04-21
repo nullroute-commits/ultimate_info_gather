@@ -2,7 +2,7 @@
 
 Welcome to the Ultimate Info Gather documentation!
 
-**Ultimate Info Gather** is an async Python 3.11+ OOP framework for comprehensive system information collection, permission analysis, and hardware/software inventory.
+**Ultimate Info Gather** is an async Python 3.11+ system inspection framework for environment, permissions, hardware, network, and software inventory, with an optional downstream NetBox deployment pipeline.
 
 ## Features
 
@@ -60,14 +60,20 @@ async def main():
 asyncio.run(main())
 ```
 
+CLI usage from the repository root:
+
+```bash
+python3 main.py -o ./output -f json markdown
+```
+
 ## Collection Objectives
 
-The framework is designed around four main objectives:
+The current codebase is organized around three collection phases plus reporting:
 
-1. **Objective 1**: Collect current environment and determine running state
-2. **Objective 2**: Determine permissions level and available resources
-3. **Objective 3**: Collect all hardware/software and determine access levels
-4. **Objective 4**: Generate comprehensive documentation
+1. **Environment**: runtime, process, platform, execution context
+2. **Permissions**: identity, groups, capabilities, file access, resource limits
+3. **Hardware + Network + Software**: collected in parallel after permissions
+4. **Reporting**: aggregate to `SystemReport` and emit JSON/Markdown/text
 
 ## Getting Started
 
@@ -90,7 +96,14 @@ graph LR
 
 ## NetBox Deployment Factory
 
-The [`netbox_deployment_factory`](factory/index.md) subproject consumes system reports and generates production-ready NetBox deployment bundles including Docker Compose services, plugin configuration, Traefik TLS reverse proxy, monitoring stack, and identity integration. See the [Deployment Factory documentation](factory/index.md) for comprehensive, multiperspective guides covering [quickstart](factory/quickstart.md), [architecture](factory/architecture.md), [plugins](factory/plugins.md), [networking](factory/networking.md), [security](factory/security.md), and more.
+The [`netbox_deployment_factory`](factory/index.md) subproject consumes system reports and generates NetBox deployment bundles including Compose services, plugin configuration, Traefik, a WAF, monitoring, and optional identity services.
+
+The repository has **two different CLIs** around this flow:
+
+- the root deployment pipeline: `python3 -m src.deploy`
+- the standalone factory package: Docker workflow or an installed `netbox-deployment-factory` command from the subproject
+
+The factory pages document that distinction explicitly.
 
 ## Requirements
 

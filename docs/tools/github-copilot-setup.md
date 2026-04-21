@@ -27,8 +27,8 @@ The script automatically:
 1. Detects your device capabilities
 2. Installs Node.js and npm (if needed)
 3. Installs GitHub CLI
-4. Detects gh CLI version and handles built-in copilot (v2.14.0+) or installs as extension
-5. Authenticates with GitHub
+4. Detects whether `gh copilot` is built in (`gh` v2.14.0+) or still needs the legacy extension path
+5. Attempts GitHub authentication
 6. Verifies the installation
 
 ### Important Notes
@@ -89,6 +89,9 @@ The installer requires an `id_player1` credential file containing either a GitHu
    - Add it at [GitHub Settings > SSH Keys](https://github.com/settings/keys)
 
 3. **The private key** will be used by the installer
+
+!!! warning
+    SSH credentials only configure git-over-SSH. They do **not** fully authenticate the `gh` CLI. For reliable Copilot setup, use a Personal Access Token in `id_player1`.
 
 ### Credential File Locations
 
@@ -157,12 +160,7 @@ If the automated installation fails, you can install components manually:
    # See platform-specific instructions below
    ```
 
-3. **Install Copilot extension**:
-   ```bash
-   gh extension install github/gh-copilot
-   ```
-
-4. **Authenticate**:
+3. **Authenticate**:
    ```bash
    # With token
    echo "your_token" | gh auth login --with-token
@@ -213,7 +211,10 @@ chmod +x /usr/bin/gh
 opkg update
 opkg install node node-npm
 
-# Install Copilot extension
+# For gh v2.14.0+, copilot should be built in
+gh copilot --help
+
+# Only use the extension path on older gh releases
 gh extension install github/gh-copilot
 ```
 
@@ -383,9 +384,9 @@ python3.11 install_github_copilot.py
    - Download appropriate architecture
    - Extract and move to `/usr/bin/gh`
 
-### Issue: Copilot extension installation failed
+### Issue: Copilot install or verification failed
 
-**Error**: `❌ Failed to install extension`
+**Error**: `❌ Failed to install extension` or Copilot verification failures after install
 
 **Solutions**:
 1. **Ensure GitHub CLI is installed**:
@@ -393,17 +394,23 @@ python3.11 install_github_copilot.py
    gh --version
    ```
 
-2. **Authenticate first**:
+2. **Check whether your gh build already includes Copilot**:
    ```bash
-   gh auth login
+   gh --version
+   gh copilot --help
    ```
 
-3. **Manual extension install**:
+3. **Authenticate first with a token if gh is present but not logged in**:
+   ```bash
+   echo "your_token" | gh auth login --with-token
+   ```
+
+4. **Only on older gh releases, install the legacy extension manually**:
    ```bash
    gh extension install github/gh-copilot
    ```
 
-4. **Check extension list**:
+5. **Check the extension list if you are intentionally using the legacy path**:
    ```bash
    gh extension list
    ```
@@ -424,17 +431,21 @@ python3.11 install_github_copilot.py
 
 3. **Manual authentication**:
    ```bash
-   # Interactive
-   gh auth login
-   
    # With token
    echo "your_token" | gh auth login --with-token
+
+   # Interactive fallback
+   gh auth login
    ```
 
 4. **Check auth status**:
    ```bash
    gh auth status
    ```
+
+5. **If you used an SSH key in `id_player1`**:
+   - the installer only configures `~/.ssh/id_player1` and SSH host settings for git
+   - run `gh auth login` or `gh auth login --with-token` separately for the `gh` CLI
 
 ### Issue: Copilot verification failed on OpenWrt/aarch64
 

@@ -7,7 +7,7 @@ Thank you for your interest in contributing to Ultimate Info Gather!
 1. Fork and clone the repository
 2. Create a virtual environment:
    ```bash
-   python3.11 -m venv venv
+   python3 -m venv venv
    source venv/bin/activate
    ```
 3. Install development dependencies:
@@ -17,41 +17,48 @@ Thank you for your interest in contributing to Ultimate Info Gather!
 
 ## Code Style
 
-We use the following tools:
+The repository is configured for these tools:
 
-- **Black** for code formatting
 - **Ruff** for linting
 - **MyPy** for type checking
+- **Black** for optional local formatting
 
 Run checks:
 
 ```bash
-# Format code
-black src/ tests/
-
 # Lint
-ruff check src/ tests/
+ruff check src/ tests/ main.py install_github_copilot.py
 
 # Type check
 mypy src/
+
+# Optional formatting
+black src/ tests/
 ```
 
 ## Testing
 
-Run tests with pytest:
+Run the root package tests with pytest:
 
 ```bash
-# All tests
-pytest
+# Root package tests
+python3 -m pytest tests/ -o addopts=""
 
 # With coverage
-pytest --cov=src --cov-report=html
+python3 -m pytest tests/ --cov=src --cov-report=html -o addopts=""
 
 # Specific test file
-pytest tests/test_environment.py
+python3 -m pytest tests/test_environment.py -o addopts=""
 
 # Verbose output
-pytest -v
+python3 -m pytest -v tests/ -o addopts=""
+```
+
+Factory unit tests live in the subproject:
+
+```bash
+cd netbox_deployment_factory
+PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
 ```
 
 ## Pull Request Process

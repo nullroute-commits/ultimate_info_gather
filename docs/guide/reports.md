@@ -24,6 +24,14 @@ class SystemReport:
 `report_metadata`, `environment`, `permissions`, `hardware`, `network`, and
 `software`.
 
+## Current Serialization Behavior
+
+The top-level structure is stable, but some nested sections intentionally or currently serialize summaries instead of full in-memory state:
+
+- `environment` omits `environment_variables`
+- `software` emits counts and samples instead of full package, service, and process lists
+- `software.process_count` reflects the captured process list, and process capture is currently capped at 100 entries
+
 ## Output Formats
 
 ### JSON Format
@@ -63,6 +71,8 @@ JSON structure:
   "software": { ... }
 }
 ```
+
+Consumers should treat the serialized report as the source of truth for on-disk integrations instead of assuming every in-memory dataclass field is present.
 
 ### Markdown Format
 

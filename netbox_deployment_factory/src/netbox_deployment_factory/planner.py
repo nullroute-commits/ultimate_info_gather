@@ -273,10 +273,13 @@ def _derive_identity_profile() -> IdentityProfile:
         hydra_image=HYDRA_IMAGE,
         rationale=(
             "Authentik provides a self-hosted OIDC/SAML identity provider for "
-            "NetBox SSO. Ory Hydra provides the OAuth2/OIDC server required by "
-            "diode-auth for client-credentials grants. Both are deployed under "
-            "the 'identity' Compose profile with dedicated Postgres instances "
-            "and an isolated identity network segment."
+            "NetBox SSO and is exposed through the optional 'identity' Compose "
+            "profile. Ory Hydra provides the OAuth2/OIDC server required by "
+            "diode-auth for client-credentials grants and starts with the core "
+            "stack. Both use the isolated identity network segment; Authentik "
+            "adds a dedicated Postgres instance when the profile is enabled, "
+            "while Hydra keeps its own dedicated Postgres service in the "
+            "default stack."
         ),
     )
 
@@ -530,7 +533,7 @@ def _collect_notes(track: str) -> list[str]:
         (
             "ORB is generated as an optional discovery profile using the "
             "official netboxlabs/orb-agent image and an agent.yaml config, "
-            "with host networking, a default @every 60m scan cadence, RFC1918 "
+            "with host networking, a default @every 120m scan cadence, RFC1918 "
             "targets, and diode client credential placeholders in "
             "configuration/orb/agent.yaml."
         ),
@@ -581,11 +584,12 @@ def _collect_notes(track: str) -> list[str]:
             "the generated NetBox Compose bundle."
         ),
         (
-            "An identity profile is generated with Authentik (SSO/OIDC identity "
-            "provider) and Ory Hydra (OAuth2 server for Diode client-credentials). "
-            "Both are deployed under the 'identity' Compose profile with dedicated "
-            "Postgres instances and an isolated identity network segment "
-            "(172.30.0.160/27). Start with: docker compose --profile identity up -d"
+            "Authentik (SSO/OIDC identity provider) is generated as the opt-in "
+            "'identity' Compose profile, while Ory Hydra (OAuth2 server for "
+            "Diode client-credentials) starts with the default stack because "
+            "diode-auth depends on it. Both use the isolated identity network "
+            "segment (172.30.0.160/27). Start Authentik with: docker compose "
+            "--profile identity up -d"
         ),
     ]
 

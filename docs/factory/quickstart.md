@@ -65,6 +65,12 @@ docker compose -f docker-compose.ci.yml build factory
 
 The `/host-root/` prefix maps to the parent of `netbox_deployment_factory/` via the CI Compose bind mount.
 
+If you install the subproject as a package, you can run the standalone factory CLI directly instead of using Docker:
+
+```bash
+netbox-deployment-factory --report ./report.json --output-dir ./generated/netbox-deploy
+```
+
 ## Step 4 — Populate Secrets
 
 Enter the generated bundle directory and create real secret files from the examples:
@@ -201,7 +207,7 @@ See [Sidecar Services](sidecars.md#geographic-data-netbox-geo-foss) for details.
 docker compose --profile monitoring up -d
 ```
 
-Grafana is available at **http://localhost:3000** with the default `admin`/`admin` credentials. Change the password on first login.
+Grafana is available at **http://<host-ip>:3000** with the default `admin`/`admin` credentials. Change the password on first login.
 
 See [Monitoring Stack](monitoring.md) for details.
 

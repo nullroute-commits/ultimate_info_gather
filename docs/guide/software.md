@@ -33,6 +33,15 @@ class SoftwareInfo:
     errors: list[str] = field(default_factory=list)
 ```
 
+## Serialization Caveats
+
+The in-memory `SoftwareInfo` model is richer than the current JSON output:
+
+- `to_dict()` emits `installed_packages_count` plus `installed_packages_sample`, not the full installed package list
+- it emits `system_services_count`/`system_services_sample` and `running_processes_sample`
+- `environment_variables` and `path_directories` are not currently serialized
+- `process_count` reflects the captured process list, and the collector currently caps that list at 100 entries
+
 ## Operating System Info
 
 | Field | Description |
@@ -122,7 +131,7 @@ Detected runtimes:
 
 ## Running Processes
 
-Top processes:
+Captured process sample:
 
 | Field | Description |
 |-------|-------------|
@@ -136,6 +145,8 @@ Top processes:
 | `memory_bytes` | Memory in bytes |
 | `num_threads` | Thread count |
 | `create_time` | Start time |
+
+The current implementation does not populate full per-process CPU and memory accounting and intentionally truncates the process capture list after 100 entries.
 
 ## Access Capabilities
 
