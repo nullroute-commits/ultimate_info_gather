@@ -282,6 +282,7 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_healthy
     volumes:
       - ./configuration/waf/default.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./configuration/waf/api-methods-before.conf:/etc/modsecurity.d/owasp-crs/plugins/api-methods-before.conf:ro
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -1199,6 +1200,29 @@ http:
       headers:
         customRequestHeaders:
           X-Forwarded-Proto: "https"
+"""
+
+
+def render_waf_modsec_api_rules() -> str:
+    """Render the ModSecurity before-CRS plugin rule that permits REST methods on /api/.
+
+    The OWASP CRS default tx.allowed_methods is 'GET HEAD POST OPTIONS' (rule 911100).
+    This before-CRS plugin rule overrides the variable for /api/ requests so that
+    PATCH, PUT, and DELETE are permitted — required for pynetbox and any REST API client.
+    Non-API paths retain the restrictive CRS default.
+    """
+
+    return """\
+# Allow full REST methods (PUT PATCH DELETE) on /api/ paths.
+# CRS rule 911100 checks tx.allowed_methods; this before-CRS plugin rule
+# overrides that variable for API requests before rule 911100 fires.
+SecRule REQUEST_URI "@beginsWith /api/" \\
+    "id:9110001,\\
+    phase:1,\\
+    pass,\\
+    nolog,\\
+    msg:'REST methods permitted on /api/',\\
+    setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE'"
 """
 
 
@@ -3258,6 +3282,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
             render_traefik_identity_config(plan)
         ),
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
+        output_dir / "configuration" / "waf" / "api-methods-before.conf": render_waf_modsec_api_rules(),
         output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
         output_dir / "env" / "postgres.env": render_postgres_env(plan),

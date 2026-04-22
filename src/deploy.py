@@ -70,6 +70,7 @@ _REQUIRED_BUNDLE_FILES: list[str] = [
     "configuration/plugins.py",
     "configuration/traefik/dynamic.yml",
     "configuration/waf/default.conf",
+    "configuration/waf/api-methods-before.conf",
     "configuration/orb/agent.yaml",
     "configuration/monitoring/prometheus/prometheus.yml",
     "configuration/monitoring/loki/loki-config.yml",

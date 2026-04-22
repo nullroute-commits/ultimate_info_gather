@@ -48,6 +48,7 @@ services:
         condition: service_healthy
     volumes:
       - ./configuration/waf/default.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./configuration/waf/api-methods-before.conf:/etc/modsecurity.d/owasp-crs/plugins/api-methods-before.conf:ro
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
