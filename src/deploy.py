@@ -100,6 +100,8 @@ _REQUIRED_BUNDLE_FILES: list[str] = [
     "scripts/import-geo-data.py",
     "scripts/fetch-monitoring-dashboards.sh",
     "secrets/.gitignore",
+    "secrets/authentik_admin_password.example",
+    "secrets/grafana_admin_password.example",
 ]
 
 # Compose service names that must appear as top-level service keys.

@@ -583,6 +583,8 @@ def render_compose(plan: DeploymentPlan) -> str:
         condition: service_completed_successfully
     env_file:
       - env/monitoring.env
+    secrets:
+      - grafana_admin_password
     ports:
       - "{plan.host.service_ip}:3000:3000"
     volumes:
@@ -787,6 +789,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     secrets:
       - authentik_secret_key
       - authentik_pg_password
+      - authentik_admin_password
     entrypoint: ["/bin/sh", "/opt/authentik/bootstrap/authentik-bootstrap-netbox.sh"]
     volumes:
       - ./scripts:/opt/authentik/bootstrap:ro
@@ -944,6 +947,10 @@ secrets:
     file: secrets/authentik_secret_key
   authentik_pg_password:
     file: secrets/authentik_pg_password
+  authentik_admin_password:
+    file: secrets/authentik_admin_password
+  grafana_admin_password:
+    file: secrets/grafana_admin_password
   hydra_pg_password:
     file: secrets/hydra_pg_password
   hydra_system_secret:
@@ -1381,10 +1388,34 @@ PY
 
 
 def render_authentik_netbox_bootstrap_script() -> str:
-  """Render a one-shot script that provisions Authentik for NetBox forward auth."""
+  """Render a one-shot script that provisions Authentik for NetBox forward auth.
+
+  Also sets the akadmin password from the authentik_admin_password secret so
+  the admin credential is deterministic across greenfield deployments.
+  """
 
   return '''#!/bin/sh
 set -eu
+
+# Set the akadmin password from the dedicated secret so it is deterministic
+# across greenfield deployments rather than Authentik's random bootstrap token.
+if [ -f /run/secrets/authentik_admin_password ]; then
+  export AKADMIN_PW
+  AKADMIN_PW="$(cat /run/secrets/authentik_admin_password | tr -d '\\n')"
+  /ak-root/.venv/bin/python -u -m manage shell <<PYEOF
+import os
+from authentik.core.models import User
+pw = os.environ.get('AKADMIN_PW', '').strip()
+if pw:
+    u = User.objects.filter(username='akadmin').first()
+    if u:
+        u.set_password(pw)
+        u.save()
+        print('authentik-bootstrap-netbox: akadmin password set from secret')
+    else:
+        print('authentik-bootstrap-netbox: akadmin user not found, skipping')
+PYEOF
+fi
 
 /ak-root/.venv/bin/python -u -m manage shell <<'PY'
 import os
@@ -1616,12 +1647,14 @@ set -eu
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SECRETS_DIR="$SCRIPT_DIR/secrets"
 DIODE_ENV="$SCRIPT_DIR/env/diode.env"
+ORB_AGENT_YAML="$SCRIPT_DIR/configuration/orb/agent.yaml"
 
 read_secret() { cat "$SECRETS_DIR/$1" | tr -d '\n'; }
 
 redis_pw="$(read_secret diode_redis_password)"
 pg_pw="$(read_secret db_password)"
 netbox_to_diode="$(read_secret netbox_to_diode)"
+diode_client_secret="$(read_secret diode_client_secret)"
 
 sed -i \
     -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${redis_pw}|" \
@@ -1630,6 +1663,15 @@ sed -i \
     "$DIODE_ENV"
 
 echo "env/diode.env updated with real secret values."
+
+# The ORB agent reads its OAuth2 client_secret directly from agent.yaml
+# (no _FILE pattern available). Substitute the placeholder before first start.
+if [ -f "$ORB_AGENT_YAML" ]; then
+    sed -i \
+        -e "s|client_secret: replace-me|client_secret: ${diode_client_secret}|" \
+        "$ORB_AGENT_YAML"
+    echo "configuration/orb/agent.yaml updated with real diode_client_secret."
+fi
 """
 
 
@@ -2909,6 +2951,7 @@ def render_monitoring_env() -> str:
 GF_ANALYTICS_REPORTING_ENABLED=false
 GF_ANALYTICS_CHECK_FOR_UPDATES=true
 GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=true
+GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password
 """
 
 
@@ -3409,6 +3452,12 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         ),
         output_dir / "secrets" / "authentik_pg_password.example": (
           "replace-with-authentik-postgres-password\n"
+        ),
+        output_dir / "secrets" / "authentik_admin_password.example": (
+          "replace-with-authentik-akadmin-password\n"
+        ),
+        output_dir / "secrets" / "grafana_admin_password.example": (
+          "replace-with-grafana-admin-password\n"
         ),
         output_dir / "secrets" / "hydra_pg_password.example": (
           "replace-with-hydra-postgres-password\n"
