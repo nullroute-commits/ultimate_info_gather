@@ -44,7 +44,7 @@
     }
   ],
   "admin_privacy": {
-    "bootstrap_email": "bootstrap-e689e3717a@invalid.local",
+    "bootstrap_email": "bootstrap-9214618f01@invalid.local",
     "bootstrap_secret_files": [
       "api_token_pepper_1",
       "secret_key",
@@ -53,11 +53,11 @@
       "superuser_password",
       "superuser_api_token"
     ],
-    "bootstrap_username": "bootstrap-e689e3717a",
+    "bootstrap_username": "bootstrap-9214618f01",
     "rationale": "Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.",
     "rotation_required": true
   },
-  "deployment_name": "netbox-deploy",
+  "deployment_name": "netbox-stack",
   "device_type_library": {
     "import_service_name": "device-type-library-import",
     "least_privilege_permissions": [
@@ -93,7 +93,7 @@
   },
   "host": {
     "architecture": "x86_64",
-    "available_memory_bytes": 2952966144,
+    "available_memory_bytes": 3196280832,
     "can_install_packages": false,
     "default_gateway": "172.30.176.1",
     "docker_capable": true,
@@ -108,7 +108,7 @@
     ],
     "operating_system": "Ubuntu",
     "operating_system_version": "24.04.4 LTS (Noble Numbat)",
-    "service_ip": "192.168.1.179",
+    "service_ip": "172.30.186.102",
     "total_memory_bytes": 8329089024
   },
   "identity": {
@@ -296,11 +296,11 @@
         "PASSWORD": "replace-me",
         "USERNAME": "replace-me"
       },
-      "enabled": true,
+      "enabled": false,
       "install_when_disabled": false,
       "module_name": "netbox_config_diff",
       "package_name": "netbox-config-diff",
-      "rationale": "Requested integration from https://github.com/miaow2/netbox-config-diff. Upstream PluginConfig declares min_version='4.5.0' and max_version='4.5.99'.",
+      "rationale": "Requested integration from https://github.com/miaow2/netbox-config-diff. Upstream PluginConfig declares min_version='4.5.0' and max_version='4.5.99'. Disabled by default: v2.14.2 triggers a strawberry DuplicatedTypeName('StrFilterLookup') error on NetBox 4.5.7 that prevents the application from starting. Re-enable when upstream releases a compatible version.",
       "support_tier": "community",
       "version": "2.14.2"
     },
@@ -334,7 +334,7 @@
     "profile_name": "medium"
   },
   "source_generator_version": "1.0.0",
-  "source_report": "/host-root/generated-report/report_20260410_232353.json",
+  "source_report": "output/report_20260408_084842.json",
   "tls": {
     "acme_email": null,
     "dns_provider": null,

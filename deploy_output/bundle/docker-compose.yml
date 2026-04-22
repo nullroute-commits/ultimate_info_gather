@@ -25,7 +25,7 @@ services:
       - --entrypoints.websecure.address=:443
       - --log.level=INFO
     ports:
-      - "192.168.1.179:443:443" 
+      - "172.30.186.102:443:443" 
     volumes:
       - traefik-certs:/certs:ro
       - ./configuration/traefik:/etc/traefik/dynamic:ro
@@ -147,7 +147,7 @@ services:
       dockerfile: Dockerfile-Plugins
       args:
         NETBOX_IMAGE: netboxcommunity/netbox:v4.5.7
-    image: netbox-deploy:local
+    image: netbox-stack:local
     restart: unless-stopped
     depends_on:
       postgres:
@@ -190,7 +190,7 @@ services:
       - data
 
   netbox-worker:
-    image: netbox-deploy:local
+    image: netbox-stack:local
     restart: unless-stopped
     depends_on:
       postgres:
@@ -217,7 +217,7 @@ services:
       - data
 
   netbox-worker-2:
-    image: netbox-deploy:local
+    image: netbox-stack:local
     restart: unless-stopped
     depends_on:
       postgres:
@@ -244,7 +244,7 @@ services:
       - data
 
   netbox-superuser-sync:
-    image: netbox-deploy:local
+    image: netbox-stack:local
     restart: "no"
     depends_on:
       netbox:
@@ -271,7 +271,7 @@ services:
       - data
 
   diode-credential-setup:
-    image: netbox-deploy:local
+    image: netbox-stack:local
     restart: "no"
     depends_on:
       netbox:
@@ -297,7 +297,7 @@ services:
 
   device-type-library-import:
     profiles: ["device-type-library-import"]
-    image: netbox-deploy:local
+    image: netbox-stack:local
     restart: "no"
     depends_on:
       netbox:
@@ -329,7 +329,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-GeoFoss
-    image: netbox-deploy-geo-foss:local
+    image: netbox-stack-geo-foss:local
     restart: "no"
     depends_on:
       netbox:
@@ -359,7 +359,7 @@ services:
     network_mode: host
     environment:
       WAZUH_MANAGER_SERVER: "127.0.0.1"
-      WAZUH_AGENT_NAME: "netbox-deploy-wazuh-agent"
+      WAZUH_AGENT_NAME: "netbox-stack-wazuh-agent"
 
   orb-agent:
     image: netboxlabs/orb-agent:2.7.0
@@ -401,7 +401,7 @@ services:
     env_file:
       - env/monitoring.env
     ports:
-      - "192.168.1.179:3000:3000"
+      - "172.30.186.102:3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - grafana-dashboards:/var/lib/grafana/dashboards:ro
@@ -447,7 +447,7 @@ services:
       - /etc/alloy/config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
-      - "192.168.1.179:1514:1514"
+      - "172.30.186.102:1514:1514"
       - "127.0.0.1:1514:1514"
     volumes:
       - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
@@ -513,10 +513,15 @@ services:
     image: postgres:18
     profiles: ["identity"]
     restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export POSTGRES_PASSWORD="$(cat /run/secrets/authentik_pg_password)"
+        exec docker-entrypoint.sh postgres
     environment:
       POSTGRES_DB: authentik
       POSTGRES_USER: authentik
-      POSTGRES_PASSWORD_FILE: /run/secrets/authentik_pg_password
     secrets:
       - authentik_pg_password
     volumes:
@@ -594,7 +599,7 @@ services:
     env_file:
       - env/authentik.env
     environment:
-      NETBOX_PUBLIC_URL: https://192.168.1.179
+      NETBOX_PUBLIC_URL: https://172.30.186.102
       NETBOX_INTERNAL_URL: http://waf:8081
     secrets:
       - authentik_secret_key
@@ -615,10 +620,15 @@ services:
   hydra-postgres:
     image: postgres:18
     restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export POSTGRES_PASSWORD="$(cat /run/secrets/hydra_pg_password)"
+        exec docker-entrypoint.sh postgres
     environment:
       POSTGRES_DB: hydra
       POSTGRES_USER: hydra
-      POSTGRES_PASSWORD_FILE: /run/secrets/hydra_pg_password
     secrets:
       - hydra_pg_password
     volumes:

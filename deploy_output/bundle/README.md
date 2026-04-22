@@ -2,9 +2,9 @@
 
 ## Source
 
-- Report: /host-root/generated-report/report_20260410_232353.json
+- Report: output/report_20260408_084842.json
 - Generator version: 1.0.0
-- Deployment name: netbox-deploy
+- Deployment name: netbox-stack
 
 ## Host Summary
 
@@ -15,7 +15,7 @@
 - WSL: True
 - Docker capable: True
 - Memory total: 8329089024
-- Memory available: 2952966144
+- Memory available: 3196280832
 
 ## Standards Alignment
 
@@ -45,7 +45,6 @@
 - netbox_reorder_rack (netbox-reorder-rack==1.1.4) [community]
 - netbox_diode_plugin (netboxlabs-diode-netbox-plugin==1.9.0) [supported-netboxlabs]
 - netbox_proxbox (netbox-proxbox==0.0.10) [community]
-- netbox_config_diff (netbox-config-diff==2.14.2) [community]
 - netbox_floorplan (netbox-floorplan-plugin==0.9.1) [community]
 - netbox_inventory (netbox-inventory==2.5.1) [community]
 
@@ -182,8 +181,8 @@ Authentik forward-auth, rename `dynamic-identity.yml.disabled` to
 
 ## Privacy Controls
 
-- Bootstrap username: bootstrap-e689e3717a
-- Bootstrap email: bootstrap-e689e3717a@invalid.local
+- Bootstrap username: bootstrap-9214618f01
+- Bootstrap email: bootstrap-9214618f01@invalid.local
 - Rotation required: True
 - Rationale: Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.
 
@@ -228,7 +227,7 @@ This typically takes 2–5 minutes. Monitor progress with:
 
 ```bash
 docker compose ps
-docker logs netbox-deploy-netbox-1 --tail 20
+docker logs netbox-stack-netbox-1 --tail 20
 ```
 
 Once NetBox shows `(healthy)`, all dependent containers start automatically. If any
@@ -240,9 +239,9 @@ runs on every stack start.
 
 ### 4. Access NetBox
 
-NetBox is available at **https://localhost** (port 443, self-signed TLS certificate).
+NetBox is available at **https://172.30.186.102** (port 443 in self-signed mode).
 
-- **Username**: `bootstrap-e689e3717a`
+- **Username**: `bootstrap-9214618f01`
 - **Password**: the value in `secrets/superuser_password`
 
 The bootstrap account is intended only for first login and RBAC setup — rotate or
@@ -279,7 +278,7 @@ docker compose --profile monitoring up -d
 The monitoring profile starts Grafana, Prometheus, Loki, Alloy, syslog-ng,
 node-exporter, snmp-exporter, and cAdvisor. Run the dashboard fetch script once
 to download the Grafana performance overview dashboards from the pinned upstream
-repository. Grafana is then available at **http://localhost:3000** with the default
+repository. Grafana is then available at **http://172.30.186.102:3000** with the default
 `admin`/`admin` credentials.
 
 ## Native Import Workflow

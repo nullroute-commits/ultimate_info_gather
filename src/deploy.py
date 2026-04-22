@@ -88,6 +88,7 @@ _REQUIRED_BUNDLE_FILES: list[str] = [
     "env/geo-foss.env",
     "env/monitoring.env",
     "scripts/sync-superuser.sh",
+    "scripts/populate-env-secrets.sh",
     "scripts/run-device-type-library-import.sh",
     "scripts/import-device-type-library.py",
     "scripts/run-diode-ingester.sh",
