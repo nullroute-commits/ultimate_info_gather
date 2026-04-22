@@ -25,7 +25,7 @@ services:
       - --entrypoints.websecure.address=:443
       - --log.level=INFO
     ports:
-      - "172.30.186.102:443:443" 
+      - "10.1.0.214:443:443" 
     volumes:
       - traefik-certs:/certs:ro
       - ./configuration/traefik:/etc/traefik/dynamic:ro
@@ -244,6 +244,60 @@ services:
     networks:
       - data
 
+  netbox-worker-3:
+    image: netbox-stack:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      netbox:
+        condition: service_healthy
+    env_file:
+      - env/netbox.env
+    secrets:
+      - db_password
+      - api_token_pepper_1
+      - secret_key
+      - superuser_name
+      - superuser_password
+      - superuser_api_token
+    command: ["/opt/netbox/venv/bin/python", "/opt/netbox/netbox/manage.py", "rqworker"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    networks:
+      - data
+
+  netbox-worker-4:
+    image: netbox-stack:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      netbox:
+        condition: service_healthy
+    env_file:
+      - env/netbox.env
+    secrets:
+      - db_password
+      - api_token_pepper_1
+      - secret_key
+      - superuser_name
+      - superuser_password
+      - superuser_api_token
+    command: ["/opt/netbox/venv/bin/python", "/opt/netbox/netbox/manage.py", "rqworker"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+    networks:
+      - data
+
   netbox-superuser-sync:
     image: netbox-stack:local
     restart: "no"
@@ -401,8 +455,10 @@ services:
         condition: service_completed_successfully
     env_file:
       - env/monitoring.env
+    secrets:
+      - grafana_admin_password
     ports:
-      - "172.30.186.102:3000:3000"
+      - "10.1.0.214:3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - grafana-dashboards:/var/lib/grafana/dashboards:ro
@@ -448,7 +504,7 @@ services:
       - /etc/alloy/config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
-      - "172.30.186.102:1514:1514"
+      - "10.1.0.214:1514:1514"
       - "127.0.0.1:1514:1514"
     volumes:
       - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
@@ -600,11 +656,12 @@ services:
     env_file:
       - env/authentik.env
     environment:
-      NETBOX_PUBLIC_URL: https://172.30.186.102
+      NETBOX_PUBLIC_URL: https://10.1.0.214
       NETBOX_INTERNAL_URL: http://waf:8081
     secrets:
       - authentik_secret_key
       - authentik_pg_password
+      - authentik_admin_password
     entrypoint: ["/bin/sh", "/opt/authentik/bootstrap/authentik-bootstrap-netbox.sh"]
     volumes:
       - ./scripts:/opt/authentik/bootstrap:ro
@@ -748,6 +805,10 @@ secrets:
     file: secrets/authentik_secret_key
   authentik_pg_password:
     file: secrets/authentik_pg_password
+  authentik_admin_password:
+    file: secrets/authentik_admin_password
+  grafana_admin_password:
+    file: secrets/grafana_admin_password
   hydra_pg_password:
     file: secrets/hydra_pg_password
   hydra_system_secret:

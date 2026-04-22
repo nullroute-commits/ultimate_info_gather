@@ -1,6 +1,26 @@
 #!/bin/sh
 set -eu
 
+# Set the akadmin password from the dedicated secret so it is deterministic
+# across greenfield deployments rather than Authentik's random bootstrap token.
+if [ -f /run/secrets/authentik_admin_password ]; then
+  export AKADMIN_PW
+  AKADMIN_PW="$(cat /run/secrets/authentik_admin_password | tr -d '\n')"
+  /ak-root/.venv/bin/python -u -m manage shell <<PYEOF
+import os
+from authentik.core.models import User
+pw = os.environ.get('AKADMIN_PW', '').strip()
+if pw:
+    u = User.objects.filter(username='akadmin').first()
+    if u:
+        u.set_password(pw)
+        u.save()
+        print('authentik-bootstrap-netbox: akadmin password set from secret')
+    else:
+        print('authentik-bootstrap-netbox: akadmin user not found, skipping')
+PYEOF
+fi
+
 /ak-root/.venv/bin/python -u -m manage shell <<'PY'
 import os
 

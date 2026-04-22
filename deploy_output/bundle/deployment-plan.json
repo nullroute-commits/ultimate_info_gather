@@ -44,7 +44,7 @@
     }
   ],
   "admin_privacy": {
-    "bootstrap_email": "bootstrap-9214618f01@invalid.local",
+    "bootstrap_email": "bootstrap-f76ada8f17@invalid.local",
     "bootstrap_secret_files": [
       "api_token_pepper_1",
       "secret_key",
@@ -53,7 +53,7 @@
       "superuser_password",
       "superuser_api_token"
     ],
-    "bootstrap_username": "bootstrap-9214618f01",
+    "bootstrap_username": "bootstrap-f76ada8f17",
     "rationale": "Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.",
     "rotation_required": true
   },
@@ -93,23 +93,23 @@
   },
   "host": {
     "architecture": "x86_64",
-    "available_memory_bytes": 3196280832,
-    "can_install_packages": false,
-    "default_gateway": "172.30.176.1",
+    "available_memory_bytes": 14546034688,
+    "can_install_packages": true,
+    "default_gateway": "10.1.0.1",
     "docker_capable": true,
-    "hostname": "DESKTOP-BSUBRIF",
-    "hypervisor": "wsl",
+    "hostname": "runnervm35a4x",
+    "hypervisor": "microsoft",
     "is_virtual_machine": true,
-    "is_wsl": true,
-    "kernel_version": "6.6.87.2-microsoft-standard-WSL2",
+    "is_wsl": false,
+    "kernel_version": "6.17.0-1010-azure",
     "logical_cores": 4,
     "nameservers": [
-      "10.255.255.254"
+      "127.0.0.53"
     ],
     "operating_system": "Ubuntu",
     "operating_system_version": "24.04.4 LTS (Noble Numbat)",
-    "service_ip": "172.30.186.102",
-    "total_memory_bytes": 8329089024
+    "service_ip": "10.1.0.214",
+    "total_memory_bytes": 16770764800
   },
   "identity": {
     "authentik_image": "ghcr.io/goauthentik/server:2026.2.2",
@@ -326,15 +326,15 @@
     }
   ],
   "sizing": {
-    "housekeeping_interval_minutes": 20,
-    "netbox_worker_containers": 2,
-    "netbox_workers": 2,
-    "postgres_max_connections": 300,
-    "postgres_shared_buffers": "512MB",
-    "profile_name": "medium"
+    "housekeeping_interval_minutes": 15,
+    "netbox_worker_containers": 4,
+    "netbox_workers": 4,
+    "postgres_max_connections": 500,
+    "postgres_shared_buffers": "1GB",
+    "profile_name": "large"
   },
   "source_generator_version": "1.0.0",
-  "source_report": "output/report_20260408_084842.json",
+  "source_report": "deploy_output/reports/report.json",
   "tls": {
     "acme_email": null,
     "dns_provider": null,
@@ -342,7 +342,6 @@
     "mode": "self_signed"
   },
   "warnings": [
-    "Host is WSL-based. Prefer persistent Docker volumes and explicit backups over host package assumptions.",
     "The Proxmox plugin (netbox-proxbox) is enabled in this bundle using version 0.0.10 which explicitly targets NetBox 4.5.x. Validate in staging before production. For event-driven Proxmox automation without a plugin, the NetBox Labs netbox-proxmox-automation project (https://github.com/netboxlabs/netbox-proxmox-automation) provides a webhook-based alternative.",
     "The ACL plugin (netbox-acls) version 2.0.0 is enabled and explicitly targets NetBox 4.5.x in the upstream compatibility matrix.",
     "The Prometheus discovery plugin (netbox-prometheus-sd) is included but disabled because version 0.5 still imports the legacy extras.plugins API and fails on NetBox 4.5.x."
