@@ -16,6 +16,7 @@ from .constants import (
   GRAFANA_IMAGE,
   LOKI_IMAGE,
   MONITORING_INIT_IMAGE,
+  NGINX_IMAGE,
   NODE_EXPORTER_IMAGE,
   OPENSSL_IMAGE,
   ORB_AGENT_IMAGE,
@@ -358,6 +359,21 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
+  diode-proxy:
+    image: {NGINX_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      diode-auth:
+        condition: service_started
+      diode-ingester:
+        condition: service_started
+    volumes:
+      - ./configuration/diode-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:18084:80"
+    networks:
+      - data
+
   diode-reconciler:
     image: {DIODE_RECONCILER_IMAGE}
     restart: unless-stopped
@@ -563,7 +579,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     depends_on:
       orb-bootstrap:
         condition: service_completed_successfully
-      diode-auth:
+      diode-proxy:
         condition: service_started
     env_file:
       - env/orb.env
@@ -919,7 +935,7 @@ def render_compose(plan: DeploymentPlan) -> str:
           --id "$$DIODE_CLIENT_ID" \
           --secret "$$DIODE_CLIENT_SECRET" \
           --grant-type client_credentials \
-          --scope openid,diode \
+          --scope openid,diode,diode:ingest \
           --token-endpoint-auth-method client_secret_post
         echo "Diode OAuth2 client registered successfully"
         NETBOX_CLIENT_ID="netbox-to-diode"
@@ -930,7 +946,7 @@ def render_compose(plan: DeploymentPlan) -> str:
           --id "$$NETBOX_CLIENT_ID" \
           --secret "$$DIODE_CLIENT_SECRET" \
           --grant-type client_credentials \
-          --scope openid,diode \
+          --scope openid,diode,diode:ingest \
           --token-endpoint-auth-method client_secret_post
         echo "NetBox-to-Diode OAuth2 client registered successfully"
     networks:
@@ -1540,11 +1556,11 @@ def render_orb_agent_config() -> str:
         timeout: 1800
     common:
       diode:
-        target: grpc://127.0.0.1:18080
+        target: grpc://127.0.0.1:18084
         client_id: netbox-to-diode
         client_secret: replace-me
         agent_name: generated-orb-agent
-        dry_run: true
+        dry_run: false
   policies:
     network_discovery:
       default:
@@ -1596,8 +1612,49 @@ OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public
 def render_orb_env() -> str:
     """Render ORB sidecar environment values."""
 
-    return """DIODE_TARGET=grpc://127.0.0.1:18080
+    return """DIODE_TARGET=grpc://127.0.0.1:18084
 ORB_AGENT_CONFIG=/opt/orb/agent.yaml
+"""
+
+
+def render_diode_proxy_nginx_config() -> str:
+    """Render the nginx config for the Diode reverse proxy.
+
+    The ORB network-discovery SDK derives the OAuth token URL from the gRPC
+    target as ``http://{host}:{port}/auth/token``, but diode-auth v1.12.0
+    only exposes ``POST /token`` (no ``/auth/`` prefix).  This nginx proxy
+    sits between ORB and the Diode stack on port 18084:
+
+    - HTTP/1.1 ``POST /auth/token``  → path-rewritten to ``/token`` on
+      diode-auth:8080 (token fetch)
+    - HTTP/2 gRPC ``/``              → diode-ingester:8081 (data ingestion)
+
+    The ``http2 on`` directive (nginx >= 1.25.1) enables h2c (cleartext
+    HTTP/2) on the same port so that ORB's single ``grpc://`` target drives
+    both the token request and the gRPC push.
+    """
+
+    return """\
+# Diode reverse proxy — nginx 1.27+
+# Muxes HTTP/1.1 token fetches (/auth/token) and gRPC ingest (/) on one port.
+server {
+    listen 80;
+    http2 on;
+
+    # ORB SDK calls /auth/token; rewrite path to /token on diode-auth.
+    location = /auth/token {
+        proxy_pass http://diode-auth:8080/token;
+        proxy_pass_request_body on;
+        proxy_pass_request_headers on;
+    }
+
+    # gRPC data ingestion forwarded to diode-ingester.
+    location / {
+        grpc_pass grpc://diode-ingester:8081;
+        grpc_set_header Host $host;
+        grpc_set_header X-Real-IP $remote_addr;
+    }
+}
 """
 
 
@@ -3415,6 +3472,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
         output_dir / "configuration" / "waf" / "api-methods-before.conf": render_waf_modsec_api_rules(),
         output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
+        output_dir / "configuration" / "diode-proxy.conf": render_diode_proxy_nginx_config(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
         output_dir / "env" / "postgres.env": render_postgres_env(plan),
         output_dir / "env" / "diode.env": render_diode_env(),

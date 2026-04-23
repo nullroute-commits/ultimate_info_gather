@@ -63,6 +63,7 @@ HYDRA_IMAGE = "oryd/hydra:v2.3.0"
 WAZUH_MANAGER_IMAGE = "wazuh/wazuh-manager:4.14.4"
 WAZUH_AGENT_IMAGE = "wazuh/wazuh-agent:4.14.4"
 MONITORING_INIT_IMAGE = "alpine:3.23"
+NGINX_IMAGE = "nginx:1.27-alpine"
 
 TRACK_IMAGE_DEFAULTS: dict[str, dict[str, str]] = {
     "alpine": {
