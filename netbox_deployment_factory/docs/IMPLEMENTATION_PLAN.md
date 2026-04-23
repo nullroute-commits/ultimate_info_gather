@@ -35,6 +35,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 17. Support dual TLS modes: self-signed (default) via `traefik-certgen` init container, or Let's Encrypt ACME DNS-01 via Cloudflare when `--fqdn` and `--acme-email` are provided. The TLS profile is derived at plan time and stored on `DeploymentPlan` as a `TlsProfile` dataclass.
 18. Generate an identity profile with Authentik (SSO/OIDC) and Ory Hydra (OAuth2 for Diode client-credentials) under the `identity` Compose profile. Deploy with dedicated Postgres instances on an isolated `identity` network segment. Generate `configuration/extra.py` with remote-auth settings, `env/authentik.env`, `env/hydra.env`, `scripts/authentik-bootstrap-netbox.sh`, and `scripts/setup-diode-credential.sh`.
 19. Generate a complete monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics, with configuration files, Grafana datasource/dashboard provisioning, and a dashboard fetch script.
+20. Generate security-observability services (`wazuh-manager` and `wazuh-agent`) as an optional `security-observability` Compose profile. Both services use host networking so wazuh-remoted can bind TCP 1514 and the agent can reach the manager at `127.0.0.1`. The wazuh-manager healthcheck auto-restarts wazuh-remoted before checking authd status to survive WSL2 network initialization races. Syslog forwarding from syslog-ng to Alloy uses port 5514 (avoids conflicts with wazuh-remoted on 1514 and syslog-ng's RFC 5425 TLS listener on 6514).
 
 ## Current Host Findings
 
@@ -50,7 +51,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - BGP: enable `netbox-bgp`
 - DNS: enable `netbox-plugin-dns` 1.5.5 (explicit NetBox 4.5.0+ support, official netbox-community source)
 - Proxmox: enable `netbox-proxbox` 0.0.10 (explicitly lists NetBox 4.5.x in requirements)
-- Config drift: enable `netbox-config-diff` 2.14.2 (`min_version=4.5.0`, `max_version=4.5.99`)
+- Config drift: `netbox-config-diff` 2.14.2 included but set to `enabled=False` — triggers `DuplicatedTypeName: StrFilterLookup` on NetBox 4.5.7 (strawberry GraphQL conflict); enable once an upstream fix is released
 - Floorplan: enable `netbox-floorplan-plugin` 0.9.1 (`min_version=4.5.0-beta1`, `max_version=4.5.99`)
 - Inventory: enable `netbox-inventory` 2.5.1 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
@@ -64,3 +65,4 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Superuser sync: generate `scripts/sync-superuser.sh` as a one-shot service that creates the bootstrap superuser, mints a v2 token, and writes the full token to the `token-store` volume
 - Identity: generate Authentik (`ghcr.io/goauthentik/server:2026.2.2`) and Ory Hydra (`oryd/hydra:v2.3.0`) under the `identity` Compose profile with dedicated Postgres instances, bootstrap scripts, and remote-auth configuration
 - Monitoring: generate a complete monitoring stack (Grafana, Prometheus, Loki, Alloy, syslog-ng, node_exporter, snmp_exporter, cAdvisor) as an optional `monitoring` Compose profile based on enter-the-metrics pinned at `706ed92`
+- Security observability: generate `wazuh-manager` and `wazuh-agent` services gated by the `security-observability` Compose profile; both use host networking; wazuh-manager healthcheck auto-restarts wazuh-remoted if WSL2 network timing leaves it unbound (ENOTCONN race); wazuh-agent connects to the manager at `127.0.0.1` via `WAZUH_MANAGER_SERVER`

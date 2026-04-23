@@ -526,6 +526,7 @@ class PlannerTests(unittest.TestCase):
             alloy_config_text = monitoring_alloy_config.read_text(encoding="utf-8")
             self.assertIn("loki:3100", alloy_config_text)
             self.assertIn("syslog", alloy_config_text)
+            self.assertIn("0.0.0.0:5514", alloy_config_text)
             syslog_ng_text = monitoring_syslog_ng_config.read_text(encoding="utf-8")
             self.assertIn("127.0.0.1", syslog_ng_text)
             self.assertIn("5514", syslog_ng_text)
@@ -562,6 +563,15 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("127.0.0.1:5514:5514", compose_text)
             self.assertIn("## Monitoring Stack", generated_readme_text)
             self.assertIn("enter-the-metrics", generated_readme_text)
+            # security-observability assertions
+            self.assertIn("wazuh-manager:", compose_text)
+            self.assertIn("wazuh/wazuh-manager:4.14.4", compose_text)
+            self.assertIn("wazuh-agent:", compose_text)
+            self.assertIn("wazuh/wazuh-agent:4.14.4", compose_text)
+            self.assertIn('profiles: ["security-observability"]', compose_text)
+            self.assertIn("WAZUH_MANAGER_SERVER", compose_text)
+            self.assertIn("wazuh-remoted", compose_text)
+            self.assertIn("wazuh-manager-data:", compose_text)
 
     def test_letsencrypt_tls_profile(self) -> None:
         plan = build_plan(

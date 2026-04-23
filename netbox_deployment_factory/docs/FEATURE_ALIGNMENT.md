@@ -54,9 +54,7 @@ Compatibility evidence used from upstream metadata:
 
 ### Config Diff
 
-The repository enables `netbox-config-diff` (`netbox_config_diff`) version 2.14.2. This community plugin provides configuration drift detection and compliance reporting for network devices.
-
-**Configuration:** `USERNAME` and `PASSWORD` are set to `replace-me` placeholders. The operator must replace these with valid device credentials for configuration retrieval.
+The repository includes `netbox-config-diff` (`netbox_config_diff`) version 2.14.2 in the plugin spec list but sets it to `enabled=False`. This community plugin provides configuration drift detection and compliance reporting for network devices. It is disabled because version 2.14.2 raises `strawberry.exceptions.duplicated_type_name.DuplicatedTypeName: Type StrFilterLookup is defined multiple times in the schema` on NetBox 4.5.7 due to a Strawberry GraphQL schema registration conflict. Enable once an upstream release resolves the conflict.
 
 ### Floorplan
 
@@ -195,7 +193,7 @@ The generated compose file defines six isolated bridge networks with explicit CI
 | `app`        | WAF ↔ NetBox                                              | `172.30.0.32/27`      |
 | `data`       | NetBox, Postgres, Valkey, Diode, workers, imports         | `172.30.0.64/27`      |
 | `security`   | Wazuh agent                                               | `172.30.0.96/28`      |
-| `monitoring` | Grafana, Prometheus, Loki, Alloy, syslog-ng, exporters | `172.30.0.128/27`     |
+| `monitoring` | Grafana, Prometheus, Loki, Alloy, cAdvisor                             | `172.30.0.128/27`     |
 | `identity`   | Authentik, Ory Hydra, dedicated Postgres instances        | `172.30.0.160/27`     |
 
 In `deterministic` CIDR mode (default), each segment uses a fixed `/27` or `/28` block from `172.30.0.0/24`. In `dynamic` mode, segments are allocated from `172.31.0.0/16` with prefix lengths sized to the required host count.
@@ -206,7 +204,7 @@ Services are placed on the minimum set of networks needed:
 - NetBox, workers, Postgres, Valkey, Diode, imports: `data`
 - ORB: host networking mode (`network_mode: host`)
 - Wazuh agent: host networking mode (`network_mode: host`)
-- Monitoring services: `monitoring` (Prometheus also joins `data` for scraping)
+- Monitoring services: Grafana, Prometheus, Loki, Alloy, cAdvisor: `monitoring` (Prometheus also joins `data` for scraping); syslog-ng, node-exporter, snmp-exporter: host networking mode (`network_mode: host`)
 - Authentik, Hydra, and their Postgres instances: `identity` (Diode services on `data` connect to Hydra through `identity`)
 
 ## Valkey
@@ -256,8 +254,8 @@ The upstream configuration files are adapted to the generated deployment:
 
 - **Prometheus**: Scrape targets reference Compose service names (e.g., `prometheus:9090`, `grafana:3000`, `cadvisor:8080`). Operators can add custom scrape targets for their own node-exporters and SNMP devices.
 - **Loki**: Filesystem-backed storage with embedded cache, analytics reporting disabled.
-- **Alloy**: Listens for syslog on port 1514 (TCP) with relabeling for hostname, source IP, and destination IP.
-- **syslog-ng**: Forwards all syslog sources (local + network) to Alloy via TCP 1514.
+- **Alloy**: Listens for syslog on port 5514 (TCP) with relabeling for hostname, source IP, and destination IP.
+- **syslog-ng**: Forwards all syslog sources (local + network) to Alloy via TCP 5514. Uses `network_mode: host`, so it targets `127.0.0.1` rather than the `alloy` service name. Port 5514 avoids conflicts with wazuh-remoted (1514) and syslog-ng's own RFC 5425 TLS listener (6514).
 - **Grafana**: Provisioned with Prometheus and Loki datasources and a dashboard provider pointing to the `performance_overview` directory.
 
 ### Dashboard Provisioning
@@ -318,3 +316,38 @@ The Authentik profile is optional because:
 1. Not all deployments need self-hosted SSO (some organizations use existing IdPs).
 2. Enabling Authentik adds another Postgres-backed application and extra resource overhead.
 3. The core NetBox stack still boots with the pseudonymous bootstrap account, while Hydra remains available for Diode.
+
+## Security Observability (Wazuh)
+
+The generated bundle includes a Wazuh security-observability stack gated by the `security-observability` Compose profile.
+
+### Included Services
+
+| Service | Image | Purpose |
+|---|---|---|
+| `wazuh-manager` | `wazuh/wazuh-manager:4.14.4` | SIEM / XDR manager: collects and correlates security events |
+| `wazuh-agent` | `wazuh/wazuh-agent:4.14.4` | Agent installed alongside the stack host; reports to the local manager |
+
+### Network Mode
+
+Both services use `network_mode: host`. This allows wazuh-remoted (TCP 1514) to accept direct agent connections without NAT and lets wazuh-agent reach the manager at `127.0.0.1` on the same network namespace.
+
+### Wazuh Manager Healthcheck
+
+The wazuh-manager healthcheck is designed to survive a WSL2 network initialization race:
+
+```
+pgrep -x wazuh-remoted > /dev/null || /var/ossec/bin/wazuh-remoted 2>/dev/null || true;
+/var/ossec/bin/wazuh-control status 2>&1 | grep -q 'wazuh-authd is running'
+```
+
+On WSL2, wazuh-remoted may fail to bind TCP 1514 at first start with ENOTCONN (errno 107) due to network stack initialization timing. The healthcheck self-heals by attempting to restart wazuh-remoted before checking authd status. With `retries: 20` and `interval: 30s`, the manager becomes healthy within 60–90 seconds on affected systems.
+
+### Agent Registration
+
+`wazuh-agent` sets `WAZUH_MANAGER_SERVER: "127.0.0.1"` (not `WAZUH_MANAGER`) to match the environment variable expected by the official Wazuh agent Docker image. The agent depends on `wazuh-manager: condition: service_healthy` to ensure the manager and authd are ready before the agent attempts registration.
+
+### Persistent Volumes
+
+- `wazuh-manager-data`: Wazuh manager state (rules, decoders, internal DB)
+- `wazuh-manager-logs`: Wazuh alert and log files
