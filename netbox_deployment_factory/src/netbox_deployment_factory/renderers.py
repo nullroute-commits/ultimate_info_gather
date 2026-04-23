@@ -427,7 +427,7 @@ def render_compose(plan: DeploymentPlan) -> str:
 
 {_render_worker_services(plan)}
 
-  netbox-superuser-sync:
+  netbox-init:
     image: {plan.deployment_name}:local
     restart: "no"
     depends_on:
@@ -443,7 +443,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - superuser_name
       - superuser_password
       - superuser_api_token
-    command: ["/bin/sh", "/opt/netbox/bootstrap/sync-superuser.sh"]
+    command: ["/bin/sh", "/opt/netbox/bootstrap/netbox-init.sh"]
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
     tmpfs:
@@ -454,31 +454,6 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
-  diode-credential-setup:
-    image: {plan.deployment_name}:local
-    restart: "no"
-    depends_on:
-      netbox:
-        condition: service_healthy
-      netbox-superuser-sync:
-        condition: service_completed_successfully
-    env_file:
-      - env/netbox.env
-    secrets:
-      - db_password
-      - api_token_pepper_1
-      - secret_key
-      - netbox_to_diode
-    command: ["/bin/sh", "/opt/netbox/bootstrap/setup-diode-credential.sh"]
-    cap_drop: ["ALL"]
-    security_opt: ["no-new-privileges:true"]
-    tmpfs:
-      - /tmp
-    volumes:
-      - ./scripts:/opt/netbox/bootstrap:ro
-    networks:
-      - data
-
   {plan.device_type_library.import_service_name}:
     profiles: ["device-type-library-import"]
     image: {plan.deployment_name}:local
@@ -486,6 +461,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     depends_on:
       netbox:
         condition: service_healthy
+      netbox-init:
+        condition: service_completed_successfully
     env_file:
       - env/netbox.env
       - env/device-type-library-import.env
@@ -518,7 +495,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     depends_on:
       netbox:
         condition: service_healthy
-      netbox-superuser-sync:
+      netbox-init:
         condition: service_completed_successfully
     env_file:
       - env/geo-foss.env
@@ -1792,6 +1769,36 @@ if not tokens.exists():
 else:
   print(f"diode-setup: API token already exists for '{username}'")
 PY
+"""
+
+
+def render_netbox_init_script() -> str:
+    """Render the single init-point script for NetBox bootstrapping.
+
+    Runs superuser sync then Diode credential setup sequentially inside a single
+    ``netbox-init`` container, replacing the former two-container chain of
+    ``netbox-superuser-sync`` → ``diode-credential-setup``.  Both steps use the
+    same NetBox image and Django runtime, so collapsing them into one container
+    eliminates a ``service_completed_successfully`` dependency hop and gives every
+    downstream service a single, unambiguous gate to wait on.
+    """
+
+    return r"""#!/bin/sh
+# netbox-init.sh
+# Single init-point for NetBox bootstrapping.
+# Runs superuser sync then Diode credential setup sequentially.
+# Called by the netbox-init Compose service (restart: "no").
+set -eu
+
+BOOTSTRAP_DIR="$(dirname "$0")"
+
+echo "netbox-init: [1/2] superuser sync"
+/bin/sh "$BOOTSTRAP_DIR/sync-superuser.sh"
+
+echo "netbox-init: [2/2] Diode credential setup"
+/bin/sh "$BOOTSTRAP_DIR/setup-diode-credential.sh"
+
+echo "netbox-init: all steps complete"
 """
 
 
@@ -3432,6 +3439,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         )
 
     files.update({
+        output_dir / "scripts" / "netbox-init.sh": render_netbox_init_script(),
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "populate-env-secrets.sh": render_populate_env_secrets_script(),
         output_dir / "scripts" / "orb-bootstrap.sh": render_orb_bootstrap_script(),

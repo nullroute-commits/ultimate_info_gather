@@ -271,6 +271,7 @@ class PlannerTests(unittest.TestCase):
                 output_dir / "scripts" / "import-device-type-library.py"
             )
             cert_script_file = output_dir / "scripts" / "generate-traefik-cert.sh"
+            netbox_init_script_file = output_dir / "scripts" / "netbox-init.sh"
             superuser_sync_script_file = output_dir / "scripts" / "sync-superuser.sh"
             diode_ingester_script_file = output_dir / "scripts" / "run-diode-ingester.sh"
             diode_reconciler_script_file = output_dir / "scripts" / "run-diode-reconciler.sh"
@@ -288,6 +289,7 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(importer_file.exists())
             self.assertTrue(importer_runner_file.exists())
             self.assertTrue(cert_script_file.exists())
+            self.assertTrue(netbox_init_script_file.exists())
             self.assertTrue(superuser_sync_script_file.exists())
             self.assertTrue(diode_ingester_script_file.exists())
             self.assertTrue(diode_reconciler_script_file.exists())
@@ -333,7 +335,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("traefik:", compose_text)
             self.assertIn("image: alpine/openssl:3.5.5", compose_text)
             self.assertIn("waf:", compose_text)
-            self.assertIn("netbox-superuser-sync:", compose_text)
+            self.assertIn("netbox-init:", compose_text)
             self.assertIn("orb-agent:", compose_text)
             self.assertIn("orb-bootstrap:", compose_text)
             # orb-bootstrap depends on hydra-bootstrap-clients to ensure client is registered
@@ -434,7 +436,11 @@ class PlannerTests(unittest.TestCase):
             self.assertIn('diode', diode_credential_setup_text)
             self.assertIn('get_or_create', diode_credential_setup_text)
             self.assertIn('Token', diode_credential_setup_text)
-            self.assertIn('diode-credential-setup:', compose_text)
+            # diode-credential-setup is now called from netbox-init; no longer its own service
+            self.assertNotIn('diode-credential-setup:', compose_text)
+            netbox_init_text = netbox_init_script_file.read_text(encoding="utf-8")
+            self.assertIn('sync-superuser.sh', netbox_init_text)
+            self.assertIn('setup-diode-credential.sh', netbox_init_text)
             self.assertIn(
                 plan.host.hostname.strip(),
                 cert_script_file.read_text(encoding="utf-8"),

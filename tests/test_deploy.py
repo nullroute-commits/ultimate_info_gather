@@ -136,9 +136,8 @@ def test_bundle_compose_has_all_services(shared_result: DeploymentResult) -> Non
     compose = (shared_result.bundle_dir / "docker-compose.yml").read_text(encoding="utf-8")
     for svc in (
         "traefik:", "waf:", "postgres:", "valkey:", "netbox:",
-        "netbox-worker:", "netbox-superuser-sync:",
+        "netbox-worker:", "netbox-init:",
         "diode-auth:", "diode-ingester:", "diode-reconciler:",
-        "diode-credential-setup:",
         "device-type-library-import:", "netbox-geo-foss:",
         "orb-agent:", "wazuh-agent:",
         "grafana:", "prometheus:", "loki:", "alloy:", "syslog-ng:",

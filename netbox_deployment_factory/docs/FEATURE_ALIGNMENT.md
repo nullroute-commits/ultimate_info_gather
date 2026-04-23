@@ -74,7 +74,28 @@ The repository enables `netboxlabs-diode-netbox-plugin` (`netbox_diode_plugin`) 
 
 **Configuration:** `diode_username: "diode"`, `diode_target_override: "grpc://diode-auth:8080/diode"`, `secrets_path: "/run/secrets/"`, `netbox_to_diode_client_id: "netbox-to-diode"`, `netbox_to_diode_client_secret_name: "netbox_to_diode"`. The `diode_target_override` points at the generated `diode-auth` Compose service so plugin and reconciler endpoints resolve within the composed deployment.
 
-The generated bundle includes three companion Diode services in the `data` network: `diode-auth` (`netboxlabs/diode-auth:1.12.0`), `diode-ingester` (`netboxlabs/diode-ingester:1.13.0`), and `diode-reconciler` (`netboxlabs/diode-reconciler:1.13.0`). A `diode-credential-setup` init container provisions the OAuth2 client credentials using `scripts/setup-diode-credential.sh`.
+The generated bundle includes three companion Diode services in the `data` network: `diode-auth` (`netboxlabs/diode-auth:1.12.0`), `diode-ingester` (`netboxlabs/diode-ingester:1.13.0`), and `diode-reconciler` (`netboxlabs/diode-reconciler:1.13.0`). Diode credential provisioning (`scripts/setup-diode-credential.sh`) is called automatically by the `netbox-init` single-init container (see [NetBox Bootstrap Init](#netbox-bootstrap-init) below).
+
+## NetBox Bootstrap Init
+
+The generated bundle consolidates all NetBox bootstrap logic into a single `netbox-init` one-shot service, replacing the former two-container chain (`netbox-superuser-sync` → `diode-credential-setup`).
+
+| Step | Script | What it does |
+|------|--------|--------------|
+| 1/2 | `scripts/sync-superuser.sh` | Creates the pseudonymous bootstrap superuser, mints a v2 API token, and writes the full token to the `token-store` volume |
+| 2/2 | `scripts/setup-diode-credential.sh` | Creates the Diode admin user and API token in NetBox for the Diode plugin credential handshake |
+
+The controlling entrypoint, `scripts/netbox-init.sh`, calls both scripts in sequence using their stable individual paths so each script remains independently callable by operators.
+
+**Compose topology:**
+```
+netbox (healthy) → netbox-init → [geo-foss-import, device-type-library-import]
+```
+
+**Why one container?** Both steps use the same NetBox image and Django runtime. Merging them eliminates one `service_completed_successfully` dependency hop and gives every downstream service a single, unambiguous gate to wait on, reducing startup race surface.
+
+**Secrets (union of both former services):**
+`db_password`, `api_token_pepper_1`, `secret_key`, `netbox_to_diode`, `superuser_name`, `superuser_password`, `superuser_api_token`
 
 ## ORB Orchestration
 
@@ -147,7 +168,7 @@ Key features of the REST API importer:
 
 The repository generates an `api_token_pepper_1` secret alongside the bootstrap secrets so NetBox can mint and validate v2 API tokens. The superuser sync script creates a v2 token from the `superuser_api_token` secret file using Token.validate() for idempotent re-runs. The device-type importer authenticates with `Authorization: Bearer nbt_<key>.<plaintext>` format, where the key (HMAC digest) is read from the Token ORM and the plaintext comes from the mounted secret file.
 
-The superuser-sync service writes the full v2 token (`nbt_<key>.<plaintext>`) to a shared `token-store` volume so sidecar services (geo-foss) that depend on `netbox-superuser-sync` completion can read the assembled token without needing direct secret file access or knowledge of the v2 token format.
+The `netbox-init` service writes the full v2 token (`nbt_<key>.<plaintext>`) to a shared `token-store` volume so sidecar services (geo-foss) that depend on `netbox-init` completion can read the assembled token without needing direct secret file access or knowledge of the v2 token format.
 
 ## Geographic Data (netbox-geo-foss)
 
@@ -166,7 +187,7 @@ Key integration details:
 - Repository: `https://github.com/nullroute-commits/netbox-geo-foss.git` pinned at `50c3c16`
 - Import script: `scripts/import-geo-data.py` (pynetbox-based, replaces upstream placeholder CLI)
 - Compose profile: `geo-foss-import`
-- Depends on: `netbox-superuser-sync` (must complete first to write v2 token)
+- Depends on: `netbox-init` (must complete first to write v2 token)
 - Env file: `env/geo-foss.env` (requires `GEONAMES_USERNAME` to be set by the operator)
 - Authenticates using the full v2 API token (`nbt_<key>.<plaintext>`) read from the `token-store` volume, with fallback to the raw secret file
 - Persists downloaded geographic data in a `geo-foss-cache` volume to avoid re-downloading across runs
