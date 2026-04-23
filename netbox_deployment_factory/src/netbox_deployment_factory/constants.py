@@ -181,7 +181,7 @@ DEFAULT_PLUGIN_SPECS: tuple[PluginSpec, ...] = (
         ),
         config={
             "diode_username": "diode",
-            "diode_target_override": "grpc://diode-auth:8080/diode",
+            "diode_target_override": "grpc://diode-proxy:80",
             "secrets_path": "/run/secrets/",
             "netbox_to_diode_client_id": "netbox-to-diode",
             "netbox_to_diode_client_secret_name": "netbox_to_diode",

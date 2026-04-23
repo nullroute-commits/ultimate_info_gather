@@ -359,6 +359,26 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
+  diode-token-adapter:
+    image: python:3.11-alpine
+    restart: unless-stopped
+    depends_on:
+      diode-auth:
+        condition: service_started
+      hydra:
+        condition: service_healthy
+    command: ["python", "/opt/diode-token-adapter.py"]
+    environment:
+      - HYDRA_PUBLIC_URL=http://hydra:4444
+      - DIODE_AUTH_URL=http://diode-auth:8080
+      - ADAPTER_PORT=8090
+    volumes:
+      - ./configuration/diode-token-adapter.py:/opt/diode-token-adapter.py:ro
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - data
+
   diode-proxy:
     image: {NGINX_IMAGE}
     restart: unless-stopped
@@ -366,6 +386,8 @@ def render_compose(plan: DeploymentPlan) -> str:
       diode-auth:
         condition: service_started
       diode-ingester:
+        condition: service_started
+      diode-token-adapter:
         condition: service_started
     volumes:
       - ./configuration/diode-proxy.conf:/etc/nginx/conf.d/default.conf:ro
@@ -1606,6 +1628,7 @@ SERVE_ADMIN_PORT=4445
 DSN=postgres://hydra:replace-me@hydra-postgres:5432/hydra?sslmode=disable
 SECRETS_SYSTEM=replace-me
 OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public
+STRATEGIES_ACCESS_TOKEN=jwt
 """
 
 
@@ -1622,12 +1645,17 @@ def render_diode_proxy_nginx_config() -> str:
 
     The ORB network-discovery SDK derives the OAuth token URL from the gRPC
     target as ``http://{host}:{port}/auth/token``, but diode-auth v1.12.0
-    only exposes ``POST /token`` (no ``/auth/`` prefix).  This nginx proxy
-    sits between ORB and the Diode stack on port 18084:
+    only exposes ``POST /token`` (no ``/auth/`` prefix).  Additionally,
+    Hydra's JWT access tokens use ``scp`` (array) instead of the RFC 9068
+    ``scope`` (string) that diode-ingester and the NetBox Diode plugin expect.
 
-    - HTTP/1.1 ``POST /auth/token``  → path-rewritten to ``/token`` on
-      diode-auth:8080 (token fetch)
-    - HTTP/2 gRPC ``/``              → diode-ingester:8081 (data ingestion)
+    This nginx proxy sits between ORB/NetBox and the Diode stack on port 18084:
+
+    - HTTP/1.1 ``POST /auth/token``     → diode-token-adapter:8090/token
+      (translates Hydra ``scp`` array → RFC 9068 ``scope`` string)
+    - HTTP/1.1 ``POST /auth/introspect``→ diode-token-adapter:8090/introspect
+      (augments diode-auth introspect response with ``scope`` field)
+    - HTTP/2 gRPC ``/``                 → diode-ingester:8081 (data ingestion)
 
     The ``http2 on`` directive (nginx >= 1.25.1) enables h2c (cleartext
     HTTP/2) on the same port so that ORB's single ``grpc://`` target drives
@@ -1636,14 +1664,21 @@ def render_diode_proxy_nginx_config() -> str:
 
     return """\
 # Diode reverse proxy — nginx 1.27+
-# Muxes HTTP/1.1 token fetches (/auth/token) and gRPC ingest (/) on one port.
+# Muxes HTTP/1.1 token/introspect requests and gRPC ingest on one port.
 server {
     listen 80;
     http2 on;
 
-    # ORB SDK calls /auth/token; rewrite path to /token on diode-auth.
+    # ORB SDK calls /auth/token; diode-token-adapter translates Hydra scp → scope.
     location = /auth/token {
-        proxy_pass http://diode-auth:8080/token;
+        proxy_pass http://diode-token-adapter:8090/token;
+        proxy_pass_request_body on;
+        proxy_pass_request_headers on;
+    }
+
+    # NetBox Diode plugin introspect; adapter augments response with scope field.
+    location = /auth/introspect {
+        proxy_pass http://diode-token-adapter:8090/introspect;
         proxy_pass_request_body on;
         proxy_pass_request_headers on;
     }
@@ -1656,6 +1691,190 @@ server {
     }
 }
 """
+
+
+def render_diode_token_adapter_script() -> str:
+    """Render the diode-token-adapter Python HTTP service.
+
+    Hydra v2 JWT access tokens use ``scp`` (array) for granted scopes, but
+    the diode-ingester binary (parsed with ``ParseTokenUnverified``) checks
+    the RFC 9068 ``scope`` claim (string).  Similarly, the NetBox Diode plugin
+    calls a token-introspect endpoint and checks ``data["scope"]``, which
+    Hydra's introspect response omits.
+
+    This single-file Python service bridges both gaps:
+
+    - ``POST /token``      — validates client credentials against Hydra,
+      then re-issues an HS256 JWT that carries ``scope`` instead of ``scp``.
+    - ``POST /introspect`` — calls diode-auth introspect, decodes the bearer
+      JWT to extract ``scp``, then injects ``scope`` into the response JSON.
+    """
+
+    return '''\
+#!/usr/bin/env python3
+"""diode-token-adapter — translates Hydra scp JWT claim to RFC 9068 scope.
+
+POST /token      validate credentials → Hydra, re-issue HS256 JWT with scope
+POST /introspect proxy diode-auth introspect + inject scope from scp claim
+"""
+import base64
+import json
+import os
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib import request as urequest
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+
+HYDRA_PUBLIC_URL = os.environ.get("HYDRA_PUBLIC_URL", "http://hydra:4444")
+DIODE_AUTH_URL = os.environ.get("DIODE_AUTH_URL", "http://diode-auth:8080")
+JWT_SECRET = os.environ.get("ADAPTER_JWT_SECRET", "diode-adapter-secret")
+TOKEN_TTL = int(os.environ.get("TOKEN_TTL", "3600"))
+
+
+def _b64pad(s: str) -> str:
+    return s + "=" * (-len(s) % 4)
+
+
+def _decode_jwt_payload(token: str) -> dict:
+    parts = token.split(".")
+    if len(parts) < 2:
+        return {}
+    try:
+        return json.loads(base64.urlsafe_b64decode(_b64pad(parts[1])))
+    except Exception:
+        return {}
+
+
+def _hs256_jwt(payload: dict, secret: str) -> str:
+    import hashlib
+    import hmac
+
+    header = base64.urlsafe_b64encode(
+        json.dumps({"alg": "HS256", "typ": "JWT"}).encode()
+    ).rstrip(b"=").decode()
+    body = base64.urlsafe_b64encode(
+        json.dumps(payload).encode()
+    ).rstrip(b"=").decode()
+    signing_input = f"{header}.{body}".encode()
+    sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
+    sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    return f"{header}.{body}.{sig_b64}"
+
+
+def _hydra_token(client_id: str, client_secret: str, scope: str) -> dict | None:
+    data = urlencode({
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "scope": scope,
+    }).encode()
+    req = urequest.Request(f"{HYDRA_PUBLIC_URL}/oauth2/token", data=data)
+    try:
+        with urequest.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except HTTPError as exc:
+        print(f"[adapter] Hydra token error {exc.code}: {exc.read()[:200]}")
+        return None
+    except Exception as exc:
+        print(f"[adapter] Hydra token exception: {exc}")
+        return None
+
+
+class _Handler(BaseHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        print(f"[adapter] {fmt % args}")
+
+    def _read_body(self) -> bytes:
+        length = int(self.headers.get("Content-Length", 0))
+        return self.rfile.read(length) if length else b""
+
+    def _send_json(self, code: int, obj: dict):
+        body = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        if self.path == "/token":
+            self._handle_token()
+        elif self.path == "/introspect":
+            self._handle_introspect()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def _handle_token(self):
+        from urllib.parse import parse_qs
+        body = self._read_body()
+        params = parse_qs(body.decode())
+        client_id = params.get("client_id", [""])[0]
+        client_secret = params.get("client_secret", [""])[0]
+        scope_req = params.get("scope", ["diode:ingest"])[0]
+
+        hydra_resp = _hydra_token(client_id, client_secret, scope_req)
+        if not hydra_resp or "access_token" not in hydra_resp:
+            self._send_json(401, {"error": "authentication_failed"})
+            return
+
+        hydra_payload = _decode_jwt_payload(hydra_resp["access_token"])
+        scp = hydra_payload.get("scp", [])
+        scope_str = " ".join(scp) if isinstance(scp, list) else str(scp)
+
+        now = int(time.time())
+        payload = {
+            "iss": hydra_payload.get("iss", "diode-token-adapter"),
+            "sub": hydra_payload.get("sub", client_id),
+            "iat": now,
+            "exp": now + TOKEN_TTL,
+            "client_id": client_id,
+            "scope": scope_str,
+        }
+        token = _hs256_jwt(payload, JWT_SECRET)
+        self._send_json(200, {
+            "access_token": token,
+            "token_type": "Bearer",
+            "expires_in": TOKEN_TTL,
+            "scope": scope_str,
+        })
+
+    def _handle_introspect(self):
+        body = self._read_body()
+        auth_header = self.headers.get("Authorization", "")
+        req = urequest.Request(
+            f"{DIODE_AUTH_URL}/introspect",
+            data=body,
+            headers={
+                "Content-Type": self.headers.get("Content-Type", "application/x-www-form-urlencoded"),
+                "Authorization": auth_header,
+            },
+        )
+        try:
+            with urequest.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read())
+        except HTTPError as exc:
+            result = json.loads(exc.read()) if exc.read() else {"active": False}
+        except Exception as exc:
+            print(f"[adapter] introspect error: {exc}")
+            self._send_json(500, {"error": "introspect_failed"})
+            return
+
+        if result.get("active") and "scope" not in result:
+            bearer = auth_header.removeprefix("Bearer ").strip()
+            payload = _decode_jwt_payload(bearer)
+            scp = payload.get("scp", [])
+            result["scope"] = " ".join(scp) if isinstance(scp, list) else str(scp)
+
+        self._send_json(200, result)
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("ADAPTER_PORT", "8090"))
+    print(f"[adapter] starting on port {port}")
+    HTTPServer(("0.0.0.0", port), _Handler).serve_forever()
+'''
 
 
 def render_orb_bootstrap_script() -> str:
@@ -1715,10 +1934,11 @@ POSTGRES_DB_NAME=netbox
 POSTGRES_USER=netbox
 POSTGRES_PASSWORD=replace-me
 POSTGRES_SSL_MODE=disable
-DIODE_AUTH_TOKEN_URL=http://diode-auth:8080/token
+DIODE_AUTH_TOKEN_URL=http://diode-proxy:80/auth/token
+DIODE_AUTH_INTROSPECT_URL=http://diode-auth:8080/introspect
 DIODE_TO_NETBOX_CLIENT_ID=netbox-to-diode
 DIODE_TO_NETBOX_CLIENT_SECRET=replace-me
-NETBOX_DIODE_PLUGIN_API_BASE_URL=http://netbox:8080/api/plugins/netbox_diode_plugin
+NETBOX_DIODE_PLUGIN_API_BASE_URL=http://netbox:8080/api/plugins/diode
 NETBOX_DIODE_PLUGIN_SKIP_TLS_VERIFY=true
 # Ory Hydra OAuth2 endpoints (consumed by diode-auth)
 OAUTH2_PUBLIC_SERVER_URL=http://hydra:4444
@@ -3473,6 +3693,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "configuration" / "waf" / "api-methods-before.conf": render_waf_modsec_api_rules(),
         output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
         output_dir / "configuration" / "diode-proxy.conf": render_diode_proxy_nginx_config(),
+        output_dir / "configuration" / "diode-token-adapter.py": render_diode_token_adapter_script(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
         output_dir / "env" / "postgres.env": render_postgres_env(plan),
         output_dir / "env" / "diode.env": render_diode_env(),
