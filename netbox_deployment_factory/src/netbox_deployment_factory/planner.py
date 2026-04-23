@@ -31,6 +31,8 @@ from .constants import (
     SNMP_EXPORTER_IMAGE,
     SYSLOG_NG_IMAGE,
     TRACK_IMAGE_DEFAULTS,
+    WAZUH_AGENT_IMAGE,
+    WAZUH_MANAGER_IMAGE,
 )
 from .models import (
     AdjacentServiceRecommendation,
@@ -45,6 +47,7 @@ from .models import (
     NetworkProfile,
     NetworkSegment,
     PluginSpec,
+    SecurityObservabilityProfile,
     ServiceSizing,
     TlsProfile,
 )
@@ -610,6 +613,21 @@ def _derive_tls_profile(
     return TlsProfile(mode="self_signed")
 
 
+def _derive_security_observability_profile() -> SecurityObservabilityProfile:
+    return SecurityObservabilityProfile(
+        wazuh_manager_image=WAZUH_MANAGER_IMAGE,
+        wazuh_agent_image=WAZUH_AGENT_IMAGE,
+        rationale=(
+            "Wazuh provides host-based intrusion detection (HIDS) for the "
+            "NetBox stack. The manager and agent both run with network_mode: host "
+            "so the agent can self-enroll at 127.0.0.1:1515 without crossing "
+            "Docker network boundaries. The manager persists event and agent data "
+            "in named volumes; enable the 'security-observability' Compose profile "
+            "to activate both services."
+        ),
+    )
+
+
 def build_plan(
     report: dict[str, Any],
     track: str,
@@ -654,6 +672,7 @@ def build_plan(
         geo_foss=_derive_geo_foss_profile(),
         monitoring=_derive_monitoring_profile(),
         identity=_derive_identity_profile(),
+        security_observability=_derive_security_observability_profile(),
         tls=_derive_tls_profile(fqdn=fqdn, acme_email=acme_email),
         adjacent_services=_derive_adjacent_services(),
         warnings=_collect_warnings(host),

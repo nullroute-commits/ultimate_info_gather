@@ -145,6 +145,15 @@ class NetworkProfile:
 
 
 @dataclass(slots=True)
+class SecurityObservabilityProfile:
+    """Wazuh security observability configuration."""
+
+    wazuh_manager_image: str
+    wazuh_agent_image: str
+    rationale: str
+
+
+@dataclass(slots=True)
 class IdentityProfile:
     """Identity provider configuration for Authentik and Ory Hydra."""
 
@@ -180,6 +189,7 @@ class DeploymentPlan:
     geo_foss: GeoFossProfile
     monitoring: MonitoringProfile
     identity: IdentityProfile
+    security_observability: SecurityObservabilityProfile
     tls: TlsProfile
     adjacent_services: list[AdjacentServiceRecommendation]
     warnings: list[str]

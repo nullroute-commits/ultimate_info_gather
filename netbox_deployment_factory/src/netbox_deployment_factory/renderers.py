@@ -25,6 +25,7 @@ from .constants import (
   TRAEFIK_IMAGE,
   WAF_IMAGE,
   WAZUH_AGENT_IMAGE,
+  WAZUH_MANAGER_IMAGE,
 )
 from .models import DeploymentPlan
 
@@ -535,11 +536,29 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
+  wazuh-manager:
+    image: {WAZUH_MANAGER_IMAGE}
+    profiles: ["security-observability"]
+    restart: unless-stopped
+    network_mode: host
+    healthcheck:
+      test: ["CMD-SHELL", "ss -tlnp | grep -q ':1515' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    volumes:
+      - wazuh-manager-data:/var/ossec/data
+      - wazuh-manager-logs:/var/ossec/logs
+
   wazuh-agent:
     image: {WAZUH_AGENT_IMAGE}
     profiles: ["security-observability"]
     restart: unless-stopped
     network_mode: host
+    depends_on:
+      wazuh-manager:
+        condition: service_healthy
     environment:
       WAZUH_MANAGER_SERVER: "127.0.0.1"
       WAZUH_AGENT_NAME: "{plan.deployment_name}-wazuh-agent"
@@ -972,6 +991,8 @@ volumes:
   authentik-pg-data:
   authentik-data:
   hydra-pg-data:
+  wazuh-manager-data:
+  wazuh-manager-logs:
 
 networks:
   edge:

@@ -60,6 +60,7 @@ AUTHENTIK_IMAGE = "ghcr.io/goauthentik/server:2026.2.2"
 HYDRA_IMAGE = "oryd/hydra:v2.3.0"
 
 # --- Security / Observability ------------------------------------------------
+WAZUH_MANAGER_IMAGE = "wazuh/wazuh-manager:4.14.4"
 WAZUH_AGENT_IMAGE = "wazuh/wazuh-agent:4.14.4"
 MONITORING_INIT_IMAGE = "alpine:3.23"
 
