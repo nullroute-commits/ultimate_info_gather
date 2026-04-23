@@ -335,6 +335,14 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("waf:", compose_text)
             self.assertIn("netbox-superuser-sync:", compose_text)
             self.assertIn("orb-agent:", compose_text)
+            self.assertIn("orb-bootstrap:", compose_text)
+            # orb-bootstrap depends on hydra-bootstrap-clients to ensure client is registered
+            self.assertIn("hydra-bootstrap-clients", compose_text)
+            # orb-agent depends on orb-bootstrap completing before it starts
+            self.assertIn("orb-config:", compose_text)
+            # orb-agent reads from the runtime-patched volume, not the raw config dir
+            self.assertIn("orb-config:/opt/orb:ro", compose_text)
+            self.assertNotIn("./configuration/orb:/opt/orb:ro", compose_text)
             self.assertIn("diode-auth:", compose_text)
             self.assertIn("diode-ingester:", compose_text)
             self.assertIn("diode-reconciler:", compose_text)
@@ -379,6 +387,20 @@ class PlannerTests(unittest.TestCase):
             py_compile.compile(str(importer_runner_file), doraise=True)
             self.assertIn('NB_SUPERUSER_NAME', superuser_sync_text)
             self.assertIn('get_or_create', superuser_sync_text)
+            # orb-bootstrap.sh injects secret at runtime; populate-env-secrets.sh no longer
+            # needs to touch agent.yaml
+            orb_bootstrap_file = output_dir / "scripts" / "orb-bootstrap.sh"
+            self.assertTrue(orb_bootstrap_file.exists())
+            orb_bootstrap_text = orb_bootstrap_file.read_text(encoding="utf-8")
+            self.assertIn("diode_client_secret", orb_bootstrap_text)
+            self.assertIn("client_secret: replace-me", orb_bootstrap_text)
+            self.assertIn("agent.yaml", orb_bootstrap_text)
+            populate_env_text = (
+                output_dir / "scripts" / "populate-env-secrets.sh"
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("ORB_AGENT_YAML", populate_env_text)
+            self.assertNotIn("configuration/orb/agent.yaml", populate_env_text)
+            self.assertIn("orb-bootstrap container", populate_env_text)
             self.assertIn('config_manager:', orb_agent_config_text)
             self.assertIn('network_discovery:', orb_agent_config_text)
             self.assertIn('grpc://127.0.0.1:18080', orb_agent_config_text)

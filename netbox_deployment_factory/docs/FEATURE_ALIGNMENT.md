@@ -85,7 +85,42 @@ The generated bundle includes an ORB discovery profile using the official NetBox
 - Config: `configuration/orb/agent.yaml`
 - Image: `netboxlabs/orb-agent:2.7.0`
 
-This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The generated default policy targets RFC1918 ranges, uses `schedule: "@every 120m"` to reduce default scan churn, and starts with `dry_run: true` for safer first boot behavior.
+This wiring follows upstream Orb docs that require `run -c /opt/orb/agent.yaml` and elevated networking for active discovery. The service is profile-gated (`orb-discovery`) and uses host networking plus `NET_RAW`/`NET_ADMIN` capabilities. The generated default policy targets RFC1918 ranges, uses `schedule: "@every 120m"` to reduce default scan churn, and starts with `dry_run: true` for safer first boot behavior.
+
+### Automated Secret Injection (orb-bootstrap)
+
+The `client_secret` field in `agent.yaml` cannot use Docker-secrets `_FILE` conventions because the ORB agent reads `agent.yaml` as a plain YAML file without environment-variable interpolation. Previously this required running `scripts/populate-env-secrets.sh` before first start.
+
+The generated bundle now includes an `orb-bootstrap` init container that automates this step:
+
+1. `orb-bootstrap` starts before `orb-agent` (Compose dependency: `service_completed_successfully`)
+2. It depends on `hydra-bootstrap-clients` completing so the Diode OAuth2 client is registered first
+3. It reads `secrets/diode_client_secret` via the Docker secret mount (`/run/secrets/diode_client_secret`)
+4. It copies the template `configuration/orb/agent.yaml` into the `orb-config` Docker volume
+5. It patches `client_secret: replace-me` with the real value using `sed`
+6. `orb-agent` reads the patched config from the `orb-config` volume (mounted read-only)
+
+The `scripts/orb-bootstrap.sh` script performs the credential injection. `scripts/populate-env-secrets.sh` no longer modifies `agent.yaml` — it only handles `env/diode.env`.
+
+### Startup Order
+
+```
+hydra-bootstrap-clients → orb-bootstrap → orb-agent
+diode-auth (started) ─────────────────→ orb-agent
+```
+
+### Enabling Live Scanning
+
+The generated `configuration/orb/agent.yaml` contains `dry_run: true`. To enable active RFC1918 scanning:
+
+1. Edit `configuration/orb/agent.yaml` and set `dry_run: false`
+2. Populate `secrets/diode_client_secret` with the real Diode client secret
+3. Start the ORB profile:
+   ```bash
+   docker compose --profile orb-discovery up -d
+   ```
+
+Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The `orb-bootstrap` container handles injection automatically at startup using the Docker secret.
 
 ## Adjacent FOSS Services
 

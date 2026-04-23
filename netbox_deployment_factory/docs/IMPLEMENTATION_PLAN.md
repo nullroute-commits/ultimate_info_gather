@@ -55,7 +55,7 @@ Generate a repository flow that consumes `ultimate_info_gather` output and produ
 - Floorplan: enable `netbox-floorplan-plugin` 0.9.1 (`min_version=4.5.0-beta1`, `max_version=4.5.99`)
 - Inventory: enable `netbox-inventory` 2.5.1 (`min_version=4.5.0`)
 - Device type library: pin `netbox-community/devicetype-library` by commit and include a dedicated one-shot import service that uses the NetBox REST API with v2 token authentication
-- ORB: generate `configuration/orb/orchestration.yml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks
+- ORB: generate `configuration/orb/agent.yaml`, `env/orb.env`, and default `orb-agent` wiring through NetBox API readiness checks; add `orb-bootstrap` init container that injects the Diode client secret from a Docker secret file into the agent.yaml at startup, replacing the manual `populate-env-secrets.sh` ORB step
 - Traefik: generate `configuration/traefik/dynamic.yml`, `scripts/generate-traefik-cert.sh`, and Traefik v3.6 compose service with TLS termination on port 443; support Let's Encrypt ACME DNS-01 via Cloudflare as an alternative to self-signed certificates when `--fqdn` and `--acme-email` are provided
 - WAF: generate `configuration/waf/default.conf` and OWASP ModSecurity CRS nginx sidecar between Traefik and NetBox
 - Scoped networks: derive six isolated Docker bridge networks (edge, app, data, security, monitoring, identity) with explicit CIDR allocations from `NetworkProfile` in the deployment plan

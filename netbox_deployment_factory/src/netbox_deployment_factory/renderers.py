@@ -563,11 +563,29 @@ def render_compose(plan: DeploymentPlan) -> str:
       WAZUH_MANAGER_SERVER: "127.0.0.1"
       WAZUH_AGENT_NAME: "{plan.deployment_name}-wazuh-agent"
 
+  orb-bootstrap:
+    image: {MONITORING_INIT_IMAGE}
+    profiles: ["orb-discovery"]
+    restart: "no"
+    entrypoint: ["/bin/sh"]
+    command: ["/opt/scripts/orb-bootstrap.sh"]
+    secrets:
+      - diode_client_secret
+    depends_on:
+      hydra-bootstrap-clients:
+        condition: service_completed_successfully
+    volumes:
+      - ./configuration/orb:/opt/orb-template:ro
+      - orb-config:/opt/orb
+      - ./scripts:/opt/scripts:ro
+
   orb-agent:
     image: {ORB_AGENT_IMAGE}
     profiles: ["orb-discovery"]
     restart: unless-stopped
     depends_on:
+      orb-bootstrap:
+        condition: service_completed_successfully
       diode-auth:
         condition: service_started
     env_file:
@@ -579,7 +597,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - NET_ADMIN
       - NET_RAW
     volumes:
-      - ./configuration/orb:/opt/orb:ro
+      - orb-config:/opt/orb:ro
 
   monitoring-dashboard-init:
     image: {MONITORING_INIT_IMAGE}
@@ -991,6 +1009,7 @@ volumes:
   authentik-pg-data:
   authentik-data:
   hydra-pg-data:
+  orb-config:
   wazuh-manager-data:
   wazuh-manager-logs:
 
@@ -1597,6 +1616,46 @@ ORB_AGENT_CONFIG=/opt/orb/agent.yaml
 """
 
 
+def render_orb_bootstrap_script() -> str:
+    """Render the orb-bootstrap init-container script.
+
+    Copies the generated agent.yaml template from the read-only config mount
+    into the shared orb-config volume, then substitutes the ``client_secret:
+    replace-me`` placeholder with the real value read from the Docker secret
+    file.  Running as an init container means the patched file is ready before
+    orb-agent starts, so no manual pre-flight step is needed.
+    """
+
+    return r"""#!/bin/sh
+# orb-bootstrap.sh
+# Injects the Diode client secret into agent.yaml at container start time.
+# Runs as a one-shot init container (orb-bootstrap) before orb-agent.
+set -eu
+
+TEMPLATE="/opt/orb-template/agent.yaml"
+OUTPUT_DIR="/opt/orb"
+OUTPUT="$OUTPUT_DIR/agent.yaml"
+SECRET_FILE="/run/secrets/diode_client_secret"
+
+if [ ! -f "$SECRET_FILE" ]; then
+  echo "ERROR: /run/secrets/diode_client_secret not found" >&2
+  exit 1
+fi
+
+CLIENT_SECRET="$(cat "$SECRET_FILE" | tr -d '\n')"
+
+if [ -z "$CLIENT_SECRET" ]; then
+  echo "ERROR: diode_client_secret is empty" >&2
+  exit 1
+fi
+
+mkdir -p "$OUTPUT_DIR"
+cp "$TEMPLATE" "$OUTPUT"
+sed -i "s|client_secret: replace-me|client_secret: ${CLIENT_SECRET}|" "$OUTPUT"
+echo "orb-bootstrap: agent.yaml written to ${OUTPUT} with Diode client secret."
+"""
+
+
 def render_diode_env() -> str:
     """Render shared Diode service environment defaults."""
 
@@ -1657,6 +1716,9 @@ def render_populate_env_secrets_script() -> str:
     with no shell, so they cannot use Docker-secrets _FILE patterns.  Run this
     script once after populating the secrets/ directory to bake the values into
     env/diode.env before starting the stack.
+
+    ORB agent.yaml credential injection is handled automatically by the
+    orb-bootstrap init container at runtime — no manual step required.
     """
 
     return r"""#!/bin/sh
@@ -1668,14 +1730,12 @@ set -eu
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SECRETS_DIR="$SCRIPT_DIR/secrets"
 DIODE_ENV="$SCRIPT_DIR/env/diode.env"
-ORB_AGENT_YAML="$SCRIPT_DIR/configuration/orb/agent.yaml"
 
 read_secret() { cat "$SECRETS_DIR/$1" | tr -d '\n'; }
 
 redis_pw="$(read_secret diode_redis_password)"
 pg_pw="$(read_secret db_password)"
 netbox_to_diode="$(read_secret netbox_to_diode)"
-diode_client_secret="$(read_secret diode_client_secret)"
 
 sed -i \
     -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${redis_pw}|" \
@@ -1684,15 +1744,7 @@ sed -i \
     "$DIODE_ENV"
 
 echo "env/diode.env updated with real secret values."
-
-# The ORB agent reads its OAuth2 client_secret directly from agent.yaml
-# (no _FILE pattern available). Substitute the placeholder before first start.
-if [ -f "$ORB_AGENT_YAML" ]; then
-    sed -i \
-        -e "s|client_secret: replace-me|client_secret: ${diode_client_secret}|" \
-        "$ORB_AGENT_YAML"
-    echo "configuration/orb/agent.yaml updated with real diode_client_secret."
-fi
+echo "ORB agent.yaml credentials are injected at runtime by the orb-bootstrap container."
 """
 
 
@@ -3382,6 +3434,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
     files.update({
         output_dir / "scripts" / "sync-superuser.sh": render_superuser_sync_script(),
         output_dir / "scripts" / "populate-env-secrets.sh": render_populate_env_secrets_script(),
+        output_dir / "scripts" / "orb-bootstrap.sh": render_orb_bootstrap_script(),
         output_dir / "scripts" / "run-diode-ingester.sh": render_diode_ingester_script(),
         output_dir / "scripts" / "run-diode-reconciler.sh": render_diode_reconciler_script(),
         output_dir / "scripts" / "setup-diode-credential.sh": (
