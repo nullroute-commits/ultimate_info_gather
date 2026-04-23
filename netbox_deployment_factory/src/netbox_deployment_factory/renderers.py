@@ -542,9 +542,9 @@ def render_compose(plan: DeploymentPlan) -> str:
     restart: unless-stopped
     network_mode: host
     healthcheck:
-      test: ["CMD-SHELL", "ss -tlnp | grep -q ':1515' || exit 1"]
+      test: ["CMD-SHELL", "pgrep -x wazuh-remoted > /dev/null || /var/ossec/bin/wazuh-remoted 2>/dev/null || true; /var/ossec/bin/wazuh-control status 2>&1 | grep -q 'wazuh-authd is running'"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 20
       start_period: 60s
     volumes:
@@ -651,8 +651,8 @@ def render_compose(plan: DeploymentPlan) -> str:
       - /etc/alloy/config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
-      - "{plan.host.service_ip}:1514:1514"
-      - "127.0.0.1:1514:1514"
+      - "{plan.host.service_ip}:5514:5514"
+      - "127.0.0.1:5514:5514"
     volumes:
       - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
     networks:
@@ -2844,7 +2844,7 @@ def render_alloy_config() -> str:
     return r"""// Syslog receiver - listens for syslog messages forwarded from syslog-ng
 loki.source.syslog "syslog" {
   listener {
-    address               = "0.0.0.0:1514"
+    address               = "0.0.0.0:5514"
     protocol              = "tcp"
     idle_timeout          = "60s"
     label_structured_data = true
@@ -2906,7 +2906,7 @@ source s_network {
 };
 
 destination d_loki {
-\tsyslog("127.0.0.1" transport("tcp") port("1514"));
+\tsyslog("127.0.0.1" transport("tcp") port("5514"));
 };
 
 log {

@@ -528,7 +528,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("syslog", alloy_config_text)
             syslog_ng_text = monitoring_syslog_ng_config.read_text(encoding="utf-8")
             self.assertIn("127.0.0.1", syslog_ng_text)
-            self.assertIn("1514", syslog_ng_text)
+            self.assertIn("5514", syslog_ng_text)
             grafana_prom_ds_text = grafana_prometheus_ds.read_text(encoding="utf-8")
             self.assertIn("prometheus:9090", grafana_prom_ds_text)
             grafana_loki_ds_text = grafana_loki_ds.read_text(encoding="utf-8")
@@ -559,7 +559,7 @@ class PlannerTests(unittest.TestCase):
             # host-networked services for host/LAN input
             self.assertIn("node-exporter:host-gateway", compose_text)
             self.assertIn("snmp-exporter:host-gateway", compose_text)
-            self.assertIn("127.0.0.1:1514:1514", compose_text)
+            self.assertIn("127.0.0.1:5514:5514", compose_text)
             self.assertIn("## Monitoring Stack", generated_readme_text)
             self.assertIn("enter-the-metrics", generated_readme_text)
 

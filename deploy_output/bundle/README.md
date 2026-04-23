@@ -2,7 +2,7 @@
 
 ## Source
 
-- Report: /tmp/greenfield-report/report_20260422_212658.json
+- Report: deploy_output/reports/report.json
 - Generator version: 1.0.0
 - Deployment name: netbox-stack
 

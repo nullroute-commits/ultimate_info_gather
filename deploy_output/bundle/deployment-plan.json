@@ -339,7 +339,7 @@
     "profile_name": "medium"
   },
   "source_generator_version": "1.0.0",
-  "source_report": "/tmp/greenfield-report/report_20260422_212658.json",
+  "source_report": "deploy_output/reports/report.json",
   "tls": {
     "acme_email": null,
     "dns_provider": null,
