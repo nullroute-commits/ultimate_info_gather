@@ -2,20 +2,20 @@
 
 ## Source
 
-- Report: output/report_20260408_084842.json
+- Report: /tmp/greenfield-report/report_20260422_212658.json
 - Generator version: 1.0.0
 - Deployment name: netbox-stack
 
 ## Host Summary
 
 - Hostname: DESKTOP-BSUBRIF
-- OS: Ubuntu 24.04.4 LTS (Noble Numbat)
+- OS: Ubuntu Core 24
 - Kernel: 6.6.87.2-microsoft-standard-WSL2
 - Architecture: x86_64
 - WSL: True
-- Docker capable: True
-- Memory total: 8329089024
-- Memory available: 3196280832
+- Docker capable: False
+- Memory total: 12543291392
+- Memory available: 5667950592
 
 ## Standards Alignment
 
@@ -181,8 +181,8 @@ Authentik forward-auth, rename `dynamic-identity.yml.disabled` to
 
 ## Privacy Controls
 
-- Bootstrap username: bootstrap-9214618f01
-- Bootstrap email: bootstrap-9214618f01@invalid.local
+- Bootstrap username: bootstrap-deabf75905
+- Bootstrap email: bootstrap-deabf75905@invalid.local
 - Rotation required: True
 - Rationale: Use a pseudonymous bootstrap superuser that is not tied to a human identity, store the credentials only in separate local secret files, and disable or rotate the account after creating named RBAC-backed operators.
 
@@ -241,7 +241,7 @@ runs on every stack start.
 
 NetBox is available at **https://172.30.186.102** (port 443 in self-signed mode).
 
-- **Username**: `bootstrap-9214618f01`
+- **Username**: `bootstrap-deabf75905`
 - **Password**: the value in `secrets/superuser_password`
 
 The bootstrap account is intended only for first login and RBAC setup — rotate or
@@ -294,6 +294,7 @@ repository. Grafana is then available at **http://172.30.186.102:3000** with the
 ## Warnings
 
 - Host is WSL-based. Prefer persistent Docker volumes and explicit backups over host package assumptions.
+- Report did not confirm Docker control capability. The generated compose bundle has not been tailored for runtime execution on this host.
 - The Proxmox plugin (netbox-proxbox) is enabled in this bundle using version 0.0.10 which explicitly targets NetBox 4.5.x. Validate in staging before production. For event-driven Proxmox automation without a plugin, the NetBox Labs netbox-proxmox-automation project (https://github.com/netboxlabs/netbox-proxmox-automation) provides a webhook-based alternative.
 - The ACL plugin (netbox-acls) version 2.0.0 is enabled and explicitly targets NetBox 4.5.x in the upstream compatibility matrix.
 - The Prometheus discovery plugin (netbox-prometheus-sd) is included but disabled because version 0.5 still imports the legacy extras.plugins API and fails on NetBox 4.5.x.
