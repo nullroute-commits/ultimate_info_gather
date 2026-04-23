@@ -1377,6 +1377,12 @@ if api_token_key:
   from users.models import Token
   from users.choices import TokenVersionChoices
   if settings.API_TOKEN_PEPPERS:
+    # NetBox stores the token plaintext WITHOUT the "nbt_" prefix in the DB;
+    # update_digest() HMACs self.token while validate() strips the prefix first.
+    # Passing the raw secret (which already starts with "nbt_") without stripping
+    # would cause a permanent HMAC mismatch.  Always strip before creating.
+    TOKEN_PREFIX = "nbt_"
+    token_plaintext = api_token_key.removeprefix(TOKEN_PREFIX)
     existing = None
     for t in Token.objects.filter(user=user):
       if t.validate(api_token_key):
@@ -1384,14 +1390,16 @@ if api_token_key:
         break
     if not existing:
       Token.objects.filter(user=user).delete()
-      t = Token.objects.create(user=user, token=api_token_key, version=TokenVersionChoices.V2)
+      t = Token.objects.create(user=user, token=token_plaintext, version=TokenVersionChoices.V2)
       changed = True
       print(f"superuser-sync: created v2 token key={t.key}")
     else:
       t = existing
       print(f"superuser-sync: token already exists key={existing.key}")
 
-    # Write the full v2 token (nbt_<key>.<plaintext>) for sidecar services
+    # Write the full v2 token (nbt_<key>.<api_token_key>) for sidecar services.
+    # api_token_key retains the "nbt_" prefix so the bearer format is correct:
+    # "Bearer nbt_<key>.<nbt_plaintext>" → NetBox splits on first ".", validates remainder.
     full_token = f"nbt_{t.key}.{api_token_key}"
     from pathlib import Path
     token_store = Path("/token-store")
