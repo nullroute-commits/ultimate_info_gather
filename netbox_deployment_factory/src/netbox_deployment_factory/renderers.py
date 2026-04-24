@@ -947,6 +947,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - hydra_system_secret
       - diode_client_id
       - diode_client_secret
+      - netbox_to_diode
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -963,12 +964,13 @@ def render_compose(plan: DeploymentPlan) -> str:
           --token-endpoint-auth-method client_secret_post
         echo "Diode OAuth2 client registered successfully"
         NETBOX_CLIENT_ID="netbox-to-diode"
+        NETBOX_CLIENT_SECRET=$$(cat /run/secrets/netbox_to_diode)
         hydra delete oauth2-client "$$NETBOX_CLIENT_ID" \
           --endpoint http://hydra:4445 2>/dev/null || true
         hydra create oauth2-client \
           --endpoint http://hydra:4445 \
           --id "$$NETBOX_CLIENT_ID" \
-          --secret "$$DIODE_CLIENT_SECRET" \
+          --secret "$$NETBOX_CLIENT_SECRET" \
           --grant-type client_credentials \
           --scope openid,diode,diode:ingest \
           --token-endpoint-auth-method client_secret_post

@@ -340,6 +340,11 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("orb-bootstrap:", compose_text)
             # orb-bootstrap depends on hydra-bootstrap-clients to ensure client is registered
             self.assertIn("hydra-bootstrap-clients", compose_text)
+            # netbox-to-diode Hydra client uses netbox_to_diode secret (not diode_client_secret)
+            # so that diode-reconciler (which reads netbox_to_diode) authenticates correctly.
+            self.assertIn("NETBOX_CLIENT_SECRET=$$(cat /run/secrets/netbox_to_diode)", compose_text)
+            # hydra-bootstrap-clients must mount the netbox_to_diode secret
+            self.assertIn("- netbox_to_diode", compose_text)
             # orb-agent depends on orb-bootstrap completing before it starts
             self.assertIn("orb-config:", compose_text)
             # orb-agent reads from the runtime-patched volume, not the raw config dir
