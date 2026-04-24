@@ -364,8 +364,11 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(diode_proxy_conf.exists())
             diode_proxy_conf_text = diode_proxy_conf.read_text(encoding="utf-8")
             self.assertIn("location = /auth/token", diode_proxy_conf_text)
-            self.assertIn("proxy_pass http://diode-token-adapter:8090/token", diode_proxy_conf_text)
+            # /auth/token routes DIRECTLY to Hydra (emits RFC 9068 scope natively via hydra.yml)
+            self.assertIn("proxy_pass http://hydra:4444/oauth2/token", diode_proxy_conf_text)
+            self.assertNotIn("proxy_pass http://diode-token-adapter:8090/token", diode_proxy_conf_text)
             self.assertIn("location = /auth/introspect", diode_proxy_conf_text)
+            # /auth/introspect still goes through adapter to inject scope into Hydra introspect response
             self.assertIn("proxy_pass http://diode-token-adapter:8090/introspect", diode_proxy_conf_text)
             self.assertIn("grpc_pass grpc://diode-ingester:8081", diode_proxy_conf_text)
             # diode-token-adapter script must be generated
@@ -375,6 +378,12 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("POST /token", adapter_text)
             self.assertIn("POST /introspect", adapter_text)
             self.assertIn("scope", adapter_text)
+            # adapter must use Hydra admin API for introspect, not diode-auth
+            self.assertIn("HYDRA_ADMIN_URL", adapter_text)
+            self.assertIn("/admin/oauth2/introspect", adapter_text)
+            self.assertNotIn("DIODE_AUTH_URL", adapter_text)
+            # compose must set HYDRA_ADMIN_URL for the adapter service
+            self.assertIn("HYDRA_ADMIN_URL=http://hydra:4445", compose_text)
             self.assertIn("diode_target_override", plugins_text)
             self.assertIn("grpc://diode-proxy:80", plugins_text)
             self.assertIn('profiles: ["orb-discovery"]', compose_text)

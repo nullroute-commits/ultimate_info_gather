@@ -370,7 +370,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     command: ["python", "/opt/diode-token-adapter.py"]
     environment:
       - HYDRA_PUBLIC_URL=http://hydra:4444
-      - DIODE_AUTH_URL=http://diode-auth:8080
+      - HYDRA_ADMIN_URL=http://hydra:4445
       - ADAPTER_PORT=8090
     volumes:
       - ./configuration/diode-token-adapter.py:/opt/diode-token-adapter.py:ro
@@ -1671,17 +1671,23 @@ def render_diode_proxy_nginx_config() -> str:
 
     The ORB network-discovery SDK derives the OAuth token URL from the gRPC
     target as ``http://{host}:{port}/auth/token``, but diode-auth v1.12.0
-    only exposes ``POST /token`` (no ``/auth/`` prefix).  Additionally,
-    Hydra's JWT access tokens use ``scp`` (array) instead of the RFC 9068
-    ``scope`` (string) that diode-ingester and the NetBox Diode plugin expect.
+    only exposes ``POST /token`` (no ``/auth/`` prefix).
 
-    This nginx proxy sits between ORB/NetBox and the Diode stack on port 18084:
+    With Hydra configured to use ``strategies.jwt.scope_claim: string``
+    (``configuration/hydra.yml``), Hydra natively emits the RFC 9068 ``scope``
+    claim (string) in all JWT access tokens.  The token path therefore routes
+    directly to Hydra's public token endpoint, bypassing the adapter.
 
-    - HTTP/1.1 ``POST /auth/token``     → diode-token-adapter:8090/token
-      (translates Hydra ``scp`` array → RFC 9068 ``scope`` string)
-    - HTTP/1.1 ``POST /auth/introspect``→ diode-token-adapter:8090/introspect
+    The introspect path still goes through the adapter because Hydra's admin
+    introspect response body omits the ``scope`` field; the adapter injects it
+    from the bearer JWT so the NetBox Diode plugin can verify token scopes.
+
+    Routes on port 18084:
+
+    - HTTP/1.1 ``POST /auth/token``      → hydra:4444/oauth2/token (direct)
+    - HTTP/1.1 ``POST /auth/introspect`` → diode-token-adapter:8090/introspect
       (augments diode-auth introspect response with ``scope`` field)
-    - HTTP/2 gRPC ``/``                 → diode-ingester:8081 (data ingestion)
+    - HTTP/2 gRPC ``/``                  → diode-ingester:8081 (data ingestion)
 
     The ``http2 on`` directive (nginx >= 1.25.1) enables h2c (cleartext
     HTTP/2) on the same port so that ORB's single ``grpc://`` target drives
@@ -1695,14 +1701,17 @@ server {
     listen 80;
     http2 on;
 
-    # ORB SDK calls /auth/token; diode-token-adapter translates Hydra scp → scope.
+    # ORB SDK calls /auth/token. Hydra emits RFC 9068 'scope' (string) natively
+    # when configured with strategies.jwt.scope_claim=string in hydra.yml.
+    # Route directly to Hydra public endpoint — no adapter translation needed.
     location = /auth/token {
-        proxy_pass http://diode-token-adapter:8090/token;
+        proxy_pass http://hydra:4444/oauth2/token;
         proxy_pass_request_body on;
         proxy_pass_request_headers on;
     }
 
-    # NetBox Diode plugin introspect; adapter augments response with scope field.
+    # NetBox Diode plugin introspect; adapter augments Hydra introspect response
+    # with the 'scope' field (Hydra admin introspect omits it from the body).
     location = /auth/introspect {
         proxy_pass http://diode-token-adapter:8090/introspect;
         proxy_pass_request_body on;
@@ -1722,18 +1731,18 @@ server {
 def render_diode_token_adapter_script() -> str:
     """Render the diode-token-adapter Python HTTP service.
 
-    Hydra v2 JWT access tokens use ``scp`` (array) for granted scopes, but
-    the diode-ingester binary (parsed with ``ParseTokenUnverified``) checks
-    the RFC 9068 ``scope`` claim (string).  Similarly, the NetBox Diode plugin
-    calls a token-introspect endpoint and checks ``data["scope"]``, which
-    Hydra's introspect response omits.
+    Hydra's admin introspect response body omits the ``scope`` field that the
+    NetBox Diode plugin checks (``data["scope"]``).  With Hydra configured to
+    emit ``scope`` (string) via ``scope_claim: string`` in ``hydra.yml``, the
+    token path now routes directly to Hydra — no re-issuance needed.  This
+    adapter is retained exclusively for the introspect path.
 
-    This single-file Python service bridges both gaps:
-
-    - ``POST /token``      — validates client credentials against Hydra,
-      then re-issues an HS256 JWT that carries ``scope`` instead of ``scp``.
-    - ``POST /introspect`` — calls diode-auth introspect, decodes the bearer
-      JWT to extract ``scp``, then injects ``scope`` into the response JSON.
+    - ``POST /token``      — retained for defence-in-depth; validates credentials
+      against Hydra and re-issues an HS256 JWT with ``scope`` (handles both
+      ``scope`` string and ``scp`` array from the upstream Hydra response).
+    - ``POST /introspect`` — proxies to Hydra admin introspect (returns ``active``
+      and ``scope`` natively); injects ``scope`` from the JWT payload as
+      defence-in-depth if the response omits it.
     """
 
     return '''\
@@ -1741,7 +1750,7 @@ def render_diode_token_adapter_script() -> str:
 """diode-token-adapter — translates Hydra scp JWT claim to RFC 9068 scope.
 
 POST /token      validate credentials → Hydra, re-issue HS256 JWT with scope
-POST /introspect proxy diode-auth introspect + inject scope from scp claim
+POST /introspect proxy Hydra admin introspect (already includes scope)
 """
 import base64
 import json
@@ -1753,7 +1762,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 
 HYDRA_PUBLIC_URL = os.environ.get("HYDRA_PUBLIC_URL", "http://hydra:4444")
-DIODE_AUTH_URL = os.environ.get("DIODE_AUTH_URL", "http://diode-auth:8080")
+HYDRA_ADMIN_URL = os.environ.get("HYDRA_ADMIN_URL", "http://hydra:4445")
 JWT_SECRET = os.environ.get("ADAPTER_JWT_SECRET", "diode-adapter-secret")
 TOKEN_TTL = int(os.environ.get("TOKEN_TTL", "3600"))
 
@@ -1873,14 +1882,12 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _handle_introspect(self):
         body = self._read_body()
-        auth_header = self.headers.get("Authorization", "")
+        # Call Hydra admin introspect directly — it returns active, scope, sub, etc.
+        # The admin API requires no client auth and natively includes the scope field.
         req = urequest.Request(
-            f"{DIODE_AUTH_URL}/introspect",
+            f"{HYDRA_ADMIN_URL}/admin/oauth2/introspect",
             data=body,
-            headers={
-                "Content-Type": self.headers.get("Content-Type", "application/x-www-form-urlencoded"),
-                "Authorization": auth_header,
-            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         try:
             with urequest.urlopen(req, timeout=10) as resp:
@@ -1892,10 +1899,12 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(500, {"error": "introspect_failed"})
             return
 
+        # Defence-in-depth: if Hydra omits scope, extract from the JWT payload.
         if result.get("active") and "scope" not in result:
+            auth_header = self.headers.get("Authorization", "")
             bearer = auth_header.removeprefix("Bearer ").strip()
             payload = _decode_jwt_payload(bearer)
-            # Handle both scope (string, Hydra >= patched) and scp (array, default).
+            # Handle both scope (string, Hydra with scope_claim=string) and scp (array).
             if "scope" in payload:
                 result["scope"] = payload["scope"]
             else:
