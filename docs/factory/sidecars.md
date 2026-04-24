@@ -128,7 +128,7 @@ The ORB agent provides network discovery using the official NetBox Labs Orb agen
 1. The ORB agent runs with host networking and elevated capabilities for active network discovery.
 2. Discovery targets RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`) by default.
 3. The scan schedule defaults to `@every 120m` to reduce scan churn.
-4. Discovery starts with `dry_run: true` for safer first-boot behavior.
+4. Runs with `dry_run: false` — the `orb-bootstrap` init container injects real Diode client credentials at startup.
 
 ### Usage
 
@@ -136,49 +136,50 @@ The ORB agent provides network discovery using the official NetBox Labs Orb agen
 docker compose --profile orb-discovery up -d orb-agent
 ```
 
-!!! warning "Diode Credentials"
-    Before running ORB, set Diode client credentials in `configuration/orb/agent.yaml`:
-
-    ```yaml
-    client_id: netbox-to-diode
-    client_secret: replace-me
-    ```
-
-    Keep ORB in dry-run mode unless your Diode auth path is verified.
+!!! note "Automatic Credential Injection"
+    The `orb-bootstrap` init container automatically reads `secrets/diode_client_secret`
+    and injects it into `configuration/orb/agent.yaml` before `orb-agent` starts.
+    No manual credential editing is required.
 
 ### Generated Files
 
 | File | Description |
 |------|-------------|
-| `configuration/orb/agent.yaml` | ORB agent configuration |
+| `configuration/orb/agent.yaml` | ORB agent configuration template |
+| `scripts/orb-bootstrap.sh` | Init container that injects Diode credentials |
 | `env/orb.env` | ORB environment variables |
 
 ---
 
 ## Diode Services
 
-Diode provides automated network state ingestion and reconciliation. Three companion services are deployed in the `data` network.
+Diode provides automated network state ingestion and reconciliation into NetBox IPAM.
 
 ### Services
 
 | Service | Image | Purpose |
 |---------|-------|---------|
-| `diode-auth` | `netboxlabs/diode-auth:1.12.0` | Authentication service |
-| `diode-ingester` | `netboxlabs/diode-ingester:1.13.0` | Data ingestion service |
-| `diode-reconciler` | `netboxlabs/diode-reconciler:1.13.0` | State reconciliation service |
-| `diode-credential-setup` | NetBox image | OAuth2 credential provisioning (init container) |
+| `diode-auth` | `netboxlabs/diode-auth:1.12.0` | OAuth2 introspect service backed by Hydra |
+| `diode-ingester` | `netboxlabs/diode-ingester:0.9.0` | gRPC data ingestion service |
+| `diode-reconciler` | `netboxlabs/diode-reconciler:1.13.0` | Reconciles ingested state with NetBox objects |
+| `diode-proxy` | `nginx:1.27-alpine` | Muxes HTTP/1.1 token/introspect and gRPC on port 18084 |
+| `diode-token-adapter` | `python:3.11-alpine` | Translates Hydra JWT `scope` claim for service compatibility |
 
 ### How It Works
 
-1. The `diode-credential-setup` init container runs `scripts/setup-diode-credential.sh` to provision OAuth2 client credentials after superuser sync.
-2. `diode-auth` handles authentication using Ory Hydra for OAuth2 client-credentials grants.
-3. `diode-ingester` accepts network state data from external sources.
-4. `diode-reconciler` reconciles ingested data with NetBox objects.
+1. **ORB → diode-proxy (`:18084`)**: ORB sends token requests to `/auth/token` and gRPC ingest to `/`.
+2. **diode-proxy → diode-token-adapter**: Token and introspect requests are routed through the adapter, which ensures the RFC 9068 `scope` claim (string) is present in all tokens and introspect responses.
+3. **diode-proxy → diode-ingester**: gRPC ingest traffic is forwarded directly.
+4. **diode-reconciler → NetBox Diode plugin**: The reconciler calls NetBox `/api/plugins/diode/` to generate and apply change sets.
+5. **Hydra `scope_claim: string`**: Configured via `configuration/hydra.yml` to emit `scope` (string) rather than the Hydra default `scp` (array), fixing the root-cause JWT claim mismatch.
 
 ### Generated Files
 
 | File | Description |
 |------|-------------|
+| `configuration/hydra.yml` | Hydra YAML config setting `scope_claim: string` |
+| `configuration/diode-proxy.conf` | nginx mux configuration |
+| `configuration/diode-token-adapter.py` | Scope-claim translation adapter |
 | `scripts/run-diode-ingester.sh` | Diode ingester entrypoint |
 | `scripts/run-diode-reconciler.sh` | Diode reconciler entrypoint |
 | `scripts/setup-diode-credential.sh` | OAuth2 credential provisioning |

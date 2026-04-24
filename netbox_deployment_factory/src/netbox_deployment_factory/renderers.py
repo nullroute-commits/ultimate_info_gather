@@ -914,13 +914,15 @@ def render_compose(plan: DeploymentPlan) -> str:
     secrets:
       - hydra_pg_password
       - hydra_system_secret
+    volumes:
+      - ./configuration/hydra.yml:/etc/hydra.yml:ro
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         hydra_pw="$$(cat /run/secrets/hydra_pg_password)"
         export DSN="postgres://hydra:$$hydra_pw@hydra-postgres:5432/hydra?sslmode=disable"
         export SECRETS_SYSTEM="$$(cat /run/secrets/hydra_system_secret)"
-        exec hydra serve all --dev
+        exec hydra serve all --dev -c /etc/hydra.yml
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4444/health/alive || exit 1"]
       interval: 15s
@@ -1632,6 +1634,28 @@ STRATEGIES_ACCESS_TOKEN=jwt
 """
 
 
+def render_hydra_config_yaml() -> str:
+    """Render the Hydra YAML config file mounted at ``/etc/hydra.yml``.
+
+    Hydra v2.3.0 uses ``scp`` (array) for JWT scope claims by default, but
+    diode-ingester (``golang-jwt/jwt/v5``) checks the RFC 9068 ``scope``
+    string claim.  The ``strategies.jwt.scope_claim`` option cannot be set
+    via environment variable because Viper's key-path-to-env mapping is
+    ambiguous for three-level nested keys (``strategies.jwt.scope_claim``
+    and ``strategies.jwt_scope_claim`` both map to the same env var name).
+    A YAML config file passed via ``-c /etc/hydra.yml`` is the correct fix.
+    """
+
+    return """\
+strategies:
+  jwt:
+    # Emit RFC 9068 'scope' (string) instead of Hydra-default 'scp' (array).
+    # diode-ingester and the NetBox Diode plugin both expect 'scope' as a
+    # space-separated string. Cannot be set via env var due to Viper ambiguity.
+    scope_claim: string
+"""
+
+
 def render_orb_env() -> str:
     """Render ORB sidecar environment values."""
 
@@ -1820,8 +1844,13 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         hydra_payload = _decode_jwt_payload(hydra_resp["access_token"])
-        scp = hydra_payload.get("scp", [])
-        scope_str = " ".join(scp) if isinstance(scp, list) else str(scp)
+        # Hydra v2.3.0 emits 'scope' (string) when strategies.jwt.scope_claim=string.
+        # Fall back to 'scp' (array) for compatibility with unpatched Hydra instances.
+        if "scope" in hydra_payload:
+            scope_str = hydra_payload["scope"]
+        else:
+            scp = hydra_payload.get("scp", [])
+            scope_str = " ".join(scp) if isinstance(scp, list) else str(scp)
 
         now = int(time.time())
         payload = {
@@ -1864,8 +1893,12 @@ class _Handler(BaseHTTPRequestHandler):
         if result.get("active") and "scope" not in result:
             bearer = auth_header.removeprefix("Bearer ").strip()
             payload = _decode_jwt_payload(bearer)
-            scp = payload.get("scp", [])
-            result["scope"] = " ".join(scp) if isinstance(scp, list) else str(scp)
+            # Handle both scope (string, Hydra >= patched) and scp (array, default).
+            if "scope" in payload:
+                result["scope"] = payload["scope"]
+            else:
+                scp = payload.get("scp", [])
+                result["scope"] = " ".join(scp) if isinstance(scp, list) else str(scp)
 
         self._send_json(200, result)
 
@@ -3683,6 +3716,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "plugin_requirements.txt": render_plugin_requirements(plan),
         output_dir / "configuration" / "extra.py": render_netbox_extra_py(),
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
+        output_dir / "configuration" / "hydra.yml": render_hydra_config_yaml(),
         output_dir / "configuration" / "traefik" / "dynamic.yml": (
             render_traefik_dynamic_config(plan)
         ),
