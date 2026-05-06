@@ -100,6 +100,7 @@ Populate the Authentik identity secrets before starting the optional profile:
 cd secrets
 openssl rand -hex 32 > authentik_secret_key
 openssl rand -base64 24 | tr -d '\n' > authentik_pg_password
+openssl rand -base64 24 | tr -d '\n' > authentik_admin_password
 openssl rand -base64 24 | tr -d '\n' > hydra_pg_password
 openssl rand -hex 32 > hydra_system_secret
 cd ..
@@ -124,6 +125,7 @@ Hydra and its database/migration/bootstrap services start with the default stack
 | `scripts/setup-diode-credential.sh` | Provisions Diode client credentials in Hydra |
 | `secrets/authentik_secret_key.example` | Authentik secret key placeholder |
 | `secrets/authentik_pg_password.example` | Authentik PostgreSQL password placeholder |
+| `secrets/authentik_admin_password.example` | Authentik akadmin bootstrap password placeholder |
 | `secrets/hydra_pg_password.example` | Hydra PostgreSQL password placeholder |
 | `secrets/hydra_system_secret.example` | Hydra system secret placeholder |
 

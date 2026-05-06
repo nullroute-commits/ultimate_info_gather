@@ -80,6 +80,8 @@ This page provides a complete listing of all files, services, and profiles produ
 | `secrets/netbox_to_diode.example` | NetBox-to-Diode client secret |
 | `secrets/authentik_secret_key.example` | Authentik secret key |
 | `secrets/authentik_pg_password.example` | Authentik PostgreSQL password |
+| `secrets/authentik_admin_password.example` | Authentik akadmin bootstrap password |
+| `secrets/grafana_admin_password.example` | Grafana admin password |
 | `secrets/hydra_pg_password.example` | Hydra PostgreSQL password |
 | `secrets/hydra_system_secret.example` | Hydra system secret |
 | `secrets/cf_dns_api_token.example` | Cloudflare DNS API token (Let's Encrypt mode only) |
@@ -100,11 +102,12 @@ This page provides a complete listing of all files, services, and profiles produ
 | `valkey` | Track-dependent | Valkey cache and task queue |
 | `netbox` | `<deployment-name>:local` | NetBox application |
 | `netbox-worker` | `<deployment-name>:local` | NetBox RQ worker (1 or more) |
-| `netbox-superuser-sync` | `<deployment-name>:local` | Bootstrap superuser creation (init) |
+| `netbox-init` | `<deployment-name>:local` | Bootstrap superuser, token mint, and Diode credential setup (one-shot init) |
 | `diode-auth` | `netboxlabs/diode-auth:1.12.0` | Diode authentication service |
 | `diode-ingester` | `netboxlabs/diode-ingester:1.13.0` | Diode ingestion service |
 | `diode-reconciler` | `netboxlabs/diode-reconciler:1.13.0` | Diode reconciliation service |
-| `diode-credential-setup` | `<deployment-name>:local` | Diode OAuth2 credential provisioning (init) |
+| `diode-proxy` | `nginx:1.27-alpine` | HTTP/gRPC mux for Diode token and ingest traffic |
+| `diode-token-adapter` | `python:3.11-alpine` | Scope-claim translation adapter for Hydra JWT compatibility |
 | `hydra-postgres` | Track-dependent | Dedicated Postgres for Hydra |
 | `hydra-migrate` | `oryd/hydra:v2.3.0` | Hydra database migration |
 | `hydra` | `oryd/hydra:v2.3.0` | OAuth2/OIDC server for Diode |

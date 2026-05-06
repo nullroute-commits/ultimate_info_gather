@@ -95,7 +95,7 @@ docker compose --profile geo-foss-import run --rm netbox-geo-foss
 
 ### Dependencies
 
-- Depends on `netbox-superuser-sync` having completed (so the v2 API token is available in the `token-store` volume).
+- Depends on `netbox-init` having completed (so the v2 API token is available in the `token-store` volume).
 - Authenticates using the full v2 API token (`nbt_<key>.<plaintext>`) read from the `token-store` volume, with fallback to the raw secret file.
 - Downloaded geographic data is cached in a `geo-foss-cache` volume.
 
@@ -137,9 +137,9 @@ docker compose --profile orb-discovery up -d orb-agent
 ```
 
 !!! note "Automatic Credential Injection"
-    The `orb-bootstrap` init container automatically reads `secrets/diode_client_secret`
-    and injects it into `configuration/orb/agent.yaml` before `orb-agent` starts.
-    No manual credential editing is required.
+    The `orb-bootstrap` init container automatically reads both `secrets/diode_client_id`
+    and `secrets/diode_client_secret` and injects them into `configuration/orb/agent.yaml`
+    before `orb-agent` starts. No manual credential editing is required.
 
 ### Generated Files
 
@@ -160,7 +160,7 @@ Diode provides automated network state ingestion and reconciliation into NetBox 
 | Service | Image | Purpose |
 |---------|-------|---------|
 | `diode-auth` | `netboxlabs/diode-auth:1.12.0` | OAuth2 introspect service backed by Hydra |
-| `diode-ingester` | `netboxlabs/diode-ingester:0.9.0` | gRPC data ingestion service |
+| `diode-ingester` | `netboxlabs/diode-ingester:1.13.0` | gRPC data ingestion service |
 | `diode-reconciler` | `netboxlabs/diode-reconciler:1.13.0` | Reconciles ingested state with NetBox objects |
 | `diode-proxy` | `nginx:1.27-alpine` | Muxes HTTP/1.1 token/introspect and gRPC on port 18084 |
 | `diode-token-adapter` | `python:3.11-alpine` | Translates Hydra JWT `scope` claim for service compatibility |
@@ -195,7 +195,7 @@ The superuser sync service creates the pseudonymous bootstrap superuser and mint
 
 | Property | Value |
 |----------|-------|
-| Compose service | `netbox-superuser-sync` |
+| Compose service | `netbox-init` |
 | Type | One-shot init container |
 | Depends on | NetBox health check |
 
@@ -205,7 +205,8 @@ The superuser sync service creates the pseudonymous bootstrap superuser and mint
 2. Creates the bootstrap superuser with the pseudonymous username from `secrets/superuser_name`.
 3. Mints a v2 API token using `Token.validate()` for idempotent re-runs.
 4. Writes the full v2 token (`nbt_<key>.<plaintext>`) to the `token-store` volume.
-5. Sidecar services that depend on `netbox-superuser-sync` can read the assembled token from `token-store`.
+5. Provisions the Diode admin user and API token in NetBox for the Diode plugin credential handshake.
+6. Sidecar services that depend on `netbox-init` can read the assembled token from `token-store`.
 
 ### Generated Files
 

@@ -72,7 +72,7 @@ The repository enables `netbox-inventory` (`netbox_inventory`) version 2.5.1. Th
 
 The repository enables `netboxlabs-diode-netbox-plugin` (`netbox_diode_plugin`) version 1.9.0. This is the official NetBox Labs Diode plugin that provides reconciliation APIs for automated network state ingestion. Upstream compatibility table shows NetBox >= 4.5.0 support.
 
-**Configuration:** `diode_username: "diode"`, `diode_target_override: "grpc://diode-auth:8080/diode"`, `secrets_path: "/run/secrets/"`, `netbox_to_diode_client_id: "netbox-to-diode"`, `netbox_to_diode_client_secret_name: "netbox_to_diode"`. The `diode_target_override` points at the generated `diode-auth` Compose service so plugin and reconciler endpoints resolve within the composed deployment.
+**Configuration:** `diode_username: "diode"`, `diode_target_override: "grpc://diode-proxy:80"`, `secrets_path: "/run/secrets/"`, `netbox_to_diode_client_id: "netbox-to-diode"`, `netbox_to_diode_client_secret_name: "netbox_to_diode"`. The `diode_target_override` points at the generated `diode-proxy` Compose service (nginx mux on port 18084 inside the container network) so plugin traffic reaches the gRPC ingester through the proxy.
 
 The generated bundle includes three companion Diode services in the `data` network: `diode-auth` (`netboxlabs/diode-auth:1.12.0`), `diode-ingester` (`netboxlabs/diode-ingester:1.13.0`), and `diode-reconciler` (`netboxlabs/diode-reconciler:1.13.0`). Diode credential provisioning (`scripts/setup-diode-credential.sh`) is called automatically by the `netbox-init` single-init container (see [NetBox Bootstrap Init](#netbox-bootstrap-init) below).
 
@@ -116,9 +116,9 @@ The generated bundle now includes an `orb-bootstrap` init container that automat
 
 1. `orb-bootstrap` starts before `orb-agent` (Compose dependency: `service_completed_successfully`)
 2. It depends on `hydra-bootstrap-clients` completing so the Diode OAuth2 client is registered first
-3. It reads `secrets/diode_client_secret` via the Docker secret mount (`/run/secrets/diode_client_secret`)
+3. It reads `secrets/diode_client_id` and `secrets/diode_client_secret` via Docker secret mounts
 4. It copies the template `configuration/orb/agent.yaml` into the `orb-config` Docker volume
-5. It patches `client_secret: replace-me` with the real value using `sed`
+5. It patches `client_id: replace-client-id` and `client_secret: replace-me` with the real values using `sed`
 6. `orb-agent` reads the patched config from the `orb-config` volume (mounted read-only)
 
 The `scripts/orb-bootstrap.sh` script performs the credential injection. `scripts/populate-env-secrets.sh` no longer modifies `agent.yaml` — it only handles `env/diode.env`.
@@ -132,16 +132,15 @@ diode-auth (started) ─────────────────→ orb-
 
 ### Enabling Live Scanning
 
-The generated `configuration/orb/agent.yaml` contains `dry_run: true`. To enable active RFC1918 scanning:
+The generated `configuration/orb/agent.yaml` defaults to `dry_run: false` — active RFC1918 scanning is enabled from first boot. To restrict to passive observation, set `dry_run: true` before starting the ORB profile:
 
-1. Edit `configuration/orb/agent.yaml` and set `dry_run: false`
-2. Populate `secrets/diode_client_secret` with the real Diode client secret
-3. Start the ORB profile:
+1. Edit `configuration/orb/agent.yaml` and set `dry_run: true`
+2. Start the ORB profile:
    ```bash
    docker compose --profile orb-discovery up -d
    ```
 
-Diode client credentials are emitted as explicit placeholders in `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation in that file. The `orb-bootstrap` container handles injection automatically at startup using the Docker secret.
+Diode client credentials (`client_id` and `client_secret`) are emitted as `replace-client-id` / `replace-me` placeholders in the template `configuration/orb/agent.yaml` because orb-agent does not perform environment-variable interpolation. The `orb-bootstrap` container injects both values automatically at startup using Docker secrets.
 
 ## Adjacent FOSS Services
 
