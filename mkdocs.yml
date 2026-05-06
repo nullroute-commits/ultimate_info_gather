@@ -56,9 +56,12 @@ nav:
     - CLI Reference: factory/cli-reference.md
     - Data Models: factory/data-models.md
     - Plugin Catalog: factory/plugins.md
+    - Feature Alignment: factory/feature-alignment.md
+    - Implementation Plan: factory/implementation-plan.md
     - Network Segmentation: factory/networking.md
     - TLS Termination: factory/tls.md
     - Security & Privacy: factory/security.md
+    - Privacy Model: factory/privacy.md
     - Monitoring Stack: factory/monitoring.md
     - Identity Stack: factory/identity.md
     - Sidecar Services: factory/sidecars.md
@@ -74,6 +77,7 @@ nav:
     - Testing: development/testing.md
   - Tools:
     - GitHub Copilot Setup: tools/github-copilot-setup.md
+  - Improvements: improvements-summary.md
   - Agent Specification: agent.md
 
 plugins:

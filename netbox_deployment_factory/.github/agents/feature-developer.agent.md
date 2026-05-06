@@ -37,8 +37,8 @@ export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
 | `tests/test_planner.py` | All planner + bundle assertions | `unittest.TestCase`, fixture at `tests/fixtures/sample_report.json` |
 | `tests/test_cli.py` | Subprocess round-trip smoke test | `subprocess.run([sys.executable, '-m', 'netbox_deployment_factory', ...])` |
 | `tests/fixtures/sample_report.json` | Handcrafted report stub for tests | Must have: `report_metadata.report_id`, `environment.hostname`, `environment.is_wsl`, `hardware.{cpu,memory,is_virtual_machine,hypervisor}`, `network.{default_gateway,dns_config}`, `software.{os_info,can_manage_containers,container_runtimes,can_install_packages}` |
-| `docs/FEATURE_ALIGNMENT.md` | Plugin-by-plugin compatibility rationale | One `##` section per plugin |
-| `docs/IMPLEMENTATION_PLAN.md` | Feature mapping and host findings | Feature Mapping list |
+| `docs/factory/feature-alignment.md` | Plugin-by-plugin compatibility rationale | One `##` section per plugin |
+| `docs/factory/implementation-plan.md` | Feature mapping and host findings | Feature Mapping list |
 | `README.md` | User-facing deployment guide | Version Pins, What Gets Generated, Walkthrough |
 
 ---
@@ -134,7 +134,7 @@ print(render_plugins_py(p))
 - Confirm `PLUGINS` list in `plugins.py` includes the module name if enabled.
 - Confirm `PLUGINS_CONFIG` includes the module config if enabled and config is non-empty.
 
-#### Step 4: Document in `docs/FEATURE_ALIGNMENT.md`
+#### Step 4: Document in `docs/factory/feature-alignment.md`
 
 Add a `## <Display Name>` section:
 ```markdown
@@ -513,14 +513,14 @@ print('bootstrap:', p.admin_privacy.bootstrap_username)
 
 | Change | Docs to update |
 |---|---|
-| New plugin added | `docs/FEATURE_ALIGNMENT.md` new `##` section + `README.md` Version Pins |
-| Plugin enabled/disabled | `docs/FEATURE_ALIGNMENT.md` update rationale + `README.md` Version Pins |
+| New plugin added | `docs/factory/feature-alignment.md` new `##` section + `README.md` Version Pins |
+| Plugin enabled/disabled | `docs/factory/feature-alignment.md` update rationale + `README.md` Version Pins |
 | New generated file | `README.md` What Gets Generated |
 | New compose service | `README.md` What Gets Generated + Walkthrough if operator action required |
 | New CLI flag | `README.md` Usage section + CLI flag description |
-| Version pin change | `README.md` Version Pins + `FEATURE_ALIGNMENT.md` if plugin |
-| New planner field | `docs/IMPLEMENTATION_PLAN.md` Feature Mapping if feature-relevant |
-| External sidecar integration | `docs/FEATURE_ALIGNMENT.md` dedicated section + `README.md` What Gets Generated |
+| Version pin change | `README.md` Version Pins + `docs/factory/feature-alignment.md` if plugin |
+| New planner field | `docs/factory/implementation-plan.md` Feature Mapping if feature-relevant |
+| External sidecar integration | `docs/factory/feature-alignment.md` dedicated section + `README.md` What Gets Generated |
 
 ---
 

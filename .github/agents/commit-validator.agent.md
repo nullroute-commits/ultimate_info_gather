@@ -383,14 +383,14 @@ Any new generated file, new CLI flag, new plugin, changed version pin, or change
 - **What Gets Generated** list includes all files from `write_bundle()`.
 - **Full Deployment Walkthrough** steps remain accurate.
 
-#### G7.3 `netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md` must document plugin decisions
-Any new plugin added to `DEFAULT_PLUGIN_SPECS` MUST have a corresponding section in `FEATURE_ALIGNMENT.md` describing:
+#### G7.3 `docs/factory/feature-alignment.md` must document plugin decisions
+Any new plugin added to `DEFAULT_PLUGIN_SPECS` MUST have a corresponding section in `docs/factory/feature-alignment.md` describing:
 - Compatibility evidence (source, version metadata).
 - Why it is enabled or disabled.
 - Any known limitations or future upgrade path.
 
-#### G7.4 `IMPROVEMENTS_SUMMARY.md` for cross-platform fixes
-Any change that fixes a platform-specific issue (embedded, ARM, WSL, OpenWrt) MUST update `IMPROVEMENTS_SUMMARY.md` with:
+#### G7.4 `docs/improvements-summary.md` for cross-platform fixes
+Any change that fixes a platform-specific issue (embedded, ARM, WSL, OpenWrt) MUST update `docs/improvements-summary.md` with:
 - The root cause.
 - The fix applied.
 - Before/after output comparison.

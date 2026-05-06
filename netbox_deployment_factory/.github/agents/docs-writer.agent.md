@@ -22,9 +22,9 @@ All facts in the documentation must be **derivable from source code**. Every ver
 | `README.md` → **What Gets Generated** | File tree of the 27-file bundle | `renderers.py::write_bundle()` file registry |
 | `README.md` → **Usage** | CLI flags and arguments | `cli.py::build_parser()` |
 | `README.md` → **Full Deployment Walkthrough** | Operator steps post-bundle-generation | Manual; must match generated file names exactly |
-| `docs/FEATURE_ALIGNMENT.md` | Per-plugin compatibility rationale | `constants.py::DEFAULT_PLUGIN_SPECS` |
-| `docs/IMPLEMENTATION_PLAN.md` | Feature mapping and host findings | `planner.py` derivation functions |
-| `docs/PRIVACY.md` | Privacy design and data handling | `planner.py::_derive_admin_privacy()`, `renderers.py` secret handling |
+| `docs/factory/feature-alignment.md` | Per-plugin compatibility rationale | `constants.py::DEFAULT_PLUGIN_SPECS` |
+| `docs/factory/implementation-plan.md` | Feature mapping and host findings | `planner.py` derivation functions |
+| `docs/factory/privacy.md` | Privacy design and data handling | `planner.py::_derive_admin_privacy()`, `renderers.py` secret handling |
 
 ---
 
@@ -192,7 +192,7 @@ for p in DEFAULT_PLUGIN_SPECS:
 "
 ```
 
-**Step 2: Update `docs/FEATURE_ALIGNMENT.md`**
+**Step 2: Update `docs/factory/feature-alignment.md`**
 
 Format for a new `##` section:
 ```markdown
@@ -269,7 +269,7 @@ The generated `docker-compose.yml` uses the following pinned versions:
 | Valkey (alpine track) | `<valkey_alpine_tag>` |
 ```
 
-**Step 3: Update `docs/FEATURE_ALIGNMENT.md`** if the new NetBox version affects any plugin's compatibility status.
+**Step 3: Update `docs/factory/feature-alignment.md`** if the new NetBox version affects any plugin's compatibility status.
 
 ```bash
 # Verify which plugins have max_version restrictions
@@ -389,7 +389,7 @@ Add or update the entry:
 - <Component> (commit): `<short-sha>`
 ```
 
-**Step 3: Update `docs/FEATURE_ALIGNMENT.md`** if the component has a dedicated section there.
+**Step 3: Update `docs/factory/feature-alignment.md`** if the component has a dedicated section there.
 
 ---
 
@@ -413,7 +413,7 @@ print('report_id_stored:', plan.report_metadata.report_id if hasattr(plan, 'repo
 "
 ```
 
-**Step 2: Update `docs/PRIVACY.md`**
+**Step 2: Update `docs/factory/privacy.md`**
 
 The Privacy doc covers:
 - What data is read from the system report.
@@ -443,7 +443,7 @@ python3 -c "
 import sys; sys.path.insert(0, 'src')
 from netbox_deployment_factory.constants import DEFAULT_PLUGIN_SPECS
 from pathlib import Path
-fa = Path('docs/FEATURE_ALIGNMENT.md').read_text()
+fa = Path('../docs/factory/feature-alignment.md').read_text()
 for p in DEFAULT_PLUGIN_SPECS:
     status = 'documented' if p.package_name in fa else 'MISSING'
     print(f'[{status}] {p.package_name} (enabled={p.enabled})')
@@ -492,7 +492,7 @@ for f in flags:
 1. **Present tense only.** "The factory generates…" not "will generate".
 2. **Code literals in backticks.** Package names, file paths, CLI flags, Python identifiers, version strings.
 3. **Verified facts only.** Run the fact-verification commands above; do not assert from memory.
-4. **One `##` section per plugin** in `FEATURE_ALIGNMENT.md`. Merge if a plugin already has a section.
+4. **One `##` section per plugin** in `docs/factory/feature-alignment.md`. Merge if a plugin already has a section.
 5. **Stable section headings.** Do not rename existing `##` or `###` headings without checking cross-references.
 6. **Version pin tables.** Use markdown tables with exact tag strings as they appear in `constants.py`.
 7. **File paths** in What Gets Generated must match exactly what `write_bundle()` emits.

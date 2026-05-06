@@ -625,17 +625,17 @@ for version, label in checks:
 #### G10.2 `README.md` What Gets Generated must list all files from `write_bundle()`
 When a new file is added to `write_bundle()`, it MUST appear in the What Gets Generated section of `README.md`.
 
-#### G10.3 `docs/FEATURE_ALIGNMENT.md` must have a section for every plugin in `DEFAULT_PLUGIN_SPECS`
+#### G10.3 `docs/factory/feature-alignment.md` must have a section for every plugin in `DEFAULT_PLUGIN_SPECS`
 ```bash
 python3 -c "
 import sys; sys.path.insert(0, 'src')
 from netbox_deployment_factory.constants import DEFAULT_PLUGIN_SPECS
-fa = open('docs/FEATURE_ALIGNMENT.md').read()
+fa = open('../docs/factory/feature-alignment.md').read()
 for p in DEFAULT_PLUGIN_SPECS:
     name = p.package_name
-    # Check package name or module name appears in FEATURE_ALIGNMENT
+    # Check package name or module name appears in feature-alignment
     if name not in fa and p.module_name.replace('_', '-') not in fa:
-        print(f'FAIL: {name} not documented in FEATURE_ALIGNMENT.md')
+        print(f'FAIL: {name} not documented in feature-alignment.md')
     else:
         print(f'OK: {name}')
 "

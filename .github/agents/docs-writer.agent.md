@@ -1,6 +1,6 @@
 ---
 name: Docs Writer
-description: "Use when writing or updating documentation — MkDocs guide pages, API reference, agent.md spec, IMPROVEMENTS_SUMMARY.md, FEATURE_ALIGNMENT.md, factory README, or any doc that must stay aligned with implemented code."
+description: "Use when writing or updating documentation — MkDocs guide pages, API reference, agent.md spec, docs/improvements-summary.md, docs/factory/feature-alignment.md, factory README, or any doc that must stay aligned with implemented code."
 tools: [read, search, edit, execute, todo]
 argument-hint: "Describe what changed in the codebase (new collector, new field, new plugin, new CLI flag, platform fix, etc.) and which docs need updating. Or specify a doc that is known to be stale."
 user-invocable: true
@@ -36,7 +36,7 @@ Every doc in this repo maps to a specific code source. Use this table to find wh
 | `docs/guide/network.md` | `src/collectors/network_collector.py`, `src/models/network.py` | Interface fields, `ConnectionState` enum, `RouteType` enum, firewall detection list |
 | `docs/guide/software.md` | `src/collectors/software_collector.py`, `src/models/software.py` | Package managers list (ordered!), `ServiceState` enum, container runtimes |
 | `docs/guide/reports.md` | `src/models/report.py` | Output formats, `SystemReport` fields, `to_dict()` top-level keys |
-| `docs/guide/embedded-systems.md` | `IMPROVEMENTS_SUMMARY.md`, `src/collectors/base.py` `silent_if_missing` usage | Platform list, missing file table, package manager support, known limitations |
+| `docs/guide/embedded-systems.md` | `docs/improvements-summary.md`, `src/collectors/base.py` `silent_if_missing` usage | Platform list, missing file table, package manager support, known limitations |
 | `docs/getting-started/installation.md` | `pyproject.toml`, `README.md` | Python version requirement, install commands, optional dep groups |
 | `docs/getting-started/quickstart.md` | `main.py`, `src/orchestrator.py::main()` | CLI flags, programmatic API, output directory structure |
 | `docs/getting-started/configuration.md` | `src/orchestrator.py` constructor, `generate_outputs()` | All configurable parameters and their defaults |
@@ -53,15 +53,15 @@ Every doc in this repo maps to a specific code source. Use this table to find wh
 | Document | Source of truth | Key facts to verify |
 |---|---|---|
 | `netbox_deployment_factory/README.md` | `renderers.py::write_bundle()`, `constants.py`, `cli.py` | Version Pins section, What Gets Generated list, all CLI flags, walkthrough steps |
-| `netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md` | `constants.py::DEFAULT_PLUGIN_SPECS`, `renderers.py` | Plugin sections, compatibility evidence, compose service descriptions, network topology table |
-| `netbox_deployment_factory/docs/IMPLEMENTATION_PLAN.md` | `planner.py`, `renderers.py` | Current host findings, feature mapping list |
-| `netbox_deployment_factory/docs/PRIVACY.md` | `planner.py::_derive_admin_privacy()`, `renderers.py::render_superuser_sync_script()` | Privacy model, secret file list, bootstrap account rationale |
+| `docs/factory/feature-alignment.md` | `constants.py::DEFAULT_PLUGIN_SPECS`, `renderers.py` | Plugin sections, compatibility evidence, compose service descriptions, network topology table |
+| `docs/factory/implementation-plan.md` | `planner.py`, `renderers.py` | Current host findings, feature mapping list |
+| `docs/factory/privacy.md` | `planner.py::_derive_admin_privacy()`, `renderers.py::render_superuser_sync_script()` | Privacy model, secret file list, bootstrap account rationale |
 
 ### Commit-adjacent Docs
 
 | Document | When to update |
 |---|---|
-| `IMPROVEMENTS_SUMMARY.md` | Any cross-platform fix (ARM, embedded, WSL, OpenWrt) |
+| `docs/improvements-summary.md` | Any cross-platform fix (ARM, embedded, WSL, OpenWrt) |
 | `README.md` (root) | New features, new CLI flags, new architecture components, version changes |
 
 ---
@@ -232,7 +232,7 @@ New guide pages follow this structure:
 1. Add the capability to `docs/agent.md` under the appropriate numbered section (1–5).
 2. Update the corresponding `docs/guide/<collector>.md` page.
 3. Update `docs/api/collectors.md` with the new method or field.
-4. If the capability is an embedded/platform fix, update `IMPROVEMENTS_SUMMARY.md`.
+4. If the capability is an embedded/platform fix, update `docs/improvements-summary.md`.
 
 ### When a new CLI flag is added to `main.py`
 
@@ -249,7 +249,7 @@ New guide pages follow this structure:
 
 ### When a new NetBox plugin is added to the factory
 
-1. Add a `## <Plugin Display Name>` section to `netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md`:
+1. Add a `## <Plugin Display Name>` section to `docs/factory/feature-alignment.md`:
    - Compatibility evidence (cite the upstream source URL and version metadata).
    - Whether it is enabled or disabled and why.
    - Configuration notes (any non-default config keys that operators must set).
@@ -270,7 +270,7 @@ New guide pages follow this structure:
 
 ### When a cross-platform / embedded fix lands
 
-Update `IMPROVEMENTS_SUMMARY.md` with:
+Update `docs/improvements-summary.md` with:
 ```markdown
 ## <Platform> — <Brief Title>
 

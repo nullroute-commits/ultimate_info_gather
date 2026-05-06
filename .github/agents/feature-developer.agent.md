@@ -44,19 +44,19 @@ Use this to identify which files need to change for any given feature.
 | Brand new collector | New `src/collectors/<x>_collector.py` + new `src/models/<x>.py` + register in both `__init__.py` + wire into `src/orchestrator.py` |
 | New output format | `src/models/report.py` → `render_<fmt>()` + `save_<fmt>()` + wire in `orchestrator.generate_outputs()` |
 | New CLI flag | `src/orchestrator.py::main()` argparse block + orchestrator constructor or `generate_outputs()` |
-| Cross-platform / embedded fix | `src/collectors/base.py` (if helper) or relevant collector + `IMPROVEMENTS_SUMMARY.md` |
+| Cross-platform / embedded fix | `src/collectors/base.py` (if helper) or relevant collector + `docs/improvements-summary.md` |
 
 ### Factory subsystem (`netbox_deployment_factory/`)
 
 | What changes | Files to modify |
 |---|---|
-| New plugin | `constants.py` `DEFAULT_PLUGIN_SPECS` + `docs/FEATURE_ALIGNMENT.md` + test assertions in `test_planner.py` |
+| New plugin | `constants.py` `DEFAULT_PLUGIN_SPECS` + `docs/factory/feature-alignment.md` + test assertions in `test_planner.py` |
 | New generated file | `renderers.py` new `render_*()` + register path in `write_bundle()` + assert existence in `test_planner.py` |
 | New compose service | `renderers.py::render_compose()` + update `write_bundle()` env/scripts if needed + `README.md` What Gets Generated |
 | New planner field | `models.py` new `@dataclass(slots=True)` + `planner.py` derivation function + `DeploymentPlan` field + `render_plan_json` auto-includes via `asdict()` |
 | New CLI flag | `cli.py::build_parser()` + pass to `build_plan()` |
-| Version pin change | `constants.py` + `README.md` Version Pins + `FEATURE_ALIGNMENT.md` if plugin + test fixture re-generation if needed |
-| New Docker network | `renderers.py::render_compose()` network section + `_segment_cidr()` + `planner.py::_derive_network_profile()` + `FEATURE_ALIGNMENT.md` |
+| Version pin change | `constants.py` + `README.md` Version Pins + `docs/factory/feature-alignment.md` if plugin + test fixture re-generation if needed |
+| New Docker network | `renderers.py::render_compose()` network section + `_segment_cidr()` + `planner.py::_derive_network_profile()` + `docs/factory/feature-alignment.md` |
 
 ---
 
@@ -322,7 +322,7 @@ self.assertTrue(<alias>_plugin.enabled)  # or assertFalse if disabled
 self.assertEqual(<alias>_plugin.version, "<version>")
 ```
 
-#### Document in `FEATURE_ALIGNMENT.md`:
+#### Document in `docs/factory/feature-alignment.md`:
 
 Add a `## <Plugin Display Name>` section covering:
 - Why it is included.
@@ -590,8 +590,8 @@ For every feature, update the following before committing:
 | New model field | `docs/api/models.md` |
 | New CLI flag | `docs/agent.md` CLI table + `docs/getting-started/quickstart.md` |
 | New output format | `docs/agent.md` Output Formats table + `docs/guide/reports.md` |
-| Cross-platform / embedded fix | `IMPROVEMENTS_SUMMARY.md` with root cause, fix, before/after output |
-| New factory plugin | `netbox_deployment_factory/docs/FEATURE_ALIGNMENT.md` + `netbox_deployment_factory/README.md` Version Pins + What Gets Generated |
+| Cross-platform / embedded fix | `docs/improvements-summary.md` with root cause, fix, before/after output |
+| New factory plugin | `docs/factory/feature-alignment.md` + `netbox_deployment_factory/README.md` Version Pins + What Gets Generated |
 | New factory compose service | `netbox_deployment_factory/README.md` What Gets Generated + Walkthrough steps if user action required |
 | New factory CLI flag | `netbox_deployment_factory/README.md` Usage section |
 | Version pin change | `netbox_deployment_factory/README.md` Version Pins section |
