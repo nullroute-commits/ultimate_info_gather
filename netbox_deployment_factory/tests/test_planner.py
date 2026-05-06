@@ -440,7 +440,7 @@ class PlannerTests(unittest.TestCase):
             self.assertIn('config_manager:', orb_agent_config_text)
             self.assertIn('network_discovery:', orb_agent_config_text)
             self.assertIn('grpc://127.0.0.1:18084', orb_agent_config_text)
-            self.assertIn('client_id: netbox-to-diode', orb_agent_config_text)
+            self.assertIn('client_id: replace-client-id', orb_agent_config_text)
             self.assertIn('client_secret: replace-me', orb_agent_config_text)
             self.assertIn('dry_run: false', orb_agent_config_text)
             self.assertIn('schedule: "@every 120m"', orb_agent_config_text)

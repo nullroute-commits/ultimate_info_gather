@@ -585,6 +585,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     entrypoint: ["/bin/sh"]
     command: ["/opt/scripts/orb-bootstrap.sh"]
     secrets:
+      - diode_client_id
       - diode_client_secret
     depends_on:
       hydra-bootstrap-clients:
@@ -1583,7 +1584,7 @@ def render_orb_agent_config() -> str:
     common:
       diode:
         target: grpc://127.0.0.1:18084
-        client_id: netbox-to-diode
+        client_id: replace-client-id
         client_secret: replace-me
         agent_name: generated-orb-agent
         dry_run: false
@@ -1933,21 +1934,33 @@ def render_orb_bootstrap_script() -> str:
 
     return r"""#!/bin/sh
 # orb-bootstrap.sh
-# Injects the Diode client secret into agent.yaml at container start time.
-# Runs as a one-shot init container (orb-bootstrap) before orb-agent.
+# Injects the Diode client_id and client_secret into agent.yaml at container
+# start time. Runs as a one-shot init container (orb-bootstrap) before orb-agent.
 set -eu
 
 TEMPLATE="/opt/orb-template/agent.yaml"
 OUTPUT_DIR="/opt/orb"
 OUTPUT="$OUTPUT_DIR/agent.yaml"
+SECRET_ID_FILE="/run/secrets/diode_client_id"
 SECRET_FILE="/run/secrets/diode_client_secret"
+
+if [ ! -f "$SECRET_ID_FILE" ]; then
+  echo "ERROR: /run/secrets/diode_client_id not found" >&2
+  exit 1
+fi
 
 if [ ! -f "$SECRET_FILE" ]; then
   echo "ERROR: /run/secrets/diode_client_secret not found" >&2
   exit 1
 fi
 
+CLIENT_ID="$(cat "$SECRET_ID_FILE" | tr -d '\n')"
 CLIENT_SECRET="$(cat "$SECRET_FILE" | tr -d '\n')"
+
+if [ -z "$CLIENT_ID" ]; then
+  echo "ERROR: diode_client_id is empty" >&2
+  exit 1
+fi
 
 if [ -z "$CLIENT_SECRET" ]; then
   echo "ERROR: diode_client_secret is empty" >&2
@@ -1956,8 +1969,9 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 cp "$TEMPLATE" "$OUTPUT"
+sed -i "s|client_id: replace-client-id|client_id: ${CLIENT_ID}|" "$OUTPUT"
 sed -i "s|client_secret: replace-me|client_secret: ${CLIENT_SECRET}|" "$OUTPUT"
-echo "orb-bootstrap: agent.yaml written to ${OUTPUT} with Diode client secret."
+echo "orb-bootstrap: agent.yaml written to ${OUTPUT} with Diode client_id and secret."
 """
 
 
