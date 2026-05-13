@@ -27,7 +27,7 @@ Run checks:
 
 ```bash
 # Lint
-ruff check src/ tests/ main.py install_github_copilot.py
+ruff check src/ tests/ main.py
 
 # Type check
 mypy src/

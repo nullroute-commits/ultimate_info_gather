@@ -8,7 +8,6 @@ tests/
 ├── test_deploy.py                   # Deployment pipeline tests
 ├── test_environment.py              # Environment collector tests
 ├── test_improvements.py             # Embedded system improvements tests
-├── test_install_github_copilot.py   # GitHub Copilot installer tests
 ├── test_network.py                  # Network collector tests
 ├── test_orchestrator.py             # Orchestrator tests
 └── test_permissions.py              # Permissions collector tests
@@ -24,7 +23,7 @@ python3 -m pytest tests/ -o addopts=""
 python3 -m pytest tests/ --cov=src --cov-report=html -o addopts=""
 
 # Lint and type-check the root package
-ruff check src/ tests/ main.py install_github_copilot.py
+ruff check src/ tests/ main.py
 mypy src/
 
 # Specific file
