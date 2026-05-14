@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.git/
-.github/
-.mypy_cache/
-.pytest_cache/
-generated/

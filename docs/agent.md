@@ -178,24 +178,6 @@ The agent handles non-standard Linux environments gracefully:
 
 See the [Embedded Systems Guide](guide/embedded-systems.md) for full details.
 
-### 7. Deployment Pipeline
-
-The agent includes an end-to-end async deployment orchestrator (`src/deploy.py`) that chains system information collection with downstream bundle generation:
-
-- **Pipeline Phases**
-  1. **COLLECT** – gather live system information via `InfoGatherOrchestrator`
-  2. **SAVE_REPORT** – persist the JSON report
-  3. **PLAN** – feed the report into the NetBox Deployment Factory planner
-  4. **RENDER** – emit the full deployment bundle (Docker Compose, configs, scripts, secrets)
-  5. **VERIFY** – confirm every expected feature is present and correct
-
-- **Bundle Verification**
-  - Required file presence and non-emptiness checks
-  - Compose service enumeration (all expected services present)
-  - Plan feature validation (sizing, plugins, networks, TLS, identity, monitoring)
-  - Plugin requirements validation
-  - Network CIDR validation
-
 ---
 
 ## Agent Interfaces
@@ -225,21 +207,6 @@ sw = agent.software_info           # SoftwareInfo
 outputs = await agent.generate_outputs(report, ['json', 'markdown'])
 ```
 
-```python
-# End-to-end deployment pipeline
-from src.deploy import run_deployment
-
-result = await run_deployment(
-    output_dir='./output',
-)
-# result.success                – overall success
-# result.phases                 – list of PhaseResult
-# result.report_path            – path to saved JSON report
-# result.bundle_dir             – path to generated bundle (output_dir / "bundle")
-# result.verification_failures  – any failures from the verify phase
-# result.elapsed_ms             – total elapsed time in milliseconds
-```
-
 ### Command Line Interface
 
 ```bash
@@ -265,42 +232,6 @@ python3 main.py -q
 | `-f` | `--format` | `json markdown text` | Output format(s) to generate |
 | `-v` | `--verbose` | off | Verbose output with full summary |
 | `-q` | `--quiet` | off | Quiet mode, suppresses progress output |
-
-### Deployment Pipeline CLI
-
-```bash
-# End-to-end deployment: collect → plan → render → verify
-python3 -m src.deploy
-
-# Specify output directory
-python3 -m src.deploy -o ./deploy_output
-
-# Set deployment name and image track
-python3 -m src.deploy --deployment-name my-stack --track debian
-
-# Override worker containers and host IP
-python3 -m src.deploy --worker-containers 4 --host-ip 10.0.0.1
-
-# Let's Encrypt TLS mode
-python3 -m src.deploy --fqdn netbox.example.com --acme-email admin@example.com
-
-# Quiet mode
-python3 -m src.deploy -q
-```
-
-| Flag | Long Form | Default | Description |
-|------|-----------|---------|-------------|
-| `-o` | `--output-dir` | `./deploy_output` | Root output directory |
-| | `--deployment-name` | `netbox-stack` | Logical name for the deployment |
-| | `--track` | `debian` | Image lifecycle track (`alpine` or `debian`) |
-| | `--cidr-mode` | `deterministic` | CIDR planning mode (`deterministic` or `dynamic`) |
-| | `--worker-containers` | auto | Override worker container count |
-| | `--host-ip` | auto-detected | Override the detected host IP |
-| | `--fqdn` | none | FQDN for Let's Encrypt TLS |
-| | `--acme-email` | none | ACME email (required with `--fqdn`) |
-| `-q` | `--quiet` | off | Suppress progress output |
-
-The standalone factory CLI is separate: it lives under `netbox_deployment_factory/`, requires `--report` and `--output-dir`, and exposes the per-network sizing flags (`--edge-hosts`, `--app-hosts`, `--data-hosts`, `--security-hosts`) that are not part of the root `src.deploy` CLI.
 
 ### Output Formats
 
@@ -451,44 +382,11 @@ class AgentPlugin:
 
 ---
 
-## Deployment Pipeline
-
-The agent includes an end-to-end deployment pipeline (`src/deploy.py`) that chains system information collection with infrastructure deployment bundle generation.
-
-### Pipeline Phases
-
-| Phase | Description |
-|-------|-------------|
-| **COLLECT** | Run full system information collection via the orchestrator |
-| **SAVE_REPORT** | Persist the JSON report to disk |
-| **PLAN** | Generate a deployment plan based on host capabilities |
-| **RENDER** | Render the deployment bundle (Docker Compose, configs, scripts) |
-| **VERIFY** | Validate bundle completeness (38+ files, 31+ services, healthchecks) |
-
-### Usage
-
-```python
-from src.deploy import run_deployment
-
-result = await run_deployment(
-    output_dir="./output",
-)
-
-# result.success, result.phases, result.report_path, result.bundle_dir
-# result.verification_failures, result.elapsed_ms
-```
-
-The pipeline generates deployment bundles for the [NetBox Deployment Factory](factory/index.md), producing production-ready infrastructure including Docker Compose services, Traefik reverse proxy, monitoring stack, and security hardening.
-
----
-
 ## Future Development Roadmap
 
 ### Phase 0: Completed
 
 - [x] **Embedded Systems Support**: OpenWrt/opkg support, ARM-friendly file reading (`silent_if_missing`), graceful handling of virtual interface speed reads
-- [x] **Deployment Pipeline**: End-to-end async deployment orchestrator (`src/deploy.py`) that chains system collection → JSON report → NetBox deployment planning → bundle rendering → verification
-- [x] **NetBox Integration**: Full deployment factory (`netbox_deployment_factory/`) consuming agent JSON output to generate reproducible NetBox deployment bundles with Docker Compose, Traefik, ModSecurity WAF, Valkey, Diode, Authentik SSO, monitoring stack, and more
 
 ### Phase 1: Core Enhancements
 
@@ -505,7 +403,6 @@ The pipeline generates deployment bundles for the [NetBox Deployment Factory](fa
 - [ ] **WebSocket Streaming**: Real-time data streaming
 - [ ] **Database Storage**: PostgreSQL/SQLite persistence
 - [ ] **Prometheus Metrics**: Monitoring system integration
-- [x] **NetBox Integration**: Fully realized via the [`netbox_deployment_factory/`](factory/index.md) docs and the end-to-end deployment pipeline (`src/deploy.py`)
 
 ### Phase 3: Intelligence Features
 
@@ -548,7 +445,6 @@ response = llm.query(
 )
 ```
 
-> **Real-world downstream integration**: The [`netbox_deployment_factory/`](factory/index.md) subproject already consumes this JSON output to generate reproducible NetBox deployment bundles, demonstrating how the agent's structured data can drive infrastructure automation.
 
 ### Structured Outputs
 

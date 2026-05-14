@@ -54,13 +54,6 @@ python3 -m pytest tests/test_environment.py -o addopts=""
 python3 -m pytest -v tests/ -o addopts=""
 ```
 
-Factory unit tests live in the subproject:
-
-```bash
-cd netbox_deployment_factory
-PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
-```
-
 ## Pull Request Process
 
 1. Create a feature branch from `main`

@@ -5,7 +5,6 @@
 ```
 tests/
 ├── conftest.py                      # Shared fixtures
-├── test_deploy.py                   # Deployment pipeline tests
 ├── test_environment.py              # Environment collector tests
 ├── test_improvements.py             # Embedded system improvements tests
 ├── test_network.py                  # Network collector tests
@@ -37,48 +36,6 @@ python3 -m pytest -v tests/ -o addopts=""
 
 # Show print output
 python3 -m pytest -s tests/ -o addopts=""
-```
-
-## Factory Validation
-
-The `netbox_deployment_factory/` package has its own localized validation flow:
-
-```bash
-cd netbox_deployment_factory
-export LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)"
-
-docker compose -f docker-compose.ci.yml run --rm lint
-docker compose -f docker-compose.ci.yml run --rm typecheck
-docker compose -f docker-compose.ci.yml run --rm test
-docker compose -f docker-compose.ci.yml run --rm bundle
-```
-
-### Factory Test Structure
-
-```
-netbox_deployment_factory/tests/
-├── fixtures/
-│   └── sample_report.json           # Minimal host report fixture
-├── test_planner.py                  # Planner logic, sizing, plugins, networks, TLS
-└── test_cli.py                      # CLI argument parsing tests
-```
-
-### Running Factory Tests Locally
-
-Without Docker, run the factory unit tests directly:
-
-```bash
-cd netbox_deployment_factory
-PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
-```
-
-### Full Test Suite
-
-Run the maintained root and factory commands separately:
-
-```bash
-python3 -m pytest tests/ -o addopts="" && \
-cd netbox_deployment_factory && PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
 ```
 
 ## Writing Tests

@@ -78,8 +78,7 @@ dmypy.json
 
 # Output files
 output/
+deploy_output/
 
-# Generated artifacts (both projects)
+# Generated artifacts
 generated-report/
-netbox_deployment_factory/generated/
-netbox_deployment_factory/.artifacts/
