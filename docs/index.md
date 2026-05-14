@@ -2,7 +2,7 @@
 
 Welcome to the Ultimate Info Gather documentation!
 
-**Ultimate Info Gather** is an async Python 3.11+ system inspection framework for environment, permissions, hardware, network, and software inventory, with an optional downstream NetBox deployment pipeline.
+**Ultimate Info Gather** is an async Python 3.11+ system inspection framework for environment, permissions, hardware, network, and software inventory.
 
 ## Features
 
@@ -37,12 +37,6 @@ Welcome to the Ultimate Info Gather documentation!
     ---
 
     Catalogs OS, packages, services, containers, and processes
-
--   :material-server:{ .lg .middle } **NetBox Deployment Factory**
-
-    ---
-
-    Generates reproducible NetBox deployment bundles from collected system data
 
 </div>
 
@@ -90,20 +84,7 @@ graph LR
     C --> E[System<br/>Report]
     F --> E
     D --> E
-    E --> G[Deployment<br/>Factory]
-    G --> H[NetBox<br/>Bundle]
 ```
-
-## NetBox Deployment Factory
-
-The [`netbox_deployment_factory`](factory/index.md) subproject consumes system reports and generates NetBox deployment bundles including Compose services, plugin configuration, Traefik, a WAF, monitoring, and optional identity services.
-
-The repository has **two different CLIs** around this flow:
-
-- the root deployment pipeline: `python3 -m src.deploy`
-- the standalone factory package: Docker workflow or an installed `netbox-deployment-factory` command from the subproject
-
-The factory pages document that distinction explicitly.
 
 ## Requirements
 

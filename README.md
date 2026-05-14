@@ -3,14 +3,13 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Async Python 3.11+ system inspection for environment, permissions, hardware, network, and software inventory, plus an end-to-end deployment pipeline that can feed the bundled NetBox factory.
+Async Python 3.11+ system inspection for environment, permissions, hardware, network, and software inventory.
 
 ## What is here
 
 - **Collector framework**: async collectors for environment, permissions, hardware, network, and software data
 - **Report generation**: JSON, Markdown, and text outputs from a unified `SystemReport`
-- **Deployment pipeline**: `src/deploy.py` runs collect -> save -> plan -> render -> verify
-- **NetBox factory subproject**: `netbox_deployment_factory/` turns a report into a reproducible deployment bundle
+- **Python API and CLI**: reusable orchestration through `src.orchestrator` and `main.py`
 
 ## Requirements
 
@@ -82,26 +81,6 @@ The in-memory dataclasses are richer than the JSON output in a few places:
 
 See `docs/guide/reports.md` for the current serialized shape.
 
-## End-to-end deployment pipeline
-
-The root package also ships an async deployment wrapper in `src/deploy.py`:
-
-```bash
-# collect -> save report -> plan -> render -> verify
-python3 -m src.deploy
-
-# custom output directory
-python3 -m src.deploy --output-dir ./deploy_output
-
-# alternate track and deployment name
-python3 -m src.deploy --track alpine --deployment-name lab-stack
-
-# Let's Encrypt mode
-python3 -m src.deploy --fqdn netbox.example.com --acme-email admin@example.com
-```
-
-This root deployment CLI is distinct from the standalone factory CLI in `netbox_deployment_factory/`.
-
 ## Repository layout
 
 ```text
@@ -109,26 +88,12 @@ ultimate_info_gather/
 ├── src/
 │   ├── collectors/
 │   ├── models/
-│   ├── deploy.py
 │   └── orchestrator.py
 ├── tests/
 ├── docs/
-├── netbox_deployment_factory/
-│   ├── src/netbox_deployment_factory/
-│   ├── tests/
-│   └── README.md
 ├── main.py
 └── pyproject.toml
 ```
-
-## NetBox deployment factory
-
-`netbox_deployment_factory/` is a separate subproject with its own packaging, tests, and Docker-local workflow. It consumes `ultimate_info_gather` JSON output and generates a NetBox deployment bundle with Compose files, configuration, env files, scripts, and secret placeholders.
-
-Use the subproject README for factory-specific usage:
-
-- [`netbox_deployment_factory/README.md`](netbox_deployment_factory/README.md)
-- [`docs/factory/`](docs/factory/index.md)
 
 ## GitHub Copilot installer
 
@@ -144,19 +109,10 @@ mkdocs serve
 
 ## Validation
 
-Root package:
-
 ```bash
 python3 -m pytest tests/ -o addopts=""
 ruff check src/ tests/ main.py
 mypy src/
-```
-
-Factory unit tests:
-
-```bash
-cd netbox_deployment_factory
-PYTHONPATH=src python3 -m unittest tests.test_planner tests.test_cli
 ```
 
 ## License
