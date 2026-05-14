@@ -117,7 +117,6 @@ ultimate_info_gather/
 │   ├── src/netbox_deployment_factory/
 │   ├── tests/
 │   └── README.md
-├── install_github_copilot.py
 ├── main.py
 └── pyproject.toml
 ```
@@ -133,19 +132,7 @@ Use the subproject README for factory-specific usage:
 
 ## GitHub Copilot installer
 
-The repository includes `install_github_copilot.py` for installing GitHub CLI/Copilot helpers across several package-manager environments.
-
-```bash
-python3 install_github_copilot.py
-```
-
-It looks for an `id_player1` credential file in:
-
-1. `./id_player1`
-2. `~/id_player1`
-3. `~/.ssh/id_player1`
-
-A personal access token is the most reliable option for gh CLI authentication. An SSH private key can configure git-over-SSH, but it does not fully replace token-based gh authentication.
+The GitHub Copilot installer script has been moved to a private repository and is no longer distributed here.
 
 ## Docs
 
@@ -161,7 +148,7 @@ Root package:
 
 ```bash
 python3 -m pytest tests/ -o addopts=""
-ruff check src/ tests/ main.py install_github_copilot.py
+ruff check src/ tests/ main.py
 mypy src/
 ```
 
