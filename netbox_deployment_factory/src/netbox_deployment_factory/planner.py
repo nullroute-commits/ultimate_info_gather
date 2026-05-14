@@ -26,6 +26,7 @@ from .constants import (
     NETBOX_DOCKER_WORKFLOW_VERSION,
     NETBOX_IMAGE,
     NODE_EXPORTER_IMAGE,
+    ORB_AGENT_IMAGE,
     PROMETHEUS_IMAGE,
     ALLOY_IMAGE,
     SNMP_EXPORTER_IMAGE,
@@ -46,6 +47,7 @@ from .models import (
     MonitoringProfile,
     NetworkProfile,
     NetworkSegment,
+    OrbProfile,
     PluginSpec,
     SecurityObservabilityProfile,
     ServiceSizing,
@@ -242,6 +244,24 @@ def _derive_geo_foss_profile() -> GeoFossProfile:
             "Standalone geographic data integration sidecar that imports "
             "GeoNames, Natural Earth, and OpenStreetMap data into NetBox "
             "via the REST API using pynetbox."
+        ),
+    )
+
+
+def _derive_orb_profile(host: HostProfile) -> OrbProfile:
+    return OrbProfile(
+        image=ORB_AGENT_IMAGE,
+        agent_name=f"orb-agent-{host.hostname.strip()}",
+        scan_schedule="@every 120m",
+        scan_timeout=1800,
+        scan_targets=["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+        dry_run=False,
+        rationale=(
+            "ORB network discovery agent uses the official netboxlabs/orb-agent "
+            "image with host networking and NET_ADMIN/NET_RAW capabilities for "
+            "active network scanning. Generated as an optional 'orb-discovery' "
+            "Compose profile. The orb-bootstrap init container injects Diode "
+            "client credentials from Docker secrets before the agent starts."
         ),
     )
 
@@ -670,6 +690,7 @@ def build_plan(
         admin_privacy=_derive_admin_privacy(report),
         device_type_library=_derive_device_type_library_profile(),
         geo_foss=_derive_geo_foss_profile(),
+        orb=_derive_orb_profile(host),
         monitoring=_derive_monitoring_profile(),
         identity=_derive_identity_profile(),
         security_observability=_derive_security_observability_profile(),

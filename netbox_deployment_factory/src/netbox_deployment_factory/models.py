@@ -99,6 +99,19 @@ class GeoFossProfile:
 
 
 @dataclass(slots=True)
+class OrbProfile:
+    """ORB network discovery agent configuration."""
+
+    image: str
+    agent_name: str
+    scan_schedule: str
+    scan_timeout: int
+    scan_targets: list[str]
+    dry_run: bool
+    rationale: str
+
+
+@dataclass(slots=True)
 class MonitoringProfile:
     """Monitoring stack integration from enter-the-metrics."""
 
@@ -187,6 +200,7 @@ class DeploymentPlan:
     admin_privacy: AdminPrivacyProfile
     device_type_library: DeviceTypeLibraryProfile
     geo_foss: GeoFossProfile
+    orb: OrbProfile
     monitoring: MonitoringProfile
     identity: IdentityProfile
     security_observability: SecurityObservabilityProfile
