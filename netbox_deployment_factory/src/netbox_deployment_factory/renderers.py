@@ -126,7 +126,7 @@ def _resolve_public_host(plan: DeploymentPlan) -> str:
 
 
 def _render_netbox_public_base_url(plan: DeploymentPlan) -> str:
-    return f"https://{_resolve_public_host(plan)}"
+    return f"http://{plan.host.service_ip}:8080"
 
 
 def _segment_cidr(plan: DeploymentPlan, name: str) -> str:
@@ -188,112 +188,12 @@ def _render_worker_services(plan: DeploymentPlan) -> str:
 def render_compose(plan: DeploymentPlan) -> str:
     """Render a standalone compose file aligned to netbox-docker conventions."""
 
-    edge_cidr = _segment_cidr(plan, "edge")
-    app_cidr = _segment_cidr(plan, "app")
     data_cidr = _segment_cidr(plan, "data")
     security_cidr = _segment_cidr(plan, "security")
     monitoring_cidr = _segment_cidr(plan, "monitoring")
     identity_cidr = _segment_cidr(plan, "identity")
 
-    use_le = plan.tls.mode == "letsencrypt" and plan.tls.fqdn
-
-    if use_le:
-        certgen_block = ""
-        traefik_depends = """    depends_on:
-      waf:
-        condition: service_started"""
-        traefik_command = f"""    command:
-      - --api.dashboard=false
-      - --ping=true
-      - --providers.file.directory=/etc/traefik/dynamic
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.letsencrypt.acme.email={plan.tls.acme_email}
-      - --certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
-      - --log.level=INFO"""
-        traefik_ports = f"""    ports:
-      - "{plan.host.service_ip}:80:80"
-      - "{plan.host.service_ip}:443:443" """
-        traefik_volumes = """    volumes:
-      - acme-data:/acme
-      - ./configuration/traefik:/etc/traefik/dynamic:ro"""
-        traefik_env = """    secrets:
-      - cf_dns_api_token
-    environment:
-      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token"""
-    else:
-        certgen_block = f"""  traefik-certgen:
-    image: {OPENSSL_IMAGE}
-    restart: "no"
-    entrypoint: ["/bin/sh"]
-    command: ["/opt/scripts/generate-traefik-cert.sh"]
-    volumes:
-      - traefik-certs:/certs
-      - ./scripts:/opt/scripts:ro
-    networks:
-      - edge
-
-"""
-        traefik_depends = """    depends_on:
-      traefik-certgen:
-        condition: service_completed_successfully
-      waf:
-        condition: service_started"""
-        traefik_command = """    command:
-      - --api.dashboard=false
-      - --ping=true
-      - --providers.file.directory=/etc/traefik/dynamic
-      - --entrypoints.websecure.address=:443
-      - --log.level=INFO"""
-        traefik_ports = f"""    ports:
-      - "{plan.host.service_ip}:443:443" """
-        traefik_volumes = """    volumes:
-      - traefik-certs:/certs:ro
-      - ./configuration/traefik:/etc/traefik/dynamic:ro"""
-        traefik_env = ""
-
     return f"""services:
-{certgen_block}  traefik:
-    image: {TRAEFIK_IMAGE}
-    restart: unless-stopped
-{traefik_depends}
-{traefik_command}
-{traefik_ports}
-{traefik_volumes}
-{traefik_env}
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/ping"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-    networks:
-      - edge
-      - app
-      - identity
-
-  waf:
-    image: {WAF_IMAGE}
-    restart: unless-stopped
-    depends_on:
-      netbox:
-        condition: service_healthy
-    volumes:
-      - ./configuration/waf/default.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
-      - ./configuration/waf/api-methods-before.conf:/etc/modsecurity.d/owasp-crs/plugins/api-methods-before.conf:ro
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app
-      - data
-
   postgres:
     image: {plan.images.postgres_image}
     restart: unless-stopped
@@ -372,6 +272,8 @@ def render_compose(plan: DeploymentPlan) -> str:
       - HYDRA_PUBLIC_URL=http://hydra:4444
       - HYDRA_ADMIN_URL=http://hydra:4445
       - ADAPTER_PORT=8090
+    ports:
+      - "127.0.0.1:8090:8090"
     volumes:
       - ./configuration/diode-token-adapter.py:/opt/diode-token-adapter.py:ro
     cap_drop: ["ALL"]
@@ -551,33 +453,6 @@ def render_compose(plan: DeploymentPlan) -> str:
     networks:
       - data
 
-  wazuh-manager:
-    image: {WAZUH_MANAGER_IMAGE}
-    profiles: ["security-observability"]
-    restart: unless-stopped
-    network_mode: host
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -x wazuh-remoted > /dev/null || /var/ossec/bin/wazuh-remoted 2>/dev/null || true; /var/ossec/bin/wazuh-control status 2>&1 | grep -q 'wazuh-authd is running'"]
-      interval: 30s
-      timeout: 10s
-      retries: 20
-      start_period: 60s
-    volumes:
-      - wazuh-manager-data:/var/ossec/data
-      - wazuh-manager-logs:/var/ossec/logs
-
-  wazuh-agent:
-    image: {WAZUH_AGENT_IMAGE}
-    profiles: ["security-observability"]
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      wazuh-manager:
-        condition: service_healthy
-    environment:
-      WAZUH_MANAGER_SERVER: "127.0.0.1"
-      WAZUH_AGENT_NAME: "{plan.deployment_name}-wazuh-agent"
-
   orb-bootstrap:
     image: {MONITORING_INIT_IMAGE}
     profiles: ["orb-discovery"]
@@ -659,6 +534,8 @@ def render_compose(plan: DeploymentPlan) -> str:
       - --storage.tsdb.path=/prometheus
       - --web.enable-admin-api
       - --web.enable-lifecycle
+    ports:
+      - "{plan.host.service_ip}:9090:9090"
     volumes:
       - prometheus-data:/prometheus
       - ./configuration/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -671,6 +548,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     profiles: ["monitoring"]
     restart: unless-stopped
     command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "{plan.host.service_ip}:3100:3100"
     volumes:
       - ./configuration/monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
     networks:
@@ -686,7 +565,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - --server.http.listen-addr=0.0.0.0:12345
     ports:
       - "{plan.host.service_ip}:5514:5514"
-      - "127.0.0.1:5514:5514"
+      - "{plan.host.service_ip}:12345:12345"
     volumes:
       - ./configuration/monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
     networks:
@@ -731,6 +610,8 @@ def render_compose(plan: DeploymentPlan) -> str:
     profiles: ["monitoring"]
     restart: unless-stopped
     privileged: true
+    ports:
+      - "{plan.host.service_ip}:8085:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -800,9 +681,10 @@ def render_compose(plan: DeploymentPlan) -> str:
     cap_drop: ["ALL"]
     cap_add: ["NET_BIND_SERVICE"]
     security_opt: ["no-new-privileges:true"]
+    ports:
+      - "{plan.host.service_ip}:9000:9000"
     networks:
       - identity
-      - app
 
   authentik-worker:
     image: {plan.identity.authentik_image}
@@ -838,7 +720,7 @@ def render_compose(plan: DeploymentPlan) -> str:
       - env/authentik.env
     environment:
       NETBOX_PUBLIC_URL: {_render_netbox_public_base_url(plan)}
-      NETBOX_INTERNAL_URL: http://waf:8081
+      NETBOX_INTERNAL_URL: http://netbox:8080
     secrets:
       - authentik_secret_key
       - authentik_pg_password
@@ -850,7 +732,7 @@ def render_compose(plan: DeploymentPlan) -> str:
     security_opt: ["no-new-privileges:true"]
     networks:
       - identity
-      - app
+      - data
 
   # ═══════════════════════════════════════════════════════════════════════
   # Ory Hydra: OAuth2/OIDC provider for Diode
@@ -929,6 +811,9 @@ def render_compose(plan: DeploymentPlan) -> str:
       interval: 15s
       timeout: 5s
       retries: 10
+    ports:
+      - "{plan.host.service_ip}:14444:4444"
+      - "{plan.host.service_ip}:14445:4445"
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
     networks:
@@ -1012,10 +897,8 @@ secrets:
     file: secrets/hydra_pg_password
   hydra_system_secret:
     file: secrets/hydra_system_secret
-{"  cf_dns_api_token:" + chr(10) + "    file: secrets/cf_dns_api_token" if use_le else ""}
 
 volumes:
-{"  acme-data:" if use_le else "  traefik-certs:"}
   postgres-data:
   valkey-data:
   netbox-media:
@@ -1030,20 +913,8 @@ volumes:
   authentik-data:
   hydra-pg-data:
   orb-config:
-  wazuh-manager-data:
-  wazuh-manager-logs:
 
 networks:
-  edge:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: {edge_cidr}
-  app:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: {app_cidr}
   data:
     driver: bridge
     ipam:
@@ -1070,14 +941,11 @@ networks:
 def render_netbox_env(plan: DeploymentPlan) -> str:
     """Render the NetBox application environment."""
 
-    allowed_hosts = f"localhost 127.0.0.1 netbox traefik waf {plan.host.hostname}"
-    csrf_origins = f"https://localhost https://{plan.host.hostname}"
+    allowed_hosts = f"localhost 127.0.0.1 netbox {plan.host.hostname}"
+    csrf_origins = f"http://localhost http://127.0.0.1:8080 http://{plan.host.hostname}:8080"
     if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
         allowed_hosts = f"{allowed_hosts} {plan.host.service_ip}"
-        csrf_origins = f"{csrf_origins} https://{plan.host.service_ip}"
-    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
-        allowed_hosts = f"{allowed_hosts} {plan.tls.fqdn}"
-        csrf_origins = f"{csrf_origins} https://{plan.tls.fqdn}"
+        csrf_origins = f"{csrf_origins} http://{plan.host.service_ip}:8080"
 
     return f"""ALLOWED_HOSTS={allowed_hosts}
 CSRF_TRUSTED_ORIGINS={csrf_origins}
@@ -1114,19 +982,13 @@ PG_MAX_CONNECTIONS={plan.sizing.postgres_max_connections}
 def _render_public_netbox_url(plan: DeploymentPlan) -> str:
     """Return the primary operator-facing NetBox URL."""
 
-    if plan.tls.mode == "letsencrypt" and plan.tls.fqdn:
-        return f"https://{plan.tls.fqdn}"
-    if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
-        return f"https://{plan.host.service_ip}"
-    return "https://localhost"
+    return f"http://{plan.host.service_ip}:8080"
 
 
 def _render_public_grafana_url(plan: DeploymentPlan) -> str:
     """Return the primary operator-facing Grafana URL."""
 
-    if plan.host.service_ip and plan.host.service_ip != "127.0.0.1":
-        return f"http://{plan.host.service_ip}:3000"
-    return "http://localhost:3000"
+    return f"http://{plan.host.service_ip}:3000"
 
 
 def render_traefik_dynamic_config(plan: DeploymentPlan) -> str:
@@ -1560,10 +1422,11 @@ PY
 '''
 
 
-def render_orb_agent_config() -> str:
+def render_orb_agent_config(plan: DeploymentPlan) -> str:
     """Render an ORB agent.yaml aligned to upstream orb-agent docs."""
 
-    return """orb:
+    targets_yaml = "\n".join(f"            - {t}" for t in plan.orb.scan_targets)
+    return f"""orb:
   config_manager:
     active: local
   secrets_manager:
@@ -1580,25 +1443,23 @@ def render_orb_agent_config() -> str:
           - "-T4"
           - "--min-rate=300"
           - "--max-retries=3"
-        timeout: 1800
+        timeout: {plan.orb.scan_timeout}
     common:
       diode:
         target: grpc://127.0.0.1:18084
         client_id: replace-client-id
         client_secret: replace-me
-        agent_name: generated-orb-agent
-        dry_run: false
+        agent_name: {plan.orb.agent_name}
+        dry_run: {str(plan.orb.dry_run).lower()}
   policies:
     network_discovery:
       default:
         config:
-          schedule: "@every 120m"
-          timeout: 1800
+          schedule: "{plan.orb.scan_schedule}"
+          timeout: {plan.orb.scan_timeout}
         scope:
           targets:
-            - 10.0.0.0/8
-            - 172.16.0.0/12
-            - 192.168.0.0/16
+{targets_yaml}
 """
 
 
@@ -1659,10 +1520,10 @@ strategies:
 """
 
 
-def render_orb_env() -> str:
+def render_orb_env(plan: DeploymentPlan) -> str:
     """Render ORB sidecar environment values."""
 
-    return """DIODE_TARGET=grpc://127.0.0.1:18084
+    return f"""DIODE_TARGET=grpc://127.0.0.1:18084
 ORB_AGENT_CONFIG=/opt/orb/agent.yaml
 """
 
@@ -3293,29 +3154,29 @@ loki.write "default" {
 """
 
 
-def render_syslog_ng_config() -> str:
+def render_syslog_ng_config(plan: "DeploymentPlan") -> str:
     """Render the syslog-ng configuration."""
 
-    return """@version: 4.0
+    return f"""@version: 4.0
 @include "scl.conf"
 
-source s_local {
+source s_local {{
 \tinternal();
-};
+}};
 
-source s_network {
+source s_network {{
 \tdefault-network-drivers();
-};
+}};
 
-destination d_loki {
-\tsyslog("127.0.0.1" transport("tcp") port("5514"));
-};
+destination d_loki {{
+\tsyslog("{plan.host.service_ip}" transport("tcp") port("5514"));
+}};
 
-log {
+log {{
 \tsource(s_local);
 \tsource(s_network);
 \tdestination(d_loki);
-};
+}};
 """
 
 
@@ -3718,8 +3579,6 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration").mkdir(exist_ok=True)
-    (output_dir / "configuration" / "traefik").mkdir(parents=True, exist_ok=True)
-    (output_dir / "configuration" / "waf").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "orb").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "prometheus").mkdir(parents=True, exist_ok=True)
     (output_dir / "configuration" / "monitoring" / "loki").mkdir(parents=True, exist_ok=True)
@@ -3742,15 +3601,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "configuration" / "extra.py": render_netbox_extra_py(),
         output_dir / "configuration" / "plugins.py": render_plugins_py(plan),
         output_dir / "configuration" / "hydra.yml": render_hydra_config_yaml(),
-        output_dir / "configuration" / "traefik" / "dynamic.yml": (
-            render_traefik_dynamic_config(plan)
-        ),
-        output_dir / "configuration" / "traefik" / "dynamic-identity.yml.disabled": (
-            render_traefik_identity_config(plan)
-        ),
-        output_dir / "configuration" / "waf" / "default.conf": render_waf_default_conf(),
-        output_dir / "configuration" / "waf" / "api-methods-before.conf": render_waf_modsec_api_rules(),
-        output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(),
+        output_dir / "configuration" / "orb" / "agent.yaml": render_orb_agent_config(plan),
         output_dir / "configuration" / "diode-proxy.conf": render_diode_proxy_nginx_config(),
         output_dir / "configuration" / "diode-token-adapter.py": render_diode_token_adapter_script(),
         output_dir / "env" / "netbox.env": render_netbox_env(plan),
@@ -3758,7 +3609,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         output_dir / "env" / "diode.env": render_diode_env(),
         output_dir / "env" / "authentik.env": render_authentik_env(),
         output_dir / "env" / "hydra.env": render_hydra_env(),
-        output_dir / "env" / "orb.env": render_orb_env(),
+        output_dir / "env" / "orb.env": render_orb_env(plan),
         output_dir
         / "env"
         / "device-type-library-import.env": render_device_type_library_import_env(plan),
@@ -3774,15 +3625,6 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         / "scripts"
         / "import-device-type-library.py": render_device_type_library_import_runner(),
     }
-
-    if plan.tls.mode != "letsencrypt":
-        files[output_dir / "scripts" / "generate-traefik-cert.sh"] = (
-            render_traefik_cert_script(plan)
-        )
-    else:
-        files[output_dir / "secrets" / "cf_dns_api_token.example"] = (
-            "replace-with-your-cloudflare-dns-api-token\n"
-        )
 
     files.update({
         output_dir / "scripts" / "netbox-init.sh": render_netbox_init_script(),
@@ -3821,7 +3663,7 @@ def write_bundle(plan: DeploymentPlan, output_dir: Path) -> list[Path]:
         / "configuration"
         / "monitoring"
         / "syslog-ng"
-        / "syslog-ng.conf": render_syslog_ng_config(),
+        / "syslog-ng.conf": render_syslog_ng_config(plan),
         output_dir
         / "configuration"
         / "monitoring"
