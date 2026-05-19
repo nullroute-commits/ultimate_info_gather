@@ -107,6 +107,13 @@ mkdocs build
 mkdocs serve
 ```
 
+## Agent skill and source of truth
+
+- `/agent.md` is the canonical Agency/GitHub Copilot-compatible repository
+  skill and source of truth for verified capabilities, known gaps, and roadmap
+- `docs/agent.md` is the published documentation mirror
+- When behavior changes, keep both files aligned with the implementation
+
 ## Validation
 
 ```bash
