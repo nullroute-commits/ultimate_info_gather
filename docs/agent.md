@@ -1,228 +1,166 @@
 # Agent Specification
 
-This document defines the comprehensive specification for the Ultimate Info Gather agent, serving as a blueprint for future feature development and AI/automation integrations.
+This page is the published mirror of the repository-root
+[`agent.md`](../agent.md). The root file is the canonical source of truth for
+implemented capabilities, known bugs, and delivery priorities.
 
-## Overview
-
-The Ultimate Info Gather agent is designed to be a foundational component for system automation, monitoring, and AI-assisted operations. This specification outlines the agent's capabilities, interfaces, and extension points.
-
----
-
-## Agent Identity
+## Identity
 
 | Property | Value |
 |----------|-------|
-| **Name** | Ultimate Info Gather Agent |
-| **Version** | 1.0.0 |
-| **Type** | System Information Collection Agent |
-| **Runtime** | Python 3.11+ (async) |
-| **Platform** | Linux (primary), extensible to other platforms |
+| **Name** | Ultimate Info Gather |
+| **Type** | Async Python system inspection framework |
+| **Runtime** | Python 3.11+ |
+| **Primary target** | Linux |
+| **Canonical skill / SoT** | `/agent.md` |
+| **Published mirror** | `docs/agent.md` |
 
----
+## Repository Map
 
-## Core Capabilities
+| Path | Purpose |
+|------|---------|
+| `src/orchestrator.py` | Collection sequencing, CLI behavior, output generation |
+| `src/collectors/` | Domain collectors for environment, permissions, hardware, network, software |
+| `src/models/` | Dataclasses and serializers for collected state and reports |
+| `tests/` | Regression and behavior coverage |
+| `docs/` | MkDocs site |
 
-### 1. Environment Awareness
+## Validated Commands
 
-The agent can determine and report:
+```bash
+python -m pytest tests/ -o addopts=""
+ruff check src/ tests/ main.py
+mypy src/
+mkdocs build
+```
 
-- **Execution Context**
-  - Running as script, module, subprocess, or interactive
-  - Container environment detection (Docker, Kubernetes, LXC, containerd)
-  - Virtual machine detection and hypervisor identification
-  - WSL environment detection
-  
-- **Python Runtime**
-  - Version and implementation details
-  - Virtual environment status
-  - Package installation paths
-  
-- **Process Identity**
-  - PID, PPID, and process tree position
-  - User/group identity (real and effective)
-  - Working directory and arguments
+## Verified Implemented Capabilities
 
-### 2. Permission Analysis
+### 1. Environment collection
 
-The agent can analyze and report:
+Implemented in `src/collectors/environment_collector.py`:
 
-- **Access Levels**
-  - ROOT: Full system access
-  - SUDO: Can elevate privileges
-  - PRIVILEGED: Member of elevated groups
-  - STANDARD: Normal user permissions
-  - RESTRICTED: Limited capabilities
-  - SANDBOXED: Heavily constrained
-  
-- **Linux Capabilities**
-  - CAP_SYS_ADMIN, CAP_NET_ADMIN, CAP_DAC_OVERRIDE
-  - Full capability enumeration
-  
-- **Security Contexts**
-  - SELinux status and context
-  - AppArmor status and profile
-  
-- **Resource Limits**
-  - Open files, processes, memory, CPU time
-  - All standard ulimits
+- Python runtime capture
+- Process identity capture
+- Execution mode classification
+- Platform classification
+- Hostname, root, container, and WSL detection
+- Shell, terminal, home directory, and temp directory capture
 
-### 3. Hardware Inventory
+### 2. Permission analysis
 
-The agent can enumerate:
+Implemented in `src/collectors/permissions_collector.py`:
 
-- **Compute Resources**
-  - CPU model, cores, frequency, cache, flags
-  - Memory total, available, swap
-  
-- **Storage**
-  - Block devices, partitions, mount points
-  - Device types (HDD, SSD, NVMe)
-  - Access levels and SMART status
-  
-- **Graphics**
-  - GPU enumeration (NVIDIA, AMD, Intel)
-  - Driver versions, memory
-  
-- **Peripherals**
-  - USB device enumeration
-  - PCI device listing
+- Permission-level classification
+- User and group inspection
+- Partial Linux capability decoding
+- Filesystem permission checks on critical paths
+- SELinux and AppArmor presence/context checks
+- Non-interactive sudo probing
+- Resource and ulimit snapshotting
 
-### 4. Network Capabilities (Intensive In-Depth)
+### 3. Hardware inventory
 
-The agent provides comprehensive network analysis:
+Implemented in `src/collectors/hardware_collector.py`:
 
-- **Extended Interface Information**
-  - Interface names, MAC addresses, IP addresses (IPv4/IPv6)
-  - Interface states (up/down), loopback, virtual
-  - Speed, MTU, duplex mode, carrier status
-  - Driver information
-  - Per-interface statistics (RX/TX bytes, packets, errors, dropped)
-  - Broadcast address, netmask, gateway
+- DMI/system-board reads when available
+- Machine ID and product UUID reads with embedded-safe fallback
+- CPU, memory, storage, GPU, USB, and basic interface inventory
+- Virtual machine detection via CPU flags, `systemd-detect-virt`, and DMI
 
-- **Routing Information**
-  - Full routing table (IPv4 and IPv6)
-  - Default gateway and interface
-  - Route types (default, local, static, dynamic)
-  - Route metrics and flags
+### 4. Network inventory
 
-- **DNS Configuration**
-  - Nameservers from /etc/resolv.conf
-  - Search domains
-  - DNS options
+Implemented in `src/collectors/network_collector.py`:
 
-- **ARP Table**
-  - IP to MAC address mappings
-  - Interface associations
-  - Entry states and flags
+- Extended interface inventory with statistics
+- IPv4 and IPv6 route parsing
+- DNS and ARP collection
+- Connection and listening-port parsing
+- Firewall probing
+- Aggregate RX/TX and connection summaries
 
-- **Network Connections**
-  - Active TCP/UDP connections
-  - Connection states (LISTEN, ESTABLISHED, TIME_WAIT, etc.)
-  - Local and remote addresses/ports
-  - Process information (PID, process name)
+### 5. Software inventory
 
-- **Listening Ports**
-  - TCP/UDP listening sockets
-  - Bound addresses and ports
-  - Associated processes
-  - Service name mapping
+Implemented in `src/collectors/software_collector.py`:
 
-- **Firewall Status**
-  - Detection of firewall type (nftables, iptables, ufw, firewalld)
-  - Firewall enabled/disabled status
-  - Default policies (INPUT, OUTPUT, FORWARD)
-  - Rules count and active zones
+- OS metadata collection
+- Package discovery for `opkg`, `dpkg`, `rpm`, and `pacman`
+- Python package listing via `pip`
+- Init system detection
+- Service discovery via `systemctl`
+- Container discovery via Docker and Podman
+- Running process snapshot from `/proc`
 
-- **Traffic Summary**
-  - Total RX/TX bytes across interfaces
-  - Active connection count
-  - Listening ports count
+## Verified Current Bugs and Gaps
 
-### 5. Software Inventory
+| ID | Issue | Impact |
+|----|-------|--------|
+| BUG-01 | Environment variables are collected in memory but omitted from serialized environment output. | Saved JSON is incomplete. |
+| BUG-02 | Software serialization exports samples instead of full package/service/process inventories. | Downstream integrations cannot rely on saved reports for full software state. |
+| BUG-03 | Process records keep placeholder resource values (`cpu_percent`, `memory_*`, thread count, cwd, start time). | Process inventory is shallow and not operationally actionable. |
+| BUG-04 | Service records leave several fields unset (`is_enabled`, pid/user, resource usage). | Service inventory is incomplete. |
+| BUG-05 | Capability decoding is partial rather than full Linux capability coverage. | Permission analysis can miss kernel capabilities. |
+| BUG-06 | MkDocs builds emit duplicate `mkdocs_autorefs` warnings from overlapping reference generation. | Docs builds are noisy and ambiguous. |
+| BUG-07 | The prior spec overstated implementation details. | The repo lacked a dependable capability source of truth. |
 
-The agent can catalog:
+## Delivery Sprint Plan
 
-- **Operating System**
-  - Distribution, version, kernel
-  - Boot time, uptime
-  
-- **Package Management**
-  - Installed packages (opkg, apt, rpm, pacman, apk, etc.)
-  - Python packages via pip
-  
-- **Services**
-  - Systemd/init service status
-  - Service control capabilities
-  
-- **Containers**
-  - Docker, Podman, containerd
-  - Running container enumeration
-  
-- **Processes**
-  - Active process listing
-  - Resource usage per process
+### Sprint 1 — Source-of-truth and docs fidelity
 
-### 6. Embedded Systems Support
+- [x] Add repository-root `agent.md` in Agency/GitHub Copilot-compatible format
+- [x] Re-align this published spec with the verified implementation
+- [x] Document current verified bugs and priorities
+- [ ] Keep future capability changes synced between `/agent.md`, this page, README, and tests
 
-The agent handles non-standard Linux environments gracefully:
+### Sprint 2 — Report serialization correctness
 
-- **ARM / Embedded Platforms**
-  - Silent handling of missing DMI/SMBIOS files on ARM systems
-  - Graceful degradation for virtual network interface speed reads (EINVAL)
-  - OpenWrt `opkg` package detection (prioritized on embedded systems)
+- [ ] Serialize environment variables or explicitly version a summary-only contract
+- [ ] Decide whether software reports should expose full inventories or versioned summaries
+- [ ] Add report-contract regression tests
 
-- **Supported Embedded Targets**
-  - OpenWrt routers (e.g., GL-MT6000)
-  - ARM-based single-board computers
-  - Devices without x86-specific sysfs entries
+### Sprint 3 — Software inventory depth
 
-See the [Embedded Systems Guide](guide/embedded-systems.md) for full details.
+- [ ] Replace placeholder process telemetry with real metrics
+- [ ] Enrich service records with enabled state, pid/user, and resource details
+- [ ] Expand container metadata coverage
 
----
+### Sprint 4 — Permission and platform accuracy
 
-## Agent Interfaces
+- [ ] Expand Linux capability decoding
+- [ ] Tighten permission classification across sandbox/container scenarios
+- [ ] Validate behavior across mainstream Linux, embedded, container, and VM targets
+
+### Sprint 5 — Documentation system cleanup
+
+- [ ] Remove duplicate MkDocs reference generation
+- [ ] Add stricter docs validation for warnings and broken links
+- [ ] Keep documentation drift treated as a release blocker
+
+### Sprint 6 — Deliverable readiness
+
+- [ ] Define a minimum production-quality bar for each collector domain
+- [ ] Add representative golden reports or smoke-test fixtures
+- [ ] Publish release-ready artifacts and example outputs
+
+## Interfaces
 
 ### Programmatic API
 
 ```python
 from src.orchestrator import InfoGatherOrchestrator
 
-# Create agent instance
-agent = InfoGatherOrchestrator(
-    output_dir='./output',
-    progress_callback=my_callback,
-)
-
-# Execute full collection
-report = await agent.collect_all()
-
-# Access stored state
-env = agent.environment_state      # EnvironmentState
-perms = agent.permissions_info     # PermissionsInfo
-hw = agent.hardware_info           # HardwareInfo
-net = agent.network_info           # NetworkInfo (intensive in-depth)
-sw = agent.software_info           # SoftwareInfo
-
-# Generate outputs
-outputs = await agent.generate_outputs(report, ['json', 'markdown'])
+orchestrator = InfoGatherOrchestrator(output_dir="./output")
+report = await orchestrator.collect_all()
+outputs = await orchestrator.generate_outputs(report, ["json", "markdown"])
 ```
 
 ### Command Line Interface
 
 ```bash
-# Basic execution (outputs to ./output in json, markdown, text)
 python3 main.py
-
-# Specify output directory
 python3 main.py -o ./reports
-
-# Select output formats
 python3 main.py -f json markdown
-
-# Verbose output
 python3 main.py -v
-
-# Quiet mode (no progress)
 python3 main.py -q
 ```
 
@@ -230,297 +168,16 @@ python3 main.py -q
 |------|-----------|---------|-------------|
 | `-o` | `--output` | `./output` | Output directory for reports |
 | `-f` | `--format` | `json markdown text` | Output format(s) to generate |
-| `-v` | `--verbose` | off | Verbose output with full summary |
-| `-q` | `--quiet` | off | Quiet mode, suppresses progress output |
+| `-v` | `--verbose` | off | Print the full text summary |
+| `-q` | `--quiet` | off | Suppress progress callback output |
 
 ### Output Formats
 
 | Format | Use Case |
 |--------|----------|
-| JSON | API integration, data processing |
-| Markdown | Documentation, human review |
-| Text | Console output, logging |
-
----
-
-## Extension Points
-
-### Custom Collectors
-
-Create new collectors by extending `BaseCollector`:
-
-```python
-from src.collectors.base import BaseCollector
-from dataclasses import dataclass
-
-@dataclass
-class CustomData:
-    # Define your data model
-    pass
-
-class CustomCollector(BaseCollector[CustomData]):
-    async def collect(self) -> CustomData:
-        # Implement collection logic
-        return CustomData(...)
-```
-
-### BaseCollector Helper Methods
-
-`BaseCollector` provides several helper methods available to all subclasses:
-
-**`safe_collect() -> CollectionResult[T]`**
-
-The primary method callers use. Resets accumulated errors/warnings, runs `collect()`, tracks elapsed time, and returns a `CollectionResult` whether collection succeeds or raises an exception.
-
-```python
-result = await collector.safe_collect()
-# result.success, result.data, result.duration_ms, result.errors, result.warnings
-```
-
-**`run_command(cmd: list[str], timeout: float = 30.0, capture_stderr: bool = True) -> tuple[int, str, str]`**
-
-Async subprocess execution with timeout. Returns `(return_code, stdout, stderr)`. Automatically adds a warning on timeout or failure instead of raising.
-
-```python
-rc, stdout, stderr = await self.run_command(["uname", "-r"])
-```
-
-**`read_file_async(path: str, silent_if_missing: bool = False) -> str | None`**
-
-Non-blocking file read using `run_in_executor`. Returns `None` and adds a warning if the file cannot be read. Pass `silent_if_missing=True` to suppress warnings for optional files.
-
-```python
-content = await self.read_file_async("/proc/version")
-```
-
-**`gather_with_errors(*coros) -> list[Any]`**
-
-Runs multiple coroutines concurrently with `asyncio.gather`. Any coroutine that raises an exception has its result replaced with `None` and a warning is added, so a single failure does not abort the rest.
-
-```python
-results = await self.gather_with_errors(self._fetch_a(), self._fetch_b())
-```
-
-**`safe_call(func: Callable[[], T], default: T, error_msg: str = "Operation failed") -> T`**
-
-Safely call a synchronous function in an executor (thread pool). Returns `default` and adds a warning if the call raises an exception.
-
-```python
-value = await self.safe_call(os.getuid, -1, error_msg="Failed to get UID")
-```
-
-**`add_error(message: str)` / `add_warning(message: str)`**
-
-Accumulate error or warning strings during `collect()`. These are included in the `CollectionResult` returned by `safe_collect()`.
-
-```python
-self.add_warning("Optional sensor data unavailable")
-self.add_error("Required configuration missing")
-```
-
-#### Complete Example
-
-The following example combines `run_command()` and `read_file_async()` to show real-world helper usage:
-
-```python
-from dataclasses import dataclass
-from src.collectors.base import BaseCollector
-
-@dataclass
-class KernelInfo:
-    version: str
-    cmdline: str | None
-
-class KernelCollector(BaseCollector[KernelInfo]):
-    async def collect(self) -> KernelInfo:
-        rc, stdout, stderr = await self.run_command(["uname", "-r"])
-        if rc != 0:
-            self.add_error(f"uname failed: {stderr}")
-            version = "unknown"
-        else:
-            version = stdout.strip()
-
-        # Optional file — suppress warning if absent
-        cmdline = await self.read_file_async("/proc/cmdline", silent_if_missing=True)
-
-        return KernelInfo(version=version, cmdline=cmdline)
-```
-
-### Custom Output Formats
-
-Add output formats by extending report generation:
-
-```python
-def generate_custom_format(report: SystemReport) -> str:
-    data = report.to_dict()
-    # Transform to custom format
-    return custom_output
-```
-
-### Plugin Architecture (Future)
-
-```python
-# Plugin interface specification
-class AgentPlugin:
-    """Base class for agent plugins."""
-    
-    name: str
-    version: str
-    
-    async def on_collection_start(self, agent: InfoGatherOrchestrator) -> None:
-        """Called before collection begins."""
-        pass
-    
-    async def on_collection_complete(self, report: SystemReport) -> None:
-        """Called after collection completes."""
-        pass
-    
-    async def transform_report(self, report: SystemReport) -> SystemReport:
-        """Modify report data."""
-        return report
-```
-
----
-
-## Future Development Roadmap
-
-### Phase 0: Completed
-
-- [x] **Embedded Systems Support**: OpenWrt/opkg support, ARM-friendly file reading (`silent_if_missing`), graceful handling of virtual interface speed reads
-
-### Phase 1: Core Enhancements
-
-- [ ] **Remote Collection**: SSH-based remote system scanning
-- [ ] **Differential Reporting**: Track changes between scans
-- [ ] **Real-time Monitoring**: Continuous data collection mode
-- [ ] **Windows Support**: Cross-platform capability
-- [ ] **macOS Support**: Darwin-specific collectors
-
-### Phase 2: Integration Features
-
-- [ ] **REST API**: HTTP server for remote access
-- [ ] **gRPC Service**: High-performance RPC interface
-- [ ] **WebSocket Streaming**: Real-time data streaming
-- [ ] **Database Storage**: PostgreSQL/SQLite persistence
-- [ ] **Prometheus Metrics**: Monitoring system integration
-
-### Phase 3: Intelligence Features
-
-- [ ] **Anomaly Detection**: ML-based deviation alerts
-- [ ] **Security Scanning**: Vulnerability assessment
-- [ ] **Compliance Checking**: Policy validation
-- [ ] **Recommendation Engine**: Optimization suggestions
-- [ ] **Natural Language Queries**: AI-powered data exploration
-
-### Phase 4: Automation
-
-- [ ] **Remediation Actions**: Automated fixes
-- [ ] **Scheduled Collection**: Cron-like scheduling
-- [ ] **Event Triggers**: Action on condition
-- [ ] **Workflow Integration**: CI/CD pipeline support
-- [ ] **Multi-Agent Coordination**: Distributed collection
-
----
-
-## AI/LLM Integration Specification
-
-### Context Provision
-
-The agent provides rich context for AI systems:
-
-```python
-# Get full context for AI consumption
-context = {
-    "environment": agent.environment_state.to_dict(),
-    "permissions": agent.permissions_info.to_dict(),
-    "hardware": agent.hardware_info.to_dict(),
-    "network": agent.network_info.to_dict(),  # Intensive network analysis
-    "software": agent.software_info.to_dict(),
-}
-
-# Provide to LLM
-response = llm.query(
-    prompt="Analyze this system and suggest optimizations",
-    context=context,
-)
-```
-
-
-### Structured Outputs
-
-All data models support structured serialization:
-
-```python
-# JSON Schema for validation
-schema = {
-    "type": "object",
-    "properties": {
-        "environment": {"$ref": "#/definitions/EnvironmentState"},
-        "permissions": {"$ref": "#/definitions/PermissionsInfo"},
-        "network": {"$ref": "#/definitions/NetworkInfo"},
-        # ...
-    }
-}
-```
-
-### Query Interface (Future)
-
-```python
-# Natural language queries
-result = await agent.query("What services are consuming the most memory?")
-result = await agent.query("Is Docker properly configured?")
-result = await agent.query("What security hardening is missing?")
-```
-
-### Action Suggestions (Future)
-
-```python
-# Get AI-generated suggestions
-suggestions = await agent.get_suggestions()
-# [
-#     Suggestion(
-#         category="security",
-#         priority="high",
-#         description="SELinux is disabled",
-#         action="Enable SELinux enforcing mode",
-#         command="sudo setenforce 1",
-#     ),
-#     ...
-# ]
-```
-
----
-
-## Data Schemas
-
-### Report Schema
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "SystemReport",
-  "type": "object",
-  "required": ["report_metadata"],
-  "properties": {
-    "report_metadata": {
-      "type": "object",
-      "properties": {
-        "report_id": {"type": "string", "format": "uuid"},
-        "generated_at": {"type": "string", "format": "date-time"},
-        "generator_version": {"type": "string"},
-        "total_collection_time_ms": {"type": "number"},
-        "collection_errors": {"type": "array", "items": {"type": "string"}},
-        "warnings": {"type": "array", "items": {"type": "string"}}
-      }
-    },
-    "environment": {"$ref": "#/definitions/EnvironmentState"},
-    "permissions": {"$ref": "#/definitions/PermissionsInfo"},
-    "hardware": {"$ref": "#/definitions/HardwareInfo"},
-    "network": {"$ref": "#/definitions/NetworkInfo"},
-    "software": {"$ref": "#/definitions/SoftwareInfo"}
-  }
-}
-```
+| JSON | Programmatic consumption and integrations |
+| Markdown | Human-readable report sharing |
+| Text | Console/log output |
 
 ---
 
