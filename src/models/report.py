@@ -16,6 +16,7 @@ from .environment import EnvironmentState
 from .hardware import HardwareInfo
 from .network import NetworkInfo
 from .permissions import PermissionsInfo
+from .proxmox import ProxmoxInfo, ProxmoxNodeStatus
 from .software import SoftwareInfo
 
 
@@ -39,6 +40,7 @@ class SystemReport:
     hardware: HardwareInfo | None = None
     network: NetworkInfo | None = None
     software: SoftwareInfo | None = None
+    proxmox: ProxmoxInfo | None = None
 
     # Collection metadata
     total_collection_time_ms: float = 0.0
@@ -61,6 +63,7 @@ class SystemReport:
             "hardware": self.hardware.to_dict() if self.hardware else None,
             "network": self.network.to_dict() if self.network else None,
             "software": self.software.to_dict() if self.software else None,
+            "proxmox": self.proxmox.to_dict() if self.proxmox else None,
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -117,6 +120,10 @@ class SystemReport:
 
         if self.software:
             lines.append(self.software.get_summary())
+            lines.append("")
+
+        if self.proxmox:
+            lines.append(self.proxmox.get_summary())
             lines.append("")
 
         lines.extend([
@@ -401,6 +408,90 @@ class SystemReport:
                 f"| Manage Containers | {'✅' if sw.can_manage_containers else '❌'} |",
                 "",
             ])
+
+        # Proxmox section
+        if self.proxmox and self.proxmox.is_proxmox_host:
+            pve = self.proxmox
+            lines.extend([
+                "## 🖧 Proxmox VE",
+                "",
+            ])
+
+            if pve.version:
+                lines.extend([
+                    "### Version",
+                    "",
+                    "| Property | Value |",
+                    "|----------|-------|",
+                    f"| PVE Version | {pve.version.version} |",
+                    f"| Release | {pve.version.release} |",
+                    f"| Kernel | {pve.version.kernel_version or 'N/A'} |",
+                    "",
+                ])
+
+            if pve.cluster:
+                lines.extend([
+                    "### Cluster",
+                    "",
+                    "| Property | Value |",
+                    "|----------|-------|",
+                    f"| Name | {pve.cluster.name or 'N/A'} |",
+                    f"| Nodes | {pve.cluster.nodes_count} |",
+                    f"| Quorate | {'✅' if pve.cluster.quorate else '❌'} |",
+                    "",
+                ])
+
+            if pve.nodes:
+                lines.extend([
+                    "### Nodes",
+                    "",
+                    "| Node | Status | CPUs | CPU% | Memory |",
+                    "|------|--------|------|------|--------|",
+                ])
+                for node in pve.nodes:
+                    status = "🟢" if node.status == ProxmoxNodeStatus.ONLINE else "🔴"
+                    cpu_pct = f"{node.cpu_usage_percent:.1f}%" if node.cpu_usage_percent else "-"
+                    mem_pct = "-"
+                    if node.memory_total_bytes and node.memory_used_bytes:
+                        mem_pct = f"{(node.memory_used_bytes / node.memory_total_bytes) * 100:.1f}%"
+                    lines.append(
+                        f"| {node.name} | {status} {node.status.name} "
+                        f"| {node.cpu_count or '-'} | {cpu_pct} | {mem_pct} |"
+                    )
+                lines.append("")
+
+            lines.extend([
+                "### Workloads",
+                "",
+                "| Type | Running | Total |",
+                "|------|---------|-------|",
+                f"| Virtual Machines | {pve.running_vms} | {pve.total_vms} |",
+                f"| LXC Containers | {pve.running_containers} | {pve.total_containers} |",
+                "",
+            ])
+
+            if pve.storage_pools:
+                total_gb = pve.total_storage_bytes / (1024**3) if pve.total_storage_bytes else 0
+                used_gb = pve.used_storage_bytes / (1024**3) if pve.used_storage_bytes else 0
+                lines.extend([
+                    "### Storage",
+                    "",
+                    "| Pool | Type | Total | Used | Shared |",
+                    "|------|------|-------|------|--------|",
+                ])
+                for pool in pve.storage_pools:
+                    p_total = f"{pool.total_bytes / (1024**3):.1f} GB" if pool.total_bytes else "-"
+                    p_used = f"{pool.used_bytes / (1024**3):.1f} GB" if pool.used_bytes else "-"
+                    shared = "✅" if pool.shared else "❌"
+                    lines.append(
+                        f"| {pool.storage_id} | {pool.storage_type.name} "
+                        f"| {p_total} | {p_used} | {shared} |"
+                    )
+                lines.extend([
+                    "",
+                    f"**Total Storage:** {total_gb:.2f} GB | **Used:** {used_gb:.2f} GB",
+                    "",
+                ])
 
         lines.extend([
             "---",
