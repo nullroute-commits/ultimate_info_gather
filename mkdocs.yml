@@ -46,6 +46,7 @@ nav:
     - Hardware Scanning: guide/hardware.md
     - Network Analysis: guide/network.md
     - Software Inventory: guide/software.md
+    - Proxmox VE Collection: guide/proxmox.md
     - Report Generation: guide/reports.md
     - Embedded Systems: guide/embedded-systems.md
   - API Reference:

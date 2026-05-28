@@ -21,6 +21,7 @@ from .collectors import (
     HardwareCollector,
     NetworkCollector,
     PermissionsCollector,
+    ProxmoxCollector,
     SoftwareCollector,
 )
 from .models import (
@@ -28,6 +29,7 @@ from .models import (
     HardwareInfo,
     NetworkInfo,
     PermissionsInfo,
+    ProxmoxInfo,
     SoftwareInfo,
     SystemReport,
 )
@@ -40,6 +42,7 @@ class CollectionPhase(Enum):
     HARDWARE = auto()
     NETWORK = auto()
     SOFTWARE = auto()
+    PROXMOX = auto()
 
 
 @dataclass
@@ -82,6 +85,7 @@ class InfoGatherOrchestrator:
         self._hardware_info: HardwareInfo | None = None
         self._network_info: NetworkInfo | None = None
         self._software_info: SoftwareInfo | None = None
+        self._proxmox_info: ProxmoxInfo | None = None
 
         # Collection metadata
         self._start_time: float = 0.0
@@ -113,6 +117,11 @@ class InfoGatherOrchestrator:
         """Get collected software info (Objective 3)."""
         return self._software_info
 
+    @property
+    def proxmox_info(self) -> ProxmoxInfo | None:
+        """Get collected Proxmox VE info."""
+        return self._proxmox_info
+
     async def collect_all(self) -> SystemReport:
         """
         Perform full system information collection.
@@ -142,24 +151,30 @@ class InfoGatherOrchestrator:
         self._permissions_info = await self._collect_permissions()
         await self._report_progress(CollectionPhase.PERMISSIONS, "Complete", 40.0)
 
-        # Phase 3: Hardware, Network & Software Collection (Objective 3)
+        # Phase 3: Hardware, Network, Software & Proxmox Collection (Objective 3)
         # Uses environment and permissions data from prior phases
         await self._report_progress(CollectionPhase.HARDWARE, "Scanning hardware...", 40.0)
         await self._report_progress(CollectionPhase.NETWORK, "Scanning network...", 40.0)
         await self._report_progress(CollectionPhase.SOFTWARE, "Scanning software...", 40.0)
+        await self._report_progress(CollectionPhase.PROXMOX, "Scanning Proxmox...", 40.0)
 
-        # Hardware, network and software can run in parallel
+        # Hardware, network, software, and proxmox can run in parallel
         hw_task = asyncio.create_task(self._collect_hardware())
         net_task = asyncio.create_task(self._collect_network())
         sw_task = asyncio.create_task(self._collect_software())
+        pve_task = asyncio.create_task(self._collect_proxmox())
 
-        self._hardware_info, self._network_info, self._software_info = await asyncio.gather(
-            hw_task, net_task, sw_task
-        )
+        (
+            self._hardware_info,
+            self._network_info,
+            self._software_info,
+            self._proxmox_info,
+        ) = await asyncio.gather(hw_task, net_task, sw_task, pve_task)
 
         await self._report_progress(CollectionPhase.HARDWARE, "Complete", 100.0)
         await self._report_progress(CollectionPhase.NETWORK, "Complete", 100.0)
         await self._report_progress(CollectionPhase.SOFTWARE, "Complete", 100.0)
+        await self._report_progress(CollectionPhase.PROXMOX, "Complete", 100.0)
 
         # Calculate total time
         total_time_ms = (time.perf_counter() - self._start_time) * 1000
@@ -174,6 +189,7 @@ class InfoGatherOrchestrator:
             hardware=self._hardware_info,
             network=self._network_info,
             software=self._software_info,
+            proxmox=self._proxmox_info,
             total_collection_time_ms=total_time_ms,
             collection_errors=self._errors.copy(),
             warnings=self._warnings.copy(),
@@ -269,6 +285,24 @@ class InfoGatherOrchestrator:
 
         return result.data
 
+    async def _collect_proxmox(self) -> ProxmoxInfo | None:
+        """Collect Proxmox VE information."""
+        collector = ProxmoxCollector(
+            environment_state=self._environment_state,
+            permissions_info=self._permissions_info,
+        )
+        result = await collector.safe_collect()
+
+        if not result.success:
+            self._errors.extend(result.errors)
+            return None
+
+        self._warnings.extend(result.warnings)
+        if result.data:
+            result.data.collection_duration_ms = result.duration_ms
+
+        return result.data
+
     async def _report_progress(
         self,
         phase: CollectionPhase,
@@ -338,6 +372,7 @@ class InfoGatherOrchestrator:
             'hardware': self._hardware_info,
             'network': self._network_info,
             'software': self._software_info,
+            'proxmox': self._proxmox_info,
         }
 
 
