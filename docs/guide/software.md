@@ -33,13 +33,13 @@ class SoftwareInfo:
     errors: list[str] = field(default_factory=list)
 ```
 
-## Serialization Caveats
+## Serialization
 
-The in-memory `SoftwareInfo` model is richer than the current JSON output:
+`SoftwareInfo.to_dict()` serializes the full in-memory model:
 
-- `to_dict()` emits `installed_packages_count` plus `installed_packages_sample`, not the full installed package list
-- it emits `system_services_count`/`system_services_sample` and `running_processes_sample`
-- `environment_variables` and `path_directories` are not currently serialized
+- it emits `installed_packages` (the full list) alongside `installed_packages_count`
+- it emits `system_services` and `running_processes` (full lists) alongside `system_services_count`/`process_count`
+- `environment_variables` and `path_directories` are serialized
 - `process_count` reflects the captured process list, and the collector currently caps that list at 100 entries
 
 ## Operating System Info

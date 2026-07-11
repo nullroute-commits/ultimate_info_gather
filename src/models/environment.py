@@ -157,6 +157,7 @@ class EnvironmentState:
             },
             "execution_mode": self.execution_mode.name,
             "platform_type": self.platform_type.name,
+            "environment_variables": self.environment_variables,
             "hostname": self.hostname,
             "is_root": self.is_root,
             "is_container": self.is_container,

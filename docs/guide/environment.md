@@ -26,7 +26,7 @@ class EnvironmentState:
 ```
 
 !!! note
-    `environment_variables` is collected on the in-memory dataclass but is not currently included in `EnvironmentState.to_dict()`, so it does not appear in the serialized JSON report.
+    `environment_variables` is collected on the in-memory dataclass and is included in `EnvironmentState.to_dict()`, so it appears in the serialized JSON report.
 
 ## Python Environment
 

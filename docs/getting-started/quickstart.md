@@ -172,7 +172,7 @@ Structured data suitable for programmatic processing:
 ```
 
 !!! note
-    The serialized JSON report is not a lossless dump of every in-memory dataclass field. For example, `EnvironmentState.environment_variables` is not currently serialized, and `SoftwareInfo` emits counts and samples instead of full package, service, and process lists.
+    The serialized JSON report is a lossless dump of the in-memory dataclass state. `EnvironmentState.environment_variables` is serialized, and `SoftwareInfo` emits full package, service, and process lists (with `*_count` fields retained for convenience).
 
 ### Markdown Report
 

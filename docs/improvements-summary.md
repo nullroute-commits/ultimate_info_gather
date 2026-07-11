@@ -193,7 +193,7 @@ async def _get_installed_packages(self) -> list[InstalledPackage]:
   "software": {
     "installed_packages_count": 247,
     "package_managers_available": ["opkg"],
-    "installed_packages_sample": [
+    "installed_packages": [
       {
         "name": "busybox",
         "version": "1.35.0-4",
