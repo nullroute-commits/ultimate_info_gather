@@ -71,15 +71,15 @@ async def main():
 asyncio.run(main())
 ```
 
-## Report shape caveats
+## Report shape
 
-The in-memory dataclasses are richer than the JSON output in a few places:
+The JSON output is a complete serialization of the in-memory dataclasses:
 
-- `EnvironmentState.environment_variables` is collected in memory but not currently serialized by `EnvironmentState.to_dict()`.
-- `SoftwareInfo.to_dict()` emits counts and samples (`installed_packages_sample`, `system_services_sample`, `running_processes_sample`) rather than the full lists.
-- `SoftwareInfo.process_count` currently reflects the number of captured processes, and process capture is capped at 100 entries.
+- `EnvironmentState.environment_variables` is serialized by `EnvironmentState.to_dict()`.
+- `SoftwareInfo.to_dict()` emits full inventories (`installed_packages`, `system_services`, `running_processes`) alongside the `*_count` fields, plus `environment_variables` and `path_directories`.
+- `SoftwareInfo.process_count` reflects the number of captured processes, and process capture is capped at 100 entries.
 
-See `docs/guide/reports.md` for the current serialized shape.
+See `docs/guide/reports.md` for the serialized shape.
 
 ## Repository layout
 

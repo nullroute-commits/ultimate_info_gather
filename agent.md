@@ -125,8 +125,8 @@ as active backlog items rather than aspirational roadmap items.
 
 | ID | Issue | Evidence | Impact |
 |----|-------|----------|--------|
-| BUG-01 | `EnvironmentState.to_dict()` omits `environment_variables` even though they are collected in memory. | `src/models/environment.py` | Serialized JSON loses part of the environment dataset. |
-| BUG-02 | `SoftwareInfo.to_dict()` exports only package/service/process samples instead of the full collected lists. | `src/models/software.py` | Downstream consumers cannot reconstruct full software inventory from saved reports. |
+| BUG-01 | ~~`EnvironmentState.to_dict()` omitted `environment_variables`.~~ Resolved: `environment_variables` is now serialized. | `src/models/environment.py` | Serialized JSON now includes the full environment dataset. |
+| BUG-02 | ~~`SoftwareInfo.to_dict()` exported only package/service/process samples.~~ Resolved: full `installed_packages`, `system_services`, and `running_processes` lists (plus `environment_variables` and `path_directories`) are now serialized. | `src/models/software.py` | Downstream consumers can reconstruct the full software inventory from saved reports. |
 | BUG-03 | `running_processes` data uses placeholder zeros/`None` for CPU, memory, thread count, cwd, and start time. | `src/collectors/software_collector.py` | Process inventory is structurally present but operationally incomplete. |
 | BUG-04 | `system_services` data leaves `is_enabled`, `pid`, `user`, `start_time`, `memory_bytes`, and `cpu_percent` unset. | `src/collectors/software_collector.py` | Service inventory is too shallow for operational decisions. |
 | BUG-05 | Capability decoding is partial, not full Linux capability enumeration. | `src/collectors/permissions_collector.py` | Permission analysis can miss newer capabilities on modern kernels. |

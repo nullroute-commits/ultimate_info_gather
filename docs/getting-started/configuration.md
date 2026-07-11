@@ -117,4 +117,4 @@ The collectors inspect standard environment variables such as:
 | `PATH` | Executable search paths |
 
 !!! note
-    These values are available on the in-memory models, but the current JSON serializers do not emit every captured environment-derived field.
+    These values are available on the in-memory models and are emitted by the JSON serializers, including `EnvironmentState.environment_variables` and `SoftwareInfo.environment_variables`/`path_directories`.

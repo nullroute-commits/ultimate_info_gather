@@ -26,10 +26,10 @@ class SystemReport:
 
 ## Current Serialization Behavior
 
-The top-level structure is stable, but some nested sections intentionally or currently serialize summaries instead of full in-memory state:
+The top-level structure is stable. All in-memory collector state is serialized in the JSON report:
 
-- `environment` omits `environment_variables`
-- `software` emits counts and samples instead of full package, service, and process lists
+- `environment` includes `environment_variables`
+- `software` emits full package, service, and process inventories (with `*_count` fields retained for convenience), plus `environment_variables` and `path_directories`
 - `software.process_count` reflects the captured process list, and process capture is currently capped at 100 entries
 
 ## Output Formats
@@ -72,7 +72,7 @@ JSON structure:
 }
 ```
 
-Consumers should treat the serialized report as the source of truth for on-disk integrations instead of assuming every in-memory dataclass field is present.
+Consumers can treat the serialized report as a complete dump of the in-memory dataclass state; every captured collector field is present.
 
 ### Markdown Format
 
