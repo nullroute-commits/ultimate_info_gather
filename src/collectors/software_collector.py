@@ -6,6 +6,7 @@ Collects software information and determines access levels.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import platform
 import re
@@ -345,47 +346,189 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
         return None
 
     async def _get_system_services(self) -> list[SystemService]:
-        """Get system services."""
-        services = []
+        """
+        Get system services with full state and resource details.
 
-        # Try systemctl
+        Discovers loaded service units via ``systemctl list-units`` and enriches
+        each with enabled state, main PID, owning user, start time, and current
+        memory/CPU usage via batched ``systemctl show`` calls.
+        """
+        services: list[SystemService] = []
+
+        # Discover the set of loaded service units.
         ret, stdout, _ = await self.run_command(
             ['systemctl', 'list-units', '--type=service', '--all', '--no-pager', '--plain'],
             timeout=30,
         )
 
-        if ret == 0 and stdout:
-            lines = stdout.strip().split('\n')
-            for line in lines[1:]:  # Skip header
-                parts = line.split()
-                if len(parts) >= 4:
-                    name = parts[0].replace('.service', '')
+        if ret != 0 or not stdout:
+            return services
 
-                    # Determine state
-                    state = ServiceState.UNKNOWN
-                    if 'running' in line.lower():
-                        state = ServiceState.RUNNING
-                    elif 'dead' in line.lower() or 'inactive' in line.lower():
-                        state = ServiceState.STOPPED
-                    elif 'failed' in line.lower():
-                        state = ServiceState.FAILED
+        unit_names: list[str] = []
+        for line in stdout.strip().split('\n')[1:]:  # Skip header
+            parts = line.split()
+            if parts and parts[0].endswith('.service'):
+                unit_names.append(parts[0])
 
-                    services.append(SystemService(
-                        name=name,
-                        display_name=None,
-                        description=' '.join(parts[4:]) if len(parts) > 4 else None,
-                        state=state,
-                        is_enabled=False,  # Would need separate query
-                        pid=None,
-                        user=None,
-                        start_time=None,
-                        memory_bytes=None,
-                        cpu_percent=None,
-                        service_type='systemd',
-                        can_control=os.geteuid() == 0 if hasattr(os, 'geteuid') else False,
-                    ))
+        if not unit_names:
+            return services
+
+        # Enrich units in batches via `systemctl show`.
+        can_control = os.geteuid() == 0 if hasattr(os, 'geteuid') else False
+        properties = (
+            'Id,Description,LoadState,ActiveState,SubState,UnitFileState,'
+            'MainPID,User,ExecMainStartTimestamp,MemoryCurrent,CPUUsageNSec'
+        )
+        show_data: dict[str, dict[str, str]] = {}
+        for i in range(0, len(unit_names), 50):
+            batch = unit_names[i:i + 50]
+            ret, stdout, _ = await self.run_command(
+                ['systemctl', 'show', *batch, f'--property={properties}'],
+                timeout=30,
+            )
+            if ret == 0 and stdout:
+                show_data.update(self._parse_systemctl_show(stdout))
+
+        for unit in unit_names:
+            props = show_data.get(unit)
+            if props:
+                services.append(self._build_service_from_show(props, can_control))
+            else:
+                services.append(SystemService(
+                    name=unit.replace('.service', ''),
+                    display_name=None,
+                    description=None,
+                    state=ServiceState.UNKNOWN,
+                    is_enabled=False,
+                    pid=None,
+                    user=None,
+                    start_time=None,
+                    memory_bytes=None,
+                    cpu_percent=None,
+                    service_type='systemd',
+                    can_control=can_control,
+                ))
 
         return services
+
+    def _build_service_from_show(
+        self, props: dict[str, str], can_control: bool
+    ) -> SystemService:
+        """Build a :class:`SystemService` from parsed ``systemctl show`` output."""
+        name = props.get('Id', '').replace('.service', '')
+
+        state = self._map_service_state(
+            props.get('ActiveState', ''), props.get('SubState', '')
+        )
+
+        unit_file_state = props.get('UnitFileState', '')
+        is_enabled = unit_file_state in ('enabled', 'enabled-runtime')
+
+        pid: int | None = None
+        with contextlib.suppress(ValueError):
+            main_pid = int(props.get('MainPID', '0'))
+            pid = main_pid if main_pid > 0 else None
+
+        user_value = props.get('User', '').strip()
+        user = user_value or None
+
+        start_time = self._parse_systemd_timestamp(props.get('ExecMainStartTimestamp', ''))
+        memory_bytes = self._parse_systemd_counter(props.get('MemoryCurrent', ''))
+
+        cpu_percent: float | None = None
+        cpu_ns = self._parse_systemd_counter(props.get('CPUUsageNSec', ''))
+        if cpu_ns is not None and start_time is not None:
+            lifetime = (datetime.now() - start_time).total_seconds()
+            if lifetime > 0:
+                cpu_percent = round(max(0.0, 100.0 * (cpu_ns / 1e9) / lifetime), 2)
+
+        return SystemService(
+            name=name,
+            display_name=None,
+            description=props.get('Description') or None,
+            state=state,
+            is_enabled=is_enabled,
+            pid=pid,
+            user=user,
+            start_time=start_time,
+            memory_bytes=memory_bytes,
+            cpu_percent=cpu_percent,
+            service_type='systemd',
+            can_control=can_control,
+        )
+
+    @staticmethod
+    def _parse_systemctl_show(output: str) -> dict[str, dict[str, str]]:
+        """
+        Parse ``systemctl show`` output into ``{unit_id: {property: value}}``.
+
+        Properties are emitted one ``key=value`` per line, with unit blocks
+        separated by blank lines.
+        """
+        result: dict[str, dict[str, str]] = {}
+        block: dict[str, str] = {}
+
+        def flush(current: dict[str, str]) -> None:
+            unit_id = current.get('Id')
+            if unit_id:
+                result[unit_id] = current
+
+        for line in output.split('\n'):
+            if not line.strip():
+                if block:
+                    flush(block)
+                    block = {}
+                continue
+            key, sep, value = line.partition('=')
+            if sep:
+                block[key] = value
+        if block:
+            flush(block)
+
+        return result
+
+    @staticmethod
+    def _map_service_state(active_state: str, sub_state: str) -> ServiceState:
+        """Map systemd active/sub states to a :class:`ServiceState`."""
+        if active_state == 'failed' or sub_state == 'failed':
+            return ServiceState.FAILED
+        if sub_state == 'running' or active_state == 'active':
+            return ServiceState.RUNNING
+        if active_state == 'inactive':
+            return ServiceState.STOPPED
+        return ServiceState.UNKNOWN
+
+    @staticmethod
+    def _parse_systemd_timestamp(value: str) -> datetime | None:
+        """
+        Parse a systemd timestamp such as ``Sat 2026-08-15 03:07:57 UTC``.
+
+        Returns a naive :class:`datetime` (matching the rest of the report) or
+        ``None`` when the value is empty or cannot be parsed.
+        """
+        tokens = value.split()
+        if len(tokens) < 3:
+            return None
+        # tokens: [weekday, YYYY-MM-DD, HH:MM:SS, TZ?]
+        with contextlib.suppress(ValueError):
+            return datetime.strptime(f'{tokens[1]} {tokens[2]}', '%Y-%m-%d %H:%M:%S')
+        return None
+
+    @staticmethod
+    def _parse_systemd_counter(value: str) -> int | None:
+        """
+        Parse a systemd numeric counter (e.g. ``MemoryCurrent``).
+
+        Returns ``None`` for unset values (``[not set]``, empty, or the
+        ``UINT64_MAX`` sentinel used by systemd for "not available").
+        """
+        value = value.strip()
+        if not value or not value.isdigit():
+            return None
+        number = int(value)
+        if number >= 2**64 - 1:
+            return None
+        return number
 
     async def _get_init_system(self) -> str | None:
         """Detect the init system."""
@@ -477,66 +620,215 @@ class SoftwareCollector(BaseCollector[SoftwareInfo]):
         return runtimes
 
     async def _get_running_processes(self) -> list[RunningProcess]:
-        """Get running processes."""
-        processes = []
+        """
+        Get running processes with full per-process telemetry.
+
+        Reads CPU time, memory, thread count, start time, and working
+        directory for each process directly from ``/proc``. CPU usage is the
+        average over the process lifetime (matching ``ps`` ``%CPU``), which is
+        deterministic for a one-shot collector.
+        """
+        processes: list[RunningProcess] = []
+
+        # System-wide values needed to derive per-process metrics (read once).
+        ctx = await self._get_process_context()
+        clk_tck = ctx['clk_tck']
+        user_cache: dict[int, str] = {}
 
         try:
             proc_path = Path('/proc')
-            for entry in proc_path.iterdir():
-                if entry.name.isdigit():
-                    pid = int(entry.name)
+            # Iterate PIDs in ascending order for deterministic, reproducible
+            # reports regardless of the underlying /proc directory ordering.
+            pids = sorted(
+                int(entry.name)
+                for entry in proc_path.iterdir()
+                if entry.name.isdigit()
+            )
+            for pid in pids:
+                try:
+                    # Read process info (processes may exit mid-scan).
+                    comm = await self.read_file_async(
+                        f'/proc/{pid}/comm', silent_if_missing=True
+                    )
+                    cmdline = await self.read_file_async(
+                        f'/proc/{pid}/cmdline', silent_if_missing=True
+                    )
+                    status = await self.read_file_async(
+                        f'/proc/{pid}/status', silent_if_missing=True
+                    )
+                    stat = await self.read_file_async(
+                        f'/proc/{pid}/stat', silent_if_missing=True
+                    )
 
-                    try:
-                        # Read process info
-                        comm = await self.read_file_async(f'/proc/{pid}/comm')
-                        cmdline = await self.read_file_async(f'/proc/{pid}/cmdline')
-                        status = await self.read_file_async(f'/proc/{pid}/status')
-
-                        if not comm:
-                            continue
-
-                        name = comm.strip()
-                        cmd_parts = cmdline.replace('\x00', ' ').strip().split() if cmdline else []
-
-                        # Parse status
-                        user = 'unknown'
-                        proc_status = 'unknown'
-
-                        if status:
-                            for line in status.split('\n'):
-                                if line.startswith('Uid:'):
-                                    uid = int(line.split()[1])
-                                    try:
-                                        import pwd
-                                        user = pwd.getpwuid(uid).pw_name
-                                    except Exception:
-                                        user = str(uid)
-                                elif line.startswith('State:'):
-                                    proc_status = line.split()[1]
-
-                        processes.append(RunningProcess(
-                            pid=pid,
-                            name=name,
-                            cmdline=cmd_parts[:10],  # Limit cmdline length
-                            user=user,
-                            status=proc_status,
-                            cpu_percent=0.0,
-                            memory_percent=0.0,
-                            memory_bytes=0,
-                            num_threads=1,
-                            create_time=None,
-                            cwd=None,
-                        ))
-
-                        # Limit to first 100 processes
-                        if len(processes) >= 100:
-                            break
-                    except Exception:
+                    if not comm:
                         continue
+
+                    name = comm.strip()
+                    cmd_parts = cmdline.replace('\x00', ' ').strip().split() if cmdline else []
+
+                    # Parse status for user, state, memory, and threads.
+                    user = 'unknown'
+                    proc_status = 'unknown'
+                    memory_bytes = 0
+                    threads_from_status: int | None = None
+
+                    if status:
+                        for line in status.split('\n'):
+                            if line.startswith('Uid:'):
+                                uid = int(line.split()[1])
+                                user = self._resolve_username(uid, user_cache)
+                            elif line.startswith('State:'):
+                                proc_status = line.split()[1]
+                            elif line.startswith('VmRSS:'):
+                                with contextlib.suppress(ValueError, IndexError):
+                                    memory_bytes = int(line.split()[1]) * 1024
+                            elif line.startswith('Threads:'):
+                                with contextlib.suppress(ValueError, IndexError):
+                                    threads_from_status = int(line.split()[1])
+
+                    # Parse stat for CPU time, thread count, and start time.
+                    utime = stime = starttime = 0
+                    num_threads = threads_from_status or 1
+                    if stat:
+                        parsed = self._parse_proc_stat(stat)
+                        if parsed:
+                            utime, stime, stat_threads, starttime = parsed
+                            if threads_from_status is None:
+                                num_threads = stat_threads
+
+                    # Lifetime CPU usage percentage (ps-style).
+                    cpu_percent = 0.0
+                    proc_uptime = ctx['uptime_seconds'] - (starttime / clk_tck)
+                    if proc_uptime > 0:
+                        total_time = (utime + stime) / clk_tck
+                        cpu_percent = round(max(0.0, 100.0 * total_time / proc_uptime), 2)
+
+                    # Memory usage percentage of total physical memory.
+                    memory_percent = 0.0
+                    if ctx['mem_total_bytes'] > 0:
+                        memory_percent = round(
+                            100.0 * memory_bytes / ctx['mem_total_bytes'], 2
+                        )
+
+                    # Absolute process start time from boot time + start ticks.
+                    create_time = None
+                    if ctx['boot_time_epoch'] and starttime:
+                        with contextlib.suppress(ValueError, OverflowError, OSError):
+                            create_time = datetime.fromtimestamp(
+                                ctx['boot_time_epoch'] + starttime / clk_tck
+                            )
+
+                    # Current working directory (may be denied for other users).
+                    cwd: str | None = None
+                    with contextlib.suppress(OSError):
+                        cwd = os.readlink(f'/proc/{pid}/cwd')
+
+                    processes.append(RunningProcess(
+                        pid=pid,
+                        name=name,
+                        cmdline=cmd_parts[:10],  # Limit cmdline length
+                        user=user,
+                        status=proc_status,
+                        cpu_percent=cpu_percent,
+                        memory_percent=memory_percent,
+                        memory_bytes=memory_bytes,
+                        num_threads=num_threads,
+                        create_time=create_time,
+                        cwd=cwd,
+                    ))
+
+                    # Limit to first 100 processes
+                    if len(processes) >= 100:
+                        break
+                except Exception:
+                    continue
         except Exception as e:
             self.add_warning(f"Failed to get processes: {e}")
 
         return processes
+
+    async def _get_process_context(self) -> dict[str, float]:
+        """Read system-wide values used to derive per-process metrics."""
+        # Clock ticks per second (for CPU time and start-time math).
+        try:
+            clk_tck = float(os.sysconf('SC_CLK_TCK'))
+        except (ValueError, OSError, AttributeError):
+            clk_tck = 100.0
+        if clk_tck <= 0:
+            clk_tck = 100.0
+
+        # System uptime (seconds since boot).
+        uptime_seconds = 0.0
+        uptime = await self.read_file_async('/proc/uptime', silent_if_missing=True)
+        if uptime:
+            with contextlib.suppress(ValueError, IndexError):
+                uptime_seconds = float(uptime.split()[0])
+
+        # Boot time (epoch seconds) for absolute process start times.
+        boot_time_epoch = 0.0
+        stat = await self.read_file_async('/proc/stat', silent_if_missing=True)
+        if stat:
+            for line in stat.split('\n'):
+                if line.startswith('btime'):
+                    with contextlib.suppress(ValueError, IndexError):
+                        boot_time_epoch = float(line.split()[1])
+                    break
+
+        # Total physical memory (bytes) for memory percentage math.
+        mem_total_bytes = 0.0
+        meminfo = await self.read_file_async('/proc/meminfo', silent_if_missing=True)
+        if meminfo:
+            for line in meminfo.split('\n'):
+                if line.startswith('MemTotal:'):
+                    with contextlib.suppress(ValueError, IndexError):
+                        mem_total_bytes = float(line.split()[1]) * 1024
+                    break
+
+        return {
+            'clk_tck': clk_tck,
+            'uptime_seconds': uptime_seconds,
+            'boot_time_epoch': boot_time_epoch,
+            'mem_total_bytes': mem_total_bytes,
+        }
+
+    @staticmethod
+    def _parse_proc_stat(content: str) -> tuple[int, int, int, int] | None:
+        """
+        Parse ``/proc/<pid>/stat`` resource fields.
+
+        Returns ``(utime_ticks, stime_ticks, num_threads, starttime_ticks)`` or
+        ``None`` when the content cannot be parsed. The ``comm`` field (field 2)
+        is wrapped in parentheses and may itself contain spaces or parentheses,
+        so the remaining fields are taken after the final ``)``.
+        """
+        rparen = content.rfind(')')
+        if rparen == -1:
+            return None
+        # rest[0] is field 3 (state); field N maps to rest[N - 3].
+        rest = content[rparen + 1:].split()
+        if len(rest) < 20:
+            return None
+        try:
+            utime = int(rest[11])        # field 14
+            stime = int(rest[12])        # field 15
+            num_threads = int(rest[17])  # field 20
+            starttime = int(rest[19])    # field 22
+        except ValueError:
+            return None
+        return utime, stime, num_threads, starttime
+
+    @staticmethod
+    def _resolve_username(uid: int, cache: dict[int, str]) -> str:
+        """Resolve a uid to a username, caching lookups."""
+        if uid in cache:
+            return cache[uid]
+        try:
+            import pwd
+            name = pwd.getpwuid(uid).pw_name
+        except Exception:
+            name = str(uid)
+        cache[uid] = name
+        return name
 
     async def _check_can_install_packages(self) -> bool:
         """Check if we can install packages."""
