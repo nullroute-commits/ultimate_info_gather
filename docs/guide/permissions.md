@@ -52,7 +52,10 @@ These groups grant elevated access:
 
 ## Linux Capabilities
 
-The collector checks process capabilities:
+The collector decodes the effective capability set from `/proc/self/status`
+across the full range the running kernel supports. It reads
+`/proc/sys/kernel/cap_last_cap` to determine the highest valid capability bit,
+so newer capabilities are reported on modern kernels; the common ones include:
 
 | Capability | Purpose |
 |------------|---------|
@@ -61,6 +64,12 @@ The collector checks process capabilities:
 | `CAP_DAC_OVERRIDE` | Bypass file permissions |
 | `CAP_SYS_PTRACE` | Process tracing |
 | `CAP_NET_RAW` | Raw socket access |
+| `CAP_BPF` | Load and manage BPF programs |
+| `CAP_PERFMON` | Performance monitoring |
+| `CAP_CHECKPOINT_RESTORE` | Checkpoint/restore of processes |
+
+Any capability bit beyond the known named set is reported as `cap_<n>` so future
+kernel additions remain visible.
 
 ## File System Permissions
 

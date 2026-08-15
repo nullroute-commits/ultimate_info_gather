@@ -45,6 +45,12 @@ python3 main.py -v
 python3 main.py -q
 ```
 
+After `pip install`, the equivalent `info-gather` console command is also available:
+
+```bash
+info-gather -o ./reports -f json markdown
+```
+
 ## Use it from Python
 
 ```python
@@ -77,7 +83,8 @@ The JSON output is a complete serialization of the in-memory dataclasses:
 
 - `EnvironmentState.environment_variables` is serialized by `EnvironmentState.to_dict()`.
 - `SoftwareInfo.to_dict()` emits full inventories (`installed_packages`, `system_services`, `running_processes`) alongside the `*_count` fields, plus `environment_variables` and `path_directories`.
-- `SoftwareInfo.process_count` reflects the number of captured processes, and process capture is capped at 100 entries.
+- `running_processes` entries carry real per-process telemetry read from `/proc` (`cpu_percent`, `memory_percent`, `memory_bytes`, `num_threads`, `create_time`, `cwd`), and `system_services` entries are enriched via `systemctl show` (`is_enabled`, `pid`, `user`, `start_time`, `memory_bytes`, `cpu_percent`).
+- `SoftwareInfo.process_count` reflects the number of captured processes; processes are captured in ascending PID order and capture is capped at 100 entries.
 
 See `docs/guide/reports.md` for the serialized shape.
 
