@@ -457,6 +457,17 @@ async def main() -> int:
         return 1
 
 
+def run() -> int:
+    """
+    Synchronous entry point for console scripts.
+
+    Wraps the async :func:`main` coroutine in :func:`asyncio.run` so it can be
+    used directly as a ``console_scripts`` target (which must be callable
+    synchronously) without leaving the coroutine un-awaited.
+    """
+    return asyncio.run(main())
+
+
 if __name__ == '__main__':
     import sys
-    sys.exit(asyncio.run(main()))
+    sys.exit(run())

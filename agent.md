@@ -16,7 +16,7 @@ delivery priorities.
 ## Identity
 
 - **Project type**: Async Python 3.11+ Linux system inspection framework
-- **Primary entry points**: `main.py`, `src/orchestrator.py`
+- **Primary entry points**: `main.py`, `info-gather` console script, `src/orchestrator.py`
 - **Primary outputs**: JSON, Markdown, and text system reports
 - **Published mirror**: `docs/agent.md`
 
@@ -70,7 +70,8 @@ Implemented in `src/collectors/permissions_collector.py`:
 - Permission level classification (`ROOT`, `SUDO`, `PRIVILEGED`, `STANDARD`,
   `RESTRICTED`, `SANDBOXED`)
 - User and group inspection
-- Partial Linux capability decoding from `/proc/self/status`
+- Full Linux capability decoding across the kernel-supported range
+  (`/proc/sys/kernel/cap_last_cap`), with `cap_<n>` fallback naming
 - Filesystem permission checks for critical paths
 - SELinux and AppArmor presence/context checks
 - Non-interactive sudo probing
@@ -113,10 +114,13 @@ Implemented in `src/collectors/software_collector.py`:
   pacman, zypper, apk, snap, flatpak)
 - Python package listing via `pip list`
 - Init system detection (`systemd`, `upstart`, `sysvinit`, `openrc`)
-- Service discovery through `systemctl`
+- Service discovery through `systemctl`, enriched via batched `systemctl show`
+  with enabled state, main PID, owning user, start time, and memory/CPU usage
 - Container discovery through Docker and Podman
 - Runtime availability probing for Docker/Podman/containerd/cri-o/lxc/lxd
-- Running process snapshot from `/proc`
+- Running process snapshot from `/proc` with full per-process telemetry
+  (CPU %, memory bytes/percent, thread count, start time, and cwd), captured in
+  deterministic PID order
 
 ## Verified Current Bugs and Gaps
 
@@ -127,9 +131,9 @@ as active backlog items rather than aspirational roadmap items.
 |----|-------|----------|--------|
 | BUG-01 | ~~`EnvironmentState.to_dict()` omitted `environment_variables`.~~ Resolved: `environment_variables` is now serialized. | `src/models/environment.py` | Serialized JSON now includes the full environment dataset. |
 | BUG-02 | ~~`SoftwareInfo.to_dict()` exported only package/service/process samples.~~ Resolved: full `installed_packages`, `system_services`, and `running_processes` lists (plus `environment_variables` and `path_directories`) are now serialized. | `src/models/software.py` | Downstream consumers can reconstruct the full software inventory from saved reports. |
-| BUG-03 | `running_processes` data uses placeholder zeros/`None` for CPU, memory, thread count, cwd, and start time. | `src/collectors/software_collector.py` | Process inventory is structurally present but operationally incomplete. |
-| BUG-04 | `system_services` data leaves `is_enabled`, `pid`, `user`, `start_time`, `memory_bytes`, and `cpu_percent` unset. | `src/collectors/software_collector.py` | Service inventory is too shallow for operational decisions. |
-| BUG-05 | Capability decoding is partial, not full Linux capability enumeration. | `src/collectors/permissions_collector.py` | Permission analysis can miss newer capabilities on modern kernels. |
+| BUG-03 | ~~`running_processes` data used placeholder zeros/`None` for CPU, memory, thread count, cwd, and start time.~~ Resolved: per-process telemetry is now read from `/proc` (CPU %, memory bytes/percent, thread count, start time, and cwd). | `src/collectors/software_collector.py` | Process inventory now carries real operational telemetry. |
+| BUG-04 | ~~`system_services` data left `is_enabled`, `pid`, `user`, `start_time`, `memory_bytes`, and `cpu_percent` unset.~~ Resolved: services are enriched via batched `systemctl show`. | `src/collectors/software_collector.py` | Service inventory now includes enabled state, ownership, and resource usage. |
+| BUG-05 | ~~Capability decoding was partial, not full Linux capability enumeration.~~ Resolved: capabilities are decoded across the full kernel range (`/proc/sys/kernel/cap_last_cap`), including modern capabilities, with `cap_<n>` fallback names. | `src/collectors/permissions_collector.py` | Permission analysis covers the running kernel's full capability set. |
 | BUG-06 | MkDocs build emits duplicate `mkdocs_autorefs` warnings because API docs are generated in two locations. | `mkdocs.yml`, `docs/gen_ref_pages.py`, `docs/api/*.md` | Documentation builds are noisy and link resolution is ambiguous. |
 | BUG-07 | The previous `docs/agent.md` overstated implemented behavior relative to the actual collectors. | previous `docs/agent.md` vs `src/collectors/*` | The repository lacked a reliable capability source of truth. |
 

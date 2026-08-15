@@ -49,7 +49,7 @@ docs = [
 ]
 
 [project.scripts]
-info-gather = "src.orchestrator:main"
+info-gather = "src.orchestrator:run"
 
 [project.urls]
 Homepage = "https://github.com/nullroute-commits/ultimate_info_gather"

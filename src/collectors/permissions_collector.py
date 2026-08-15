@@ -55,6 +55,24 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
         '/usr/sbin',
     ]
 
+    # Full Linux capability names indexed by capability number. Kept in sync
+    # with <linux/capability.h> through CAP_CHECKPOINT_RESTORE (40).
+    CAPABILITY_NAMES = [
+        'cap_chown', 'cap_dac_override', 'cap_dac_read_search',
+        'cap_fowner', 'cap_fsetid', 'cap_kill', 'cap_setgid',
+        'cap_setuid', 'cap_setpcap', 'cap_linux_immutable',
+        'cap_net_bind_service', 'cap_net_broadcast', 'cap_net_admin',
+        'cap_net_raw', 'cap_ipc_lock', 'cap_ipc_owner', 'cap_sys_module',
+        'cap_sys_rawio', 'cap_sys_chroot', 'cap_sys_ptrace',
+        'cap_sys_pacct', 'cap_sys_admin', 'cap_sys_boot',
+        'cap_sys_nice', 'cap_sys_resource', 'cap_sys_time',
+        'cap_sys_tty_config', 'cap_mknod', 'cap_lease',
+        'cap_audit_write', 'cap_audit_control', 'cap_setfcap',
+        'cap_mac_override', 'cap_mac_admin', 'cap_syslog',
+        'cap_wake_alarm', 'cap_block_suspend', 'cap_audit_read',
+        'cap_perfmon', 'cap_bpf', 'cap_checkpoint_restore',
+    ]
+
     def __init__(self, environment_state: EnvironmentState | None = None):
         """
         Initialize with optional environment state.
@@ -191,7 +209,14 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
         return PermissionLevel.STANDARD
 
     async def _get_capabilities(self) -> list[CapabilityInfo]:
-        """Get Linux capabilities for the process."""
+        """
+        Get Linux capabilities for the process.
+
+        Decodes the effective, permitted, and inheritable capability sets from
+        ``/proc/self/status`` across the full range supported by the running
+        kernel (``/proc/sys/kernel/cap_last_cap``), naming any capability beyond
+        the known set as ``cap_<n>`` so newer kernels are fully covered.
+        """
         capabilities: list[CapabilityInfo] = []
 
         # Read capability info from /proc/self/status
@@ -209,30 +234,34 @@ class PermissionsCollector(BaseCollector[PermissionsInfo]):
             elif line.startswith('CapInh:'):
                 cap_inh = int(line.split(':')[1].strip(), 16)
 
-        # Define known capabilities
-        cap_names = [
-            'cap_chown', 'cap_dac_override', 'cap_dac_read_search',
-            'cap_fowner', 'cap_fsetid', 'cap_kill', 'cap_setgid',
-            'cap_setuid', 'cap_setpcap', 'cap_linux_immutable',
-            'cap_net_bind_service', 'cap_net_broadcast', 'cap_net_admin',
-            'cap_net_raw', 'cap_ipc_lock', 'cap_ipc_owner', 'cap_sys_module',
-            'cap_sys_rawio', 'cap_sys_chroot', 'cap_sys_ptrace',
-            'cap_sys_pacct', 'cap_sys_admin', 'cap_sys_boot',
-            'cap_sys_nice', 'cap_sys_resource', 'cap_sys_time',
-            'cap_sys_tty_config', 'cap_mknod', 'cap_lease',
-            'cap_audit_write', 'cap_audit_control', 'cap_setfcap',
-        ]
+        # Determine the highest capability supported by this kernel so newer
+        # capabilities are decoded even if they are not in the known name list.
+        last_cap = await self._get_last_cap()
 
-        for i, name in enumerate(cap_names):
-            if i < 64:  # Standard capabilities
-                capabilities.append(CapabilityInfo(
-                    name=name,
-                    effective=bool(cap_eff & (1 << i)),
-                    permitted=bool(cap_prm & (1 << i)),
-                    inheritable=bool(cap_inh & (1 << i)),
-                ))
+        for i in range(last_cap + 1):
+            name = self.CAPABILITY_NAMES[i] if i < len(self.CAPABILITY_NAMES) else f'cap_{i}'
+            capabilities.append(CapabilityInfo(
+                name=name,
+                effective=bool(cap_eff & (1 << i)),
+                permitted=bool(cap_prm & (1 << i)),
+                inheritable=bool(cap_inh & (1 << i)),
+            ))
 
         return capabilities
+
+    async def _get_last_cap(self) -> int:
+        """Return the highest capability number supported by the kernel."""
+        content = await self.read_file_async(
+            '/proc/sys/kernel/cap_last_cap', silent_if_missing=True
+        )
+        if content:
+            with contextlib.suppress(ValueError):
+                value = int(content.strip())
+                # Clamp to the 0..63 bitmask range.
+                if 0 <= value < 64:
+                    return value
+        # Fall back to the last capability we have a name for.
+        return len(self.CAPABILITY_NAMES) - 1
 
     async def _check_fs_permissions(self) -> dict[str, FileSystemPermission]:
         """Check filesystem permissions on critical paths."""

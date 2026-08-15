@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from src import orchestrator as orchestrator_module
 from src.orchestrator import CollectionPhase, CollectionProgress, InfoGatherOrchestrator
 
 
@@ -141,3 +142,23 @@ async def test_report_text_summary():
     assert summary
     assert 'SYSTEM INFORMATION REPORT' in summary
     assert 'END OF REPORT' in summary
+
+
+def test_run_entry_point_awaits_main(monkeypatch):
+    """The synchronous ``run`` wrapper actually awaits the async ``main``.
+
+    This guards against the console-script regression where ``main`` (a
+    coroutine) was invoked without being awaited, so collection never ran.
+    """
+    calls = {"ran": False}
+
+    async def fake_main() -> int:
+        calls["ran"] = True
+        return 0
+
+    monkeypatch.setattr(orchestrator_module, "main", fake_main)
+
+    exit_code = orchestrator_module.run()
+
+    assert exit_code == 0
+    assert calls["ran"] is True

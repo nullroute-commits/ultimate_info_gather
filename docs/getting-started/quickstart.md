@@ -12,6 +12,13 @@ The simplest way to use Ultimate Info Gather is via the command line:
 python3 main.py
 ```
 
+If you installed the package (`pip install -e .`), the same collector is
+available as the `info-gather` console command:
+
+```bash
+info-gather
+```
+
 This will:
 1. Collect all system information
 2. Generate reports in JSON, Markdown, and text formats

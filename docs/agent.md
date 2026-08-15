@@ -53,7 +53,7 @@ Implemented in `src/collectors/permissions_collector.py`:
 
 - Permission-level classification
 - User and group inspection
-- Partial Linux capability decoding
+- Full Linux capability decoding across the kernel-supported range
 - Filesystem permission checks on critical paths
 - SELinux and AppArmor presence/context checks
 - Non-interactive sudo probing
@@ -87,19 +87,19 @@ Implemented in `src/collectors/software_collector.py`:
 - Package discovery for `opkg`, `dpkg`, `rpm`, and `pacman`
 - Python package listing via `pip`
 - Init system detection
-- Service discovery via `systemctl`
+- Service discovery via `systemctl`, enriched via `systemctl show`
 - Container discovery via Docker and Podman
-- Running process snapshot from `/proc`
+- Running process snapshot from `/proc` with full per-process telemetry
 
 ## Verified Current Bugs and Gaps
 
 | ID | Issue | Impact |
 |----|-------|--------|
-| BUG-01 | Environment variables are collected in memory but omitted from serialized environment output. | Saved JSON is incomplete. |
-| BUG-02 | Software serialization exports samples instead of full package/service/process inventories. | Downstream integrations cannot rely on saved reports for full software state. |
-| BUG-03 | Process records keep placeholder resource values (`cpu_percent`, `memory_*`, thread count, cwd, start time). | Process inventory is shallow and not operationally actionable. |
-| BUG-04 | Service records leave several fields unset (`is_enabled`, pid/user, resource usage). | Service inventory is incomplete. |
-| BUG-05 | Capability decoding is partial rather than full Linux capability coverage. | Permission analysis can miss kernel capabilities. |
+| BUG-01 | ~~Environment variables are collected in memory but omitted from serialized environment output.~~ Resolved: `environment_variables` is serialized. | Saved JSON includes the full environment dataset. |
+| BUG-02 | ~~Software serialization exports samples instead of full package/service/process inventories.~~ Resolved: full inventories are serialized. | Downstream integrations can rely on saved reports for full software state. |
+| BUG-03 | ~~Process records keep placeholder resource values (`cpu_percent`, `memory_*`, thread count, cwd, start time).~~ Resolved: telemetry is read from `/proc`. | Process inventory carries real, actionable telemetry. |
+| BUG-04 | ~~Service records leave several fields unset (`is_enabled`, pid/user, resource usage).~~ Resolved: services are enriched via `systemctl show`. | Service inventory is complete. |
+| BUG-05 | ~~Capability decoding is partial rather than full Linux capability coverage.~~ Resolved: capabilities are decoded across the full kernel range. | Permission analysis covers the running kernel's capability set. |
 | BUG-06 | MkDocs builds emit duplicate `mkdocs_autorefs` warnings from overlapping reference generation. | Docs builds are noisy and ambiguous. |
 | BUG-07 | The prior spec overstated implementation details. | The repo lacked a dependable capability source of truth. |
 
@@ -120,13 +120,13 @@ Implemented in `src/collectors/software_collector.py`:
 
 ### Sprint 3 — Software inventory depth
 
-- [ ] Replace placeholder process telemetry with real metrics
-- [ ] Enrich service records with enabled state, pid/user, and resource details
+- [x] Replace placeholder process telemetry with real metrics
+- [x] Enrich service records with enabled state, pid/user, and resource details
 - [ ] Expand container metadata coverage
 
 ### Sprint 4 — Permission and platform accuracy
 
-- [ ] Expand Linux capability decoding
+- [x] Expand Linux capability decoding
 - [ ] Tighten permission classification across sandbox/container scenarios
 - [ ] Validate behavior across mainstream Linux, embedded, container, and VM targets
 

@@ -105,10 +105,17 @@ Systemd services:
 | `name` | Service name |
 | `state` | RUNNING, STOPPED, FAILED, INACTIVE, UNKNOWN |
 | `is_enabled` | Starts on boot |
-| `pid` | Process ID |
+| `pid` | Main process ID |
 | `user` | Running as user |
+| `start_time` | Main process start time |
+| `memory_bytes` | Current memory usage |
+| `cpu_percent` | Lifetime-average CPU usage |
 | `service_type` | systemd, init, etc. |
 | `can_control` | Can start/stop |
+
+Service records are enriched with a batched `systemctl show` query, which
+populates the enabled state, main PID, owning user, start time, and memory/CPU
+usage in a single pass over the discovered units.
 
 ## Init Systems
 
@@ -131,7 +138,7 @@ Detected runtimes:
 
 ## Running Processes
 
-Captured process sample:
+Captured process inventory (ascending PID order, first 100 entries):
 
 | Field | Description |
 |-------|-------------|
@@ -146,7 +153,11 @@ Captured process sample:
 | `num_threads` | Thread count |
 | `create_time` | Start time |
 
-The current implementation does not populate full per-process CPU and memory accounting and intentionally truncates the process capture list after 100 entries.
+Each captured process includes real per-process telemetry read from `/proc`:
+`cpu_percent` and `memory_percent` (lifetime-average CPU and resident memory
+share), `memory_bytes` (resident set size), `num_threads`, `create_time`, and
+`cwd`. Processes are captured in ascending PID order and the list is
+intentionally truncated after 100 entries.
 
 ## Access Capabilities
 
